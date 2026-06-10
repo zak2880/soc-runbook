@@ -1,0 +1,10 @@
+// Identity / triage — all Defender alerts for a specific device
+// Use at the start of any investigation to get the full picture before drilling into logs
+// Replace HOSTNAME before running
+// Ref: docs/01-malware-triage.md
+
+DeviceAlertEvents
+| where DeviceName == "HOSTNAME"
+| where Timestamp > ago(7d)
+| project Timestamp, AlertId, Title, Severity
+| order by Timestamp desc

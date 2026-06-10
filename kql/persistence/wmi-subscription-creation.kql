@@ -1,0 +1,14 @@
+// Persistence — WMI event subscription creation
+// Advanced persistence technique: malware registers WMI events that fire on system conditions
+// Does not appear in normal startup tools — requires specific hunting
+// Ref: docs/04-persistence.md
+
+DeviceEvents
+| where DeviceName == "HOSTNAME"
+| where ActionType in (
+    "WmiBindingCreated",
+    "WmiFilterCreated",
+    "WmiConsumerCreated")
+| where Timestamp > ago(7d)
+| project Timestamp, ActionType, InitiatingProcessFileName,
+    InitiatingProcessCommandLine, AdditionalFields

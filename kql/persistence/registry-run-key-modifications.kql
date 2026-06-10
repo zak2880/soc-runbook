@@ -1,0 +1,15 @@
+// Persistence — registry Run key modifications
+// Covers HKCU and HKLM Run, RunOnce, and Winlogon keys
+// Any modification around the time of a malware alert warrants investigation
+// Replace HOSTNAME or remove filter to hunt estate-wide
+// Ref: docs/04-persistence.md
+
+DeviceRegistryEvents
+| where DeviceName == "HOSTNAME"
+| where RegistryKey has_any (
+    "CurrentVersion\\Run",
+    "CurrentVersion\\RunOnce",
+    "Winlogon")
+| where Timestamp > ago(7d)
+| project Timestamp, RegistryKey, RegistryValueName,
+    RegistryValueData, InitiatingProcessFileName

@@ -1,0 +1,28 @@
+// C2 beaconing detection — interval regularity (catches jittered beacons)
+// Calculates standard deviation of gaps between connections to the same destination
+// Low StdDev relative to MeanInterval = mechanical timer = beaconing
+// Regularity score: 95%+ = almost certainly beaconing, 70-90% = investigate
+// Ref: docs/08-c2-beaconing.md
+
+DeviceNetworkEvents
+| where Timestamp > ago(24h)
+| where RemoteIPType != "Private"
+| sort by DeviceName, RemoteIP, Timestamp asc
+| extend PrevTime = prev(Timestamp, 1)
+| extend PrevDevice = prev(DeviceName, 1)
+| extend PrevIP = prev(RemoteIP, 1)
+| where DeviceName == PrevDevice and RemoteIP == PrevIP
+| extend IntervalSec = datetime_diff('second', Timestamp, PrevTime)
+| where IntervalSec between (5 .. 3600)
+| summarize
+    ConnCount = count(),
+    MeanInterval = round(avg(IntervalSec), 1),
+    StdDev = round(stdev(IntervalSec), 1),
+    MinGap = min(IntervalSec),
+    MaxGap = max(IntervalSec)
+    by DeviceName, RemoteIP, RemoteUrl
+| where ConnCount > 20
+| extend Regularity = round(
+    (1 - (StdDev / MeanInterval)) * 100, 1)
+| where Regularity > 70
+| order by Regularity desc

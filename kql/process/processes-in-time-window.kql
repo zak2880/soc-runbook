@@ -1,0 +1,12 @@
+// All process events on a device within a specific time window
+// Use to reconstruct execution chain around a detection timestamp
+// Replace HOSTNAME, start and end datetime before running
+// Ref: docs/01-malware-triage.md
+
+DeviceProcessEvents
+| where DeviceName == "HOSTNAME"
+| where Timestamp between (
+    datetime(2024-01-01T10:00) .. datetime(2024-01-01T11:00))
+| project Timestamp, InitiatingProcessFileName, FileName,
+    ProcessCommandLine, FolderPath, AccountName
+| order by Timestamp asc

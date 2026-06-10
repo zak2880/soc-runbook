@@ -1,0 +1,11 @@
+// Defence evasion — Windows event log clearing
+// Attackers clear logs to destroy forensic evidence before or after ransomware deployment
+// If logs are being cleared, assume active attacker covering tracks — escalate immediately
+// Ref: docs/09-escalation-triggers.md
+
+DeviceProcessEvents
+| where (FileName == "wevtutil.exe" and ProcessCommandLine has " cl ")
+    or (FileName == "wevtutil.exe" and ProcessCommandLine has "clear-log")
+| where Timestamp > ago(24h)
+| project Timestamp, DeviceName, AccountName,
+    ProcessCommandLine, InitiatingProcessFileName

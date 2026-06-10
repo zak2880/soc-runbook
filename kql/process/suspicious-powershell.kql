@@ -1,0 +1,17 @@
+// Suspicious PowerShell command-line flags
+// Covers: encoded commands, download cradles, fileless execution, evasion switches
+// Replace HOSTNAME or remove the device filter to run estate-wide
+// Ref: docs/02-process-investigation.md, docs/07-lolbins.md
+
+DeviceProcessEvents
+| where FileName =~ "powershell.exe"
+| where ProcessCommandLine has_any (
+    "-enc", "-EncodedCommand",
+    "IEX", "Invoke-Expression",
+    "DownloadString", "WebClient",
+    "-nop", "-NonInteractive",
+    "Reflection.Assembly", "FromBase64String",
+    "-w hidden", "-WindowStyle Hidden")
+| where Timestamp > ago(24h)
+| project Timestamp, DeviceName, AccountName,
+    ProcessCommandLine, InitiatingProcessFileName

@@ -1,0 +1,16 @@
+// Internal lateral movement — network scanning detection
+// Infected device probing internal IPs on admin/remote-access ports
+// High TargetCount on any port = active scanning for spread opportunities
+// Replace HOSTNAME or remove filter to run estate-wide
+// Ref: docs/03-network-investigation.md, docs/06-identity-and-credentials.md
+
+DeviceNetworkEvents
+| where DeviceName == "HOSTNAME"
+| where RemoteIPType == "Private"
+| where RemotePort in (445, 3389, 22, 135, 139, 5985, 5986)
+| where Timestamp > ago(2h)
+| summarize
+    TargetCount = dcount(RemoteIP),
+    TargetIPs = make_set(RemoteIP, 10)
+    by RemotePort, InitiatingProcessFileName
+| order by TargetCount desc

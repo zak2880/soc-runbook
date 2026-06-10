@@ -1,0 +1,15 @@
+// Identity — compromised user account appearing on multiple devices
+// Indicates lateral movement using stolen credentials
+// Run after identifying a compromised account to check for spread
+// Replace USERNAME before running
+// Ref: docs/06-identity-and-credentials.md, docs/01-malware-triage.md
+
+DeviceLogonEvents
+| where AccountName == "USERNAME"
+| where LogonType in ("Network", "RemoteInteractive")
+| where Timestamp > ago(24h)
+| summarize
+    Devices = make_set(DeviceName),
+    LogonCount = count()
+    by AccountName
+| where array_length(Devices) > 2

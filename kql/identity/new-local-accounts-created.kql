@@ -1,0 +1,12 @@
+// Identity — new local user accounts created on a device
+// Malware may create backdoor local admin accounts to maintain access after cleanup
+// Also check for accounts added to the local Administrators group
+// Ref: docs/06-identity-and-credentials.md
+
+// New accounts created
+DeviceEvents
+| where DeviceName == "HOSTNAME"
+| where ActionType == "UserAccountCreated"
+| where Timestamp > ago(7d)
+| project Timestamp, AccountName, InitiatingProcessFileName,
+    InitiatingProcessCommandLine

@@ -1,0 +1,11 @@
+// Persistence — scheduled task creation via schtasks.exe
+// Malware frequently creates scheduled tasks to re-execute the payload on reboot or login
+// Look for: random task names, Temp/AppData paths, PowerShell -enc in the action
+// Ref: docs/04-persistence.md
+
+DeviceProcessEvents
+| where DeviceName == "HOSTNAME"
+| where FileName == "schtasks.exe"
+| where ProcessCommandLine has "/create"
+| where Timestamp > ago(7d)
+| project Timestamp, ProcessCommandLine, InitiatingProcessFileName
