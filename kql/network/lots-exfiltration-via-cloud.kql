@@ -1,0 +1,20 @@
+// LOTS — high-volume uploads to cloud storage from non-browser process
+// Covers potential exfiltration via OneDrive, SharePoint, Google Drive, Dropbox, S3, Azure Blob
+// Threshold: >5MB sent — tune for your environment
+// Ref: docs/10-lots-cloud-c2.md
+
+DeviceNetworkEvents
+| where InitiatingProcessFileName !in~ (
+    "chrome.exe", "msedge.exe", "firefox.exe", "onedrive.exe",
+    "dropbox.exe", "teams.exe", "outlook.exe", "googledrivesync.exe")
+| where RemoteUrl has_any (
+    "onedrive.live.com", "sharepoint.com",
+    "drive.google.com", "dropboxapi.com",
+    "api.dropbox.com", "s3.amazonaws.com",
+    "blob.core.windows.net")
+| where SentBytes > 5000000
+| where Timestamp > ago(24h)
+| project Timestamp, DeviceName, AccountName,
+    RemoteUrl, SentBytes, ReceivedBytes,
+    InitiatingProcessFileName, InitiatingProcessCommandLine
+| order by SentBytes desc

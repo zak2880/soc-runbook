@@ -1,0 +1,19 @@
+// LOTS — scripting engines reaching cloud storage and collaboration services
+// Covers: OneDrive, SharePoint, Google Drive, GitHub, Discord, Telegram, Dropbox, Pastebin
+// Scripting engines have no legitimate reason to contact these services directly
+// Ref: docs/10-lots-cloud-c2.md
+
+DeviceNetworkEvents
+| where InitiatingProcessFileName in~ (
+    "powershell.exe", "pwsh.exe", "cmd.exe",
+    "wscript.exe", "cscript.exe", "mshta.exe",
+    "rundll32.exe", "regsvr32.exe")
+| where RemoteUrl has_any (
+    "onedrive.live.com", "sharepoint.com", "1drv.ms",
+    "drive.google.com", "docs.google.com",
+    "github.com", "raw.githubusercontent.com",
+    "discord", "telegram", "dropbox.com", "pastebin.com")
+| where Timestamp > ago(24h)
+| project Timestamp, DeviceName, AccountName,
+    RemoteUrl, RemoteIP,
+    InitiatingProcessFileName, InitiatingProcessCommandLine

@@ -1,0 +1,22 @@
+// LOTS (Living Off Trusted Sites) — non-browser process connecting to trusted cloud services
+// Covers: Discord CDN, Telegram API, GitHub raw, Pastebin, file-sharing sites
+// A hit from powershell, cmd, wscript, mshta, or unknown binary = suspicious
+// Prioritise over browser hits — browsers have legitimate reasons to visit these
+// Ref: docs/10-lots-cloud-c2.md
+
+DeviceNetworkEvents
+| where RemoteUrl has_any (
+    "cdn.discordapp.com", "discord.com/api",
+    "api.telegram.org",
+    "raw.githubusercontent.com", "gist.githubusercontent.com",
+    "pastebin.com", "paste.ee",
+    "transfer.sh", "file.io",
+    "anonfiles.com", "gofile.io")
+| where InitiatingProcessFileName !in~ (
+    "chrome.exe", "msedge.exe", "firefox.exe", "opera.exe",
+    "brave.exe", "iexplore.exe", "teams.exe",
+    "outlook.exe", "onedrive.exe", "dropbox.exe")
+| where Timestamp > ago(24h)
+| project Timestamp, DeviceName, AccountName,
+    RemoteUrl, RemoteIP, RemotePort,
+    InitiatingProcessFileName, InitiatingProcessCommandLine

@@ -1,0 +1,19 @@
+// Identity — Entra ID impossible travel detection
+// Flags accounts signing in from two different countries within a short window
+// Indicates credential compromise and use from a foreign location
+// Adjust the window (currently 1 hour) based on your environment
+// Ref: docs/06-identity-and-credentials.md
+
+let Window = 1h;
+AADSignInEventsBeta
+| where Timestamp > ago(7d)
+| where ErrorCode == 0  // successful sign-ins only
+| summarize
+    Locations = make_set(Country),
+    SignInCount = count(),
+    IPAddresses = make_set(IPAddress)
+    by AccountUpn, bin(Timestamp, Window)
+| where array_length(Locations) > 1
+| project Timestamp, AccountUpn, Locations,
+    SignInCount, IPAddresses
+| order by Timestamp desc

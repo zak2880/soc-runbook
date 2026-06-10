@@ -1,0 +1,23 @@
+// LOTS — dead-drop resolver detection
+// Scripting engine GETs a paste/storage service then immediately connects to a raw IP
+// The storage page contains the actual C2 IP — no hardcoded address in the binary
+// isempty(RemoteUrl) = direct IP connection with no hostname resolution
+// Ref: docs/10-lots-cloud-c2.md
+
+let SuspiciousProcesses = DeviceNetworkEvents
+| where InitiatingProcessFileName in~ (
+    "powershell.exe", "pwsh.exe", "wscript.exe", "cscript.exe",
+    "mshta.exe", "rundll32.exe")
+| where RemoteUrl has_any (
+    "pastebin.com", "raw.githubusercontent.com", "gist.github.com",
+    "docs.google.com", "drive.google.com", "api.telegram.org",
+    "cdn.discordapp.com")
+| project DeviceName, InitiatingProcessFileName,
+    InitiatingProcessId, Timestamp;
+DeviceNetworkEvents
+| where RemoteIPType == "Public"
+| where isempty(RemoteUrl)
+| join kind=inner SuspiciousProcesses on DeviceName, InitiatingProcessId
+| where Timestamp1 between (Timestamp .. (Timestamp + 5min))
+| project Timestamp, DeviceName, InitiatingProcessFileName,
+    RemoteIP, RemotePort
