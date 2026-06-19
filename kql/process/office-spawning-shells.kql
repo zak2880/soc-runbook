@@ -1,7 +1,7 @@
 // Office application spawning shell processes (phishing chain detector)
 // Covers: Word, Excel, PowerPoint, Outlook, OneNote spawning cmd/PowerShell/mshta/LOLBins
 // High-fidelity signal — legitimate Office apps should not spawn shells
-// Ref: docs/02-process-investigation.md
+// Ref: docs/scenarios/02-suspicious-process/investigation.md
 
 DeviceProcessEvents
 | where TimeGenerated > ago(7d)

@@ -2,7 +2,7 @@
 // Attacker has valid credentials and hammers the user with MFA prompts hoping
 // they approve one to make it stop
 // Threshold: 5+ MFA prompts in 10 minutes — tune for your environment
-// Ref: docs/06-identity-and-credentials.md
+// Ref: docs/scenarios/06-credential-compromise/investigation.md
 
 AADSignInEventsBeta
 | where TimeGenerated > ago(24h)

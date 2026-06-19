@@ -1,7 +1,7 @@
 // Identity — new local user accounts created on a device
 // Malware may create backdoor local admin accounts to maintain access after cleanup
 // Also check for accounts added to the local Administrators group
-// Ref: docs/06-identity-and-credentials.md
+// Ref: docs/scenarios/06-credential-compromise/investigation.md
 
 // New accounts created
 DeviceEvents

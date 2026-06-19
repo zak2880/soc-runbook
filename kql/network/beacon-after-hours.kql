@@ -1,7 +1,7 @@
 // C2 beaconing detection — after-hours outbound connections
 // Beacons continue when the user is asleep; legitimate user-driven traffic does not
 // Window: 01:00–05:00 UTC — adjust for your customer timezone if needed
-// Ref: docs/08-c2-beaconing.md
+// Ref: docs/scenarios/08-c2-beaconing/investigation.md
 
 DeviceNetworkEvents
 | where TimeGenerated > ago(7d)

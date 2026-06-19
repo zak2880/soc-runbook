@@ -2,7 +2,7 @@
 // Covers HKCU and HKLM Run, RunOnce, and Winlogon keys
 // Any modification around the time of a malware alert warrants investigation
 // Replace HOSTNAME or remove filter to hunt estate-wide
-// Ref: docs/04-persistence.md
+// Ref: docs/scenarios/04-persistence-detected/investigation.md
 
 DeviceRegistryEvents
 | where DeviceName == "HOSTNAME"

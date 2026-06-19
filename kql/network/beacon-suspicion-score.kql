@@ -2,7 +2,7 @@
 // Combines connection count, after-hours activity, and single-port consistency
 // Score >= 5 warrants investigation; tune threshold for your environment
 // Run this daily as a hunt query
-// Ref: docs/08-c2-beaconing.md
+// Ref: docs/scenarios/08-c2-beaconing/investigation.md
 
 DeviceNetworkEvents
 | where TimeGenerated > ago(24h)

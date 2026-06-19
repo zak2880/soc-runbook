@@ -2,7 +2,7 @@
 // Legitimate software installs to Program Files, not Temp/AppData/ProgramData/Public
 // Any executable created in these paths warrants investigation
 // Replace HOSTNAME or remove filter to hunt estate-wide
-// Ref: docs/05-file-artefacts.md
+// Ref: docs/scenarios/05-malicious-file/investigation.md
 
 DeviceFileEvents
 | where DeviceName == "HOSTNAME"

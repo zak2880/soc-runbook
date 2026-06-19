@@ -12,7 +12,7 @@ Full detail → [../08-c2-beaconing/investigation.md](../08-c2-beaconing/investi
 
 | Signal | What it looks like |
 |--------|--------------------|
-| High connection count | Same device → same external IP 50+ times per day |
+| High connection count | Same device → same external IP 30+ times per day |
 | Regular timing intervals | Low standard deviation = mechanical timer |
 | Uniform byte sizes | Identical bytes sent/received on every connection |
 | After-hours traffic | Connections at 1–5am with no user logged in |

@@ -1,7 +1,7 @@
 // Ransomware pre-cursor — VSS and shadow copy deletion
 // Attackers destroy backups before deploying ransomware to prevent recovery
 // Seeing these commands = ransomware is imminent or already running — escalate immediately
-// Ref: docs/09-escalation-triggers.md, docs/05-file-artefacts.md
+// Ref: docs/reference/escalation-triggers.md, docs/scenarios/05-malicious-file/investigation.md
 
 DeviceProcessEvents
 | where ProcessCommandLine has_any (

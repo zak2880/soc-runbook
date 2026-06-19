@@ -2,7 +2,7 @@
 // Ransomware renames/re-extensions hundreds of files per minute during encryption
 // Threshold: >20 renames per minute from a single process — tune for your environment
 // Replace HOSTNAME or remove filter to monitor estate-wide
-// Ref: docs/05-file-artefacts.md, docs/09-escalation-triggers.md
+// Ref: docs/scenarios/05-malicious-file/investigation.md, docs/reference/escalation-triggers.md
 
 DeviceFileEvents
 | where DeviceName == "HOSTNAME"

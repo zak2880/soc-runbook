@@ -1,7 +1,7 @@
 // LOLBin abuse — master sweep across all known Living Off the Land binaries
 // Covers: certutil, PowerShell, mshta, regsvr32, rundll32, wmic, bitsadmin
 // Run estate-wide as a daily hunt or scope to a specific device
-// Ref: docs/07-lolbins.md
+// Ref: docs/scenarios/07-lolbin-abuse/investigation.md
 
 DeviceProcessEvents
 | where TimeGenerated > ago(24h)

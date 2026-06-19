@@ -1,7 +1,7 @@
 // DNS beaconing / tunnelling detection
 // Hunts for DNS queries with base64-encoded subdomains — sign of DNS-based C2 or exfil
 // High UniqueSubs + high QueryCount = data chunked and exfiltrated via DNS
-// Ref: docs/08-c2-beaconing.md, docs/03-network-investigation.md
+// Ref: docs/scenarios/08-c2-beaconing/investigation.md, docs/scenarios/03-suspicious-network-activity/investigation.md
 
 DeviceNetworkEvents
 | where TimeGenerated > ago(24h)

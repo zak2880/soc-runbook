@@ -1,7 +1,7 @@
 // Ransomware / defence evasion — Defender disabled and audit logs cleared
 // Attackers disable security controls before deploying payload
 // Any of these = active attacker, not just malware — escalate immediately
-// Ref: docs/09-escalation-triggers.md
+// Ref: docs/reference/escalation-triggers.md
 
 // Defender disabled via registry
 DeviceRegistryEvents

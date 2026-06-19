@@ -2,7 +2,7 @@
 // Covers: Discord CDN, Telegram API, GitHub raw, Pastebin, file-sharing sites
 // A hit from powershell, cmd, wscript, mshta, or unknown binary = suspicious
 // Prioritise over browser hits — browsers have legitimate reasons to visit these
-// Ref: docs/10-lots-cloud-c2.md
+// Ref: docs/scenarios/09-lots-cloud-c2/investigation.md
 
 DeviceNetworkEvents
 | where RemoteUrl has_any (

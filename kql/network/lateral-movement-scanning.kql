@@ -2,7 +2,7 @@
 // Infected device probing internal IPs on admin/remote-access ports
 // High TargetCount on any port = active scanning for spread opportunities
 // Replace HOSTNAME or remove filter to run estate-wide
-// Ref: docs/03-network-investigation.md, docs/06-identity-and-credentials.md
+// Ref: docs/scenarios/03-suspicious-network-activity/investigation.md, docs/scenarios/06-credential-compromise/investigation.md
 
 DeviceNetworkEvents
 | where DeviceName == "HOSTNAME"

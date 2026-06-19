@@ -2,7 +2,7 @@
 // Indicates lateral movement using stolen credentials
 // Run after identifying a compromised account to check for spread
 // Replace USERNAME before running
-// Ref: docs/06-identity-and-credentials.md, docs/01-malware-triage.md
+// Ref: docs/scenarios/06-credential-compromise/investigation.md, docs/scenarios/01-malware-alert/investigation.md
 
 DeviceLogonEvents
 | where AccountName == "USERNAME"

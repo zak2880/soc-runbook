@@ -2,7 +2,7 @@
 // Flags accounts signing in from two different countries within a short window
 // Indicates credential compromise and use from a foreign location
 // Adjust the window (currently 1 hour) based on your environment
-// Ref: docs/06-identity-and-credentials.md
+// Ref: docs/scenarios/06-credential-compromise/investigation.md
 
 let Window = 1h;
 AADSignInEventsBeta

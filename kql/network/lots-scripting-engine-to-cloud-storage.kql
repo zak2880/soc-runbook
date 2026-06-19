@@ -1,7 +1,7 @@
 // LOTS — scripting engines reaching cloud storage and collaboration services
 // Covers: OneDrive, SharePoint, Google Drive, GitHub, Discord, Telegram, Dropbox, Pastebin
 // Scripting engines have no legitimate reason to contact these services directly
-// Ref: docs/10-lots-cloud-c2.md
+// Ref: docs/scenarios/09-lots-cloud-c2/investigation.md
 
 DeviceNetworkEvents
 | where InitiatingProcessFileName in~ (

@@ -2,7 +2,7 @@
 // Covers commonly used C2 and reverse shell ports not typical in business traffic
 // Excludes known legitimate uses where possible — tune the process exclusion list
 // for your environment
-// Ref: docs/03-network-investigation.md, docs/08-c2-beaconing.md
+// Ref: docs/scenarios/03-suspicious-network-activity/investigation.md, docs/scenarios/08-c2-beaconing/investigation.md
 
 DeviceNetworkEvents
 | where TimeGenerated > ago(24h)

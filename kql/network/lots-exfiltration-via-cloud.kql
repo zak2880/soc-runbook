@@ -1,7 +1,7 @@
 // LOTS — high-volume uploads to cloud storage from non-browser process
 // Covers potential exfiltration via OneDrive, SharePoint, Google Drive, Dropbox, S3, Azure Blob
 // Threshold: >5MB sent — tune for your environment
-// Ref: docs/10-lots-cloud-c2.md
+// Ref: docs/scenarios/09-lots-cloud-c2/investigation.md
 
 DeviceNetworkEvents
 | where InitiatingProcessFileName !in~ (

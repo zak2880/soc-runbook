@@ -1,7 +1,7 @@
 // File artefacts — check if a known-bad hash has appeared on other devices
 // Use after identifying a malicious file on one device to check for spread
 // Replace PASTE_HASH_HERE with the SHA256 from the Defender alert or VirusTotal
-// Ref: docs/05-file-artefacts.md, docs/01-malware-triage.md
+// Ref: docs/scenarios/05-malicious-file/investigation.md, docs/scenarios/01-malware-alert/investigation.md
 
 DeviceFileEvents
 | where SHA256 == "PASTE_HASH_HERE"

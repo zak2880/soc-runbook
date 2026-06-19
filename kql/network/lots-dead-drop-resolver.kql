@@ -2,7 +2,7 @@
 // Scripting engine GETs a paste/storage service then immediately connects to a raw IP
 // The storage page contains the actual C2 IP — no hardcoded address in the binary
 // isempty(RemoteUrl) = direct IP connection with no hostname resolution
-// Ref: docs/10-lots-cloud-c2.md
+// Ref: docs/scenarios/09-lots-cloud-c2/investigation.md
 
 let SuspiciousProcesses = DeviceNetworkEvents
 | where InitiatingProcessFileName in~ (

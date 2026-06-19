@@ -1,7 +1,7 @@
 // Persistence — new Windows services installed
 // Malware can install itself as a service for persistence and SYSTEM-level execution
 // Look for: unusual binary paths, non-standard service names, creation by unexpected processes
-// Ref: docs/04-persistence.md
+// Ref: docs/scenarios/04-persistence-detected/investigation.md
 
 DeviceEvents
 | where DeviceName == "HOSTNAME"

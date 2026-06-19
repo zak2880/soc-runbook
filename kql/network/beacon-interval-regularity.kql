@@ -2,7 +2,7 @@
 // Calculates standard deviation of gaps between connections to the same destination
 // Low StdDev relative to MeanInterval = mechanical timer = beaconing
 // Regularity score: 95%+ = almost certainly beaconing, 70-90% = investigate
-// Ref: docs/08-c2-beaconing.md
+// Ref: docs/scenarios/08-c2-beaconing/investigation.md
 
 DeviceNetworkEvents
 | where TimeGenerated > ago(24h)
