@@ -81,13 +81,17 @@ DeviceNetworkEvents
 ### High connection count
 ```kql
 DeviceNetworkEvents
-| where Timestamp > ago(24h)
+| where TimeGenerated > ago(24h)
 | where RemoteIPType != "Private"
 | where RemoteIP != ""
+| where isnotempty(AdditionalFields)
+| extend AdditionalFieldsData = parse_json(AdditionFields)
+| extend SentBytes = tolong(AdditionalFieldsData.orig_bytes)
+| where SentBytes > 0
 | summarize
     ConnectionCount = count(),
-    FirstSeen = min(Timestamp),
-    LastSeen = max(Timestamp),
+    FirstSeen = min(TimeGenerated),
+    LastSeen = max(TimeGenerated),
     Processes = make_set(InitiatingProcessFileName, 3),
     TotalBytesSent = sum(SentBytes)
     by DeviceName, RemoteIP, RemoteUrl, RemotePort
