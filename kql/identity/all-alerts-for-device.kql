@@ -5,6 +5,6 @@
 
 DeviceAlertEvents
 | where DeviceName == "HOSTNAME"
-| where Timestamp > ago(7d)
-| project Timestamp, AlertId, Title, Severity
-| order by Timestamp desc
+| where TimeGenerated > ago(7d)
+| project TimeGenerated, AlertId, Title, Severity
+| order by TimeGenerated desc

@@ -65,21 +65,21 @@ DeviceEvents
 | where DeviceName == "HOSTNAME"
 | where ActionType == "OpenProcessApiCall"
 | where AdditionalFields has "lsass"
-| where Timestamp > ago(24h)
-| project Timestamp, InitiatingProcessFileName,
+| where TimeGenerated > ago(24h)
+| project TimeGenerated, InitiatingProcessFileName,
     InitiatingProcessCommandLine, AdditionalFields
 ```
 
 ### Credential dumping tools in command lines
 ```kql
 DeviceProcessEvents
-| where Timestamp > ago(24h)
+| where TimeGenerated > ago(24h)
 | where ProcessCommandLine has_any (
     "sekurlsa::", "lsadump::", "mimikatz",
     "DCSync", "GetUserSPNs", "Invoke-Kerberoast",
     "GetNPUsers", "ntdsutil",
     "reg save HKLM\\SAM", "reg save HKLM\\SYSTEM")
-| project Timestamp, DeviceName, AccountName,
+| project TimeGenerated, DeviceName, AccountName,
     FileName, ProcessCommandLine
 ```
 
@@ -88,7 +88,7 @@ DeviceProcessEvents
 DeviceLogonEvents
 | where AccountName == "USERNAME"
 | where LogonType in ("Network", "RemoteInteractive")
-| where Timestamp > ago(24h)
+| where TimeGenerated > ago(24h)
 | summarize Devices = make_set(DeviceName), LogonCount = count() by AccountName
 | where array_length(Devices) > 2
 ```
@@ -96,22 +96,22 @@ DeviceLogonEvents
 ### Entra ID impossible travel
 ```kql
 AADSignInEventsBeta
-| where Timestamp > ago(7d)
+| where TimeGenerated > ago(7d)
 | where ErrorCode == 0
 | summarize Locations = make_set(Country), SignInCount = count()
-    by AccountUpn, bin(Timestamp, 1h)
+    by AccountUpn, bin(TimeGenerated, 1h)
 | where array_length(Locations) > 1
-| project Timestamp, AccountUpn, Locations, SignInCount
+| project TimeGenerated, AccountUpn, Locations, SignInCount
 ```
 
 ### MFA fatigue
 ```kql
 AADSignInEventsBeta
-| where Timestamp > ago(24h)
+| where TimeGenerated > ago(24h)
 | where AuthenticationRequirement == "multiFactorAuthentication"
 | where ErrorCode != 0
 | summarize MFAPrompts = count(), SourceIPs = make_set(IPAddress)
-    by AccountUpn, bin(Timestamp, 10m)
+    by AccountUpn, bin(TimeGenerated, 10m)
 | where MFAPrompts >= 5
 | order by MFAPrompts desc
 ```

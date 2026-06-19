@@ -5,13 +5,13 @@
 // Ref: docs/06-identity-and-credentials.md
 
 AADSignInEventsBeta
-| where Timestamp > ago(24h)
+| where TimeGenerated > ago(24h)
 | where AuthenticationRequirement == "multiFactorAuthentication"
 | where ErrorCode != 0  // failed sign-ins — MFA not yet approved
 | summarize
     MFAPrompts = count(),
     SourceIPs = make_set(IPAddress),
     Countries = make_set(Country)
-    by AccountUpn, bin(Timestamp, 10m)
+    by AccountUpn, bin(TimeGenerated, 10m)
 | where MFAPrompts >= 5
 | order by MFAPrompts desc

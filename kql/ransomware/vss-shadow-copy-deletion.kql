@@ -10,6 +10,6 @@ DeviceProcessEvents
     "vssadmin",
     "wmic shadowcopy delete",
     "bcdedit /set")
-| where Timestamp > ago(24h)
-| project Timestamp, DeviceName, AccountName,
+| where TimeGenerated > ago(24h)
+| project TimeGenerated, DeviceName, AccountName,
     ProcessCommandLine, InitiatingProcessFileName

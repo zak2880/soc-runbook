@@ -5,7 +5,7 @@
 
 DeviceFileEvents
 | where SHA256 == "PASTE_HASH_HERE"
-| where Timestamp > ago(7d)
+| where TimeGenerated > ago(7d)
 | summarize
     Count = count(),
     Devices = make_set(DeviceName),

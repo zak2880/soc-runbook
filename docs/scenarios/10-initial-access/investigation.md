@@ -32,9 +32,9 @@ Open Device Timeline in Defender XDR and scroll back before the alert. Look for 
 DeviceFileEvents
 | where DeviceName == "HOSTNAME"
 | where ActionType == "FileCreated"
-| where Timestamp between (datetime(YYYY-MM-DDThh:mm) .. datetime(YYYY-MM-DDThh:mm))
-| project Timestamp, FileName, FolderPath, SHA256, InitiatingProcessFileName
-| order by Timestamp asc
+| where TimeGenerated between (datetime(YYYY-MM-DDThh:mm) .. datetime(YYYY-MM-DDThh:mm))
+| project TimeGenerated, FileName, FolderPath, SHA256, InitiatingProcessFileName
+| order by TimeGenerated asc
 ```
 
 ### Step 3 — check browser download history
@@ -49,8 +49,8 @@ DeviceFileEvents
     ".exe", ".dll", ".zip", ".iso", ".img",
     ".doc", ".docx", ".xls", ".xlsm",
     ".pdf", ".lnk", ".js", ".vbs", ".hta", ".ps1")
-| where Timestamp > ago(24h)
-| project Timestamp, FileName, FolderPath, SHA256
+| where TimeGenerated > ago(24h)
+| project TimeGenerated, FileName, FolderPath, SHA256
 ```
 
 ---
@@ -67,8 +67,8 @@ DeviceProcessEvents
 | where FileName in~ (
     "cmd.exe", "powershell.exe", "wscript.exe",
     "mshta.exe", "rundll32.exe", "regsvr32.exe")
-| where Timestamp > ago(24h)
-| project Timestamp, FileName, FolderPath, ProcessCommandLine
+| where TimeGenerated > ago(24h)
+| project TimeGenerated, FileName, FolderPath, ProcessCommandLine
 ```
 
 ---
@@ -79,7 +79,7 @@ DeviceProcessEvents
 DeviceLogonEvents
 | where DeviceName == "HOSTNAME"
 | where LogonType == "RemoteInteractive"
-| where Timestamp > ago(24h)
+| where TimeGenerated > ago(24h)
 | summarize
     FailedAttempts = countif(ActionType == "LogonFailed"),
     SuccessfulLogons = countif(ActionType == "LogonSuccess"),

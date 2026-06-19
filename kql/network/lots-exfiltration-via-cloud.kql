@@ -13,8 +13,8 @@ DeviceNetworkEvents
     "api.dropbox.com", "s3.amazonaws.com",
     "blob.core.windows.net")
 | where SentBytes > 5000000
-| where Timestamp > ago(24h)
-| project Timestamp, DeviceName, AccountName,
+| where TimeGenerated > ago(24h)
+| project TimeGenerated, DeviceName, AccountName,
     RemoteUrl, SentBytes, ReceivedBytes,
     InitiatingProcessFileName, InitiatingProcessCommandLine
 | order by SentBytes desc

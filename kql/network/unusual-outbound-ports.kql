@@ -5,7 +5,7 @@
 // Ref: docs/03-network-investigation.md, docs/08-c2-beaconing.md
 
 DeviceNetworkEvents
-| where Timestamp > ago(24h)
+| where TimeGenerated > ago(24h)
 | where RemoteIPType != "Private"
 | where RemotePort in (
     4444,   // Metasploit default
@@ -28,7 +28,7 @@ DeviceNetworkEvents
 | where InitiatingProcessFileName !in~ (
     "chrome.exe", "msedge.exe", "firefox.exe",
     "teams.exe", "slack.exe", "zoom.exe")
-| project Timestamp, DeviceName, AccountName,
+| project TimeGenerated, DeviceName, AccountName,
     RemoteIP, RemotePort, RemoteUrl,
     InitiatingProcessFileName, InitiatingProcessCommandLine
-| order by Timestamp desc
+| order by TimeGenerated desc

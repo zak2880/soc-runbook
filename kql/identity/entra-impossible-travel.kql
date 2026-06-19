@@ -6,14 +6,14 @@
 
 let Window = 1h;
 AADSignInEventsBeta
-| where Timestamp > ago(7d)
+| where TimeGenerated > ago(7d)
 | where ErrorCode == 0  // successful sign-ins only
 | summarize
     Locations = make_set(Country),
     SignInCount = count(),
     IPAddresses = make_set(IPAddress)
-    by AccountUpn, bin(Timestamp, Window)
+    by AccountUpn, bin(TimeGenerated, Window)
 | where array_length(Locations) > 1
-| project Timestamp, AccountUpn, Locations,
+| project TimeGenerated, AccountUpn, Locations,
     SignInCount, IPAddresses
-| order by Timestamp desc
+| order by TimeGenerated desc

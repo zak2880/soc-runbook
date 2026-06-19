@@ -7,10 +7,10 @@
 DeviceFileEvents
 | where DeviceName == "HOSTNAME"
 | where ActionType == "FileRenamed"
-| where Timestamp > ago(2h)
+| where TimeGenerated > ago(2h)
 | summarize
     RenameCount = count(),
     SampleFiles = make_set(FileName, 5)
-    by bin(Timestamp, 1m), InitiatingProcessFileName
+    by bin(TimeGenerated, 1m), InitiatingProcessFileName
 | where RenameCount > 20
-| order by Timestamp asc
+| order by TimeGenerated asc

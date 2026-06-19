@@ -4,7 +4,7 @@
 // Ref: docs/07-lolbins.md
 
 DeviceProcessEvents
-| where Timestamp > ago(24h)
+| where TimeGenerated > ago(24h)
 | where (
     // certutil downloading or decoding
     (FileName =~ "certutil.exe"
@@ -30,6 +30,6 @@ DeviceProcessEvents
     or (FileName =~ "bitsadmin.exe"
         and ProcessCommandLine has_any("/transfer", "http", "SetNotifyCmdLine"))
 )
-| project Timestamp, DeviceName, AccountName, FileName,
+| project TimeGenerated, DeviceName, AccountName, FileName,
     ProcessCommandLine, InitiatingProcessFileName
-| order by Timestamp desc
+| order by TimeGenerated desc

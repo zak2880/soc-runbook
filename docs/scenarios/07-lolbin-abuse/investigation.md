@@ -91,7 +91,7 @@ bitsadmin.exe /SetNotifyCmdLine job1 C:\Temp\payload.exe NULL
 
 ```kql
 DeviceProcessEvents
-| where Timestamp > ago(24h)
+| where TimeGenerated > ago(24h)
 | where (
     (FileName =~ "certutil.exe" and ProcessCommandLine has_any("-urlcache","-decode","http"))
     or (FileName =~ "powershell.exe" and ProcessCommandLine has_any("-enc","IEX","DownloadString","-w hidden","Reflection.Assembly"))
@@ -101,7 +101,7 @@ DeviceProcessEvents
     or (FileName =~ "wmic.exe" and ProcessCommandLine has_any("process call create","shadowcopy delete","/node:"))
     or (FileName =~ "bitsadmin.exe" and ProcessCommandLine has_any("/transfer","http","SetNotifyCmdLine"))
 )
-| project Timestamp, DeviceName, AccountName, FileName,
+| project TimeGenerated, DeviceName, AccountName, FileName,
     ProcessCommandLine, InitiatingProcessFileName
-| order by Timestamp desc
+| order by TimeGenerated desc
 ```

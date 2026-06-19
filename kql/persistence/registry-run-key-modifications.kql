@@ -10,6 +10,6 @@ DeviceRegistryEvents
     "CurrentVersion\\Run",
     "CurrentVersion\\RunOnce",
     "Winlogon")
-| where Timestamp > ago(7d)
-| project Timestamp, RegistryKey, RegistryValueName,
+| where TimeGenerated > ago(7d)
+| project TimeGenerated, RegistryKey, RegistryValueName,
     RegistryValueData, InitiatingProcessFileName

@@ -71,11 +71,11 @@ Scripting engines connecting to: Discord CDN, Telegram API, Pastebin, GitHub raw
 ```kql
 DeviceNetworkEvents
 | where DeviceName == "HOSTNAME"
-| where Timestamp > ago(24h)
+| where TimeGenerated > ago(24h)
 | where RemoteIPType != "Private"
-| project Timestamp, RemoteIP, RemoteUrl, RemotePort,
+| project TimeGenerated, RemoteIP, RemoteUrl, RemotePort,
     InitiatingProcessFileName, SentBytes, ReceivedBytes
-| order by Timestamp asc
+| order by TimeGenerated asc
 ```
 
 ### High connection count
@@ -85,7 +85,7 @@ DeviceNetworkEvents
 | where RemoteIPType != "Private"
 | where RemoteIP != ""
 | where isnotempty(AdditionalFields)
-| extend AdditionalFieldsData = parse_json(AdditionFields)
+| extend AdditionalFieldsData = parse_json(AdditionalFields)
 | extend SentBytes = tolong(AdditionalFieldsData.orig_bytes)
 | where SentBytes > 0
 | summarize
@@ -105,7 +105,7 @@ DeviceNetworkEvents
 | where DeviceName == "HOSTNAME"
 | where RemoteIPType == "Private"
 | where RemotePort in (445, 3389, 22, 135, 139, 5985, 5986)
-| where Timestamp > ago(2h)
+| where TimeGenerated > ago(2h)
 | summarize TargetCount = dcount(RemoteIP) by RemotePort, InitiatingProcessFileName
 | order by TargetCount desc
 ```
@@ -113,11 +113,11 @@ DeviceNetworkEvents
 ### Unusual outbound ports
 ```kql
 DeviceNetworkEvents
-| where Timestamp > ago(24h)
+| where TimeGenerated > ago(24h)
 | where RemoteIPType != "Private"
 | where RemotePort in (4444, 4445, 1337, 8080, 8443, 8888, 9001, 50050, 31337)
 | where InitiatingProcessFileName !in~ (
     "chrome.exe", "msedge.exe", "firefox.exe", "teams.exe")
-| project Timestamp, DeviceName, RemoteIP, RemotePort,
+| project TimeGenerated, DeviceName, RemoteIP, RemotePort,
     InitiatingProcessFileName, InitiatingProcessCommandLine
 ```

@@ -7,7 +7,7 @@
 DeviceLogonEvents
 | where AccountName == "USERNAME"
 | where LogonType in ("Network", "RemoteInteractive")
-| where Timestamp > ago(24h)
+| where TimeGenerated > ago(24h)
 | summarize
     Devices = make_set(DeviceName),
     LogonCount = count()

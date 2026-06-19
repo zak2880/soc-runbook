@@ -68,8 +68,8 @@ DeviceFileEvents
 | where ActionType == "FileCreated"
 | where FileName endswith_any (".exe", ".dll", ".ps1", ".vbs", ".bat", ".hta")
 | where FolderPath has_any ("AppData", "Temp", "ProgramData", "Public")
-| where Timestamp > ago(24h)
-| project Timestamp, FileName, FolderPath, SHA256, InitiatingProcessFileName
+| where TimeGenerated > ago(24h)
+| project TimeGenerated, FileName, FolderPath, SHA256, InitiatingProcessFileName
 ```
 
 ### Ransomware — mass file renames
@@ -77,18 +77,18 @@ DeviceFileEvents
 DeviceFileEvents
 | where DeviceName == "HOSTNAME"
 | where ActionType == "FileRenamed"
-| where Timestamp > ago(2h)
+| where TimeGenerated > ago(2h)
 | summarize RenameCount = count(), SampleFiles = make_set(FileName, 5)
-    by bin(Timestamp, 1m), InitiatingProcessFileName
+    by bin(TimeGenerated, 1m), InitiatingProcessFileName
 | where RenameCount > 20
-| order by Timestamp asc
+| order by TimeGenerated asc
 ```
 
 ### Hash across estate
 ```kql
 DeviceFileEvents
 | where SHA256 == "PASTE_HASH_HERE"
-| where Timestamp > ago(7d)
+| where TimeGenerated > ago(7d)
 | summarize Devices = make_set(DeviceName), Count = count()
 | project Count, Devices
 ```
@@ -98,6 +98,6 @@ DeviceFileEvents
 DeviceProcessEvents
 | where ProcessCommandLine has_any (
     "delete shadows", "vssadmin", "wmic shadowcopy delete", "bcdedit /set")
-| where Timestamp > ago(24h)
-| project Timestamp, DeviceName, ProcessCommandLine, InitiatingProcessFileName
+| where TimeGenerated > ago(24h)
+| project TimeGenerated, DeviceName, ProcessCommandLine, InitiatingProcessFileName
 ```

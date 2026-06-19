@@ -4,7 +4,7 @@
 // Ref: docs/02-process-investigation.md
 
 DeviceProcessEvents
-| where Timestamp > ago(7d)
+| where TimeGenerated > ago(7d)
 | where InitiatingProcessFileName in~ (
     "winword.exe", "excel.exe", "powerpnt.exe",
     "outlook.exe", "onenote.exe", "msaccess.exe")
@@ -12,6 +12,6 @@ DeviceProcessEvents
     "cmd.exe", "powershell.exe", "wscript.exe", "cscript.exe",
     "mshta.exe", "regsvr32.exe", "rundll32.exe",
     "certutil.exe", "bitsadmin.exe", "wmic.exe")
-| project Timestamp, DeviceName, AccountName,
+| project TimeGenerated, DeviceName, AccountName,
     InitiatingProcessFileName, FileName, ProcessCommandLine
-| order by Timestamp desc
+| order by TimeGenerated desc

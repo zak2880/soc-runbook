@@ -67,8 +67,8 @@ DeviceRegistryEvents
     "CurrentVersion\\Run",
     "CurrentVersion\\RunOnce",
     "Winlogon")
-| where Timestamp > ago(7d)
-| project Timestamp, RegistryKey, RegistryValueName,
+| where TimeGenerated > ago(7d)
+| project TimeGenerated, RegistryKey, RegistryValueName,
     RegistryValueData, InitiatingProcessFileName
 ```
 
@@ -78,8 +78,8 @@ DeviceProcessEvents
 | where DeviceName == "HOSTNAME"
 | where FileName == "schtasks.exe"
 | where ProcessCommandLine has "/create"
-| where Timestamp > ago(7d)
-| project Timestamp, ProcessCommandLine, InitiatingProcessFileName
+| where TimeGenerated > ago(7d)
+| project TimeGenerated, ProcessCommandLine, InitiatingProcessFileName
 ```
 
 ### New services installed
@@ -87,8 +87,8 @@ DeviceProcessEvents
 DeviceEvents
 | where DeviceName == "HOSTNAME"
 | where ActionType == "ServiceInstalled"
-| where Timestamp > ago(7d)
-| project Timestamp, FileName, FolderPath, AdditionalFields
+| where TimeGenerated > ago(7d)
+| project TimeGenerated, FileName, FolderPath, AdditionalFields
 ```
 
 ### WMI subscription creation
@@ -97,8 +97,8 @@ DeviceEvents
 | where DeviceName == "HOSTNAME"
 | where ActionType in (
     "WmiBindingCreated", "WmiFilterCreated", "WmiConsumerCreated")
-| where Timestamp > ago(7d)
-| project Timestamp, ActionType, InitiatingProcessFileName,
+| where TimeGenerated > ago(7d)
+| project TimeGenerated, ActionType, InitiatingProcessFileName,
     InitiatingProcessCommandLine, AdditionalFields
 ```
 
@@ -108,6 +108,6 @@ DeviceFileEvents
 | where DeviceName == "HOSTNAME"
 | where FolderPath has "Start Menu\\Programs\\Startup"
 | where ActionType == "FileCreated"
-| where Timestamp > ago(7d)
-| project Timestamp, FileName, FolderPath, SHA256, InitiatingProcessFileName
+| where TimeGenerated > ago(7d)
+| project TimeGenerated, FileName, FolderPath, SHA256, InitiatingProcessFileName
 ```

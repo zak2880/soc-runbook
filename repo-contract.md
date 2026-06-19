@@ -28,7 +28,7 @@ All tables are standard Microsoft Defender XDR / Sentinel Advanced Hunting schem
 
 - Queries use `HOSTNAME`, `USERNAME`, `HASH`, and datetime placeholders — replace before running
 - Time windows default to `ago(24h)` or `ago(7d)` — adjust as needed
-- No live schema validation — queries are syntax-checked only (see [docs/kql-validation.md](docs/kql-validation.md))
+- No live schema validation — queries are syntax-checked only (see [docs/reference/kql-validation.md](docs/reference/kql-validation.md))
 
 ## Structure
 

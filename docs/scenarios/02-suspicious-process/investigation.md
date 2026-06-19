@@ -70,10 +70,10 @@ Always check the **full file path**, not just the process name.
 ```kql
 DeviceProcessEvents
 | where DeviceName == "HOSTNAME"
-| where Timestamp between (datetime(YYYY-MM-DDThh:mm) .. datetime(YYYY-MM-DDThh:mm))
-| project Timestamp, InitiatingProcessFileName, FileName,
+| where TimeGenerated between (datetime(YYYY-MM-DDThh:mm) .. datetime(YYYY-MM-DDThh:mm))
+| project TimeGenerated, InitiatingProcessFileName, FileName,
     ProcessCommandLine, FolderPath, AccountName
-| order by Timestamp asc
+| order by TimeGenerated asc
 ```
 
 ### Suspicious PowerShell
@@ -84,15 +84,15 @@ DeviceProcessEvents
     "-enc", "-EncodedCommand", "IEX", "Invoke-Expression",
     "DownloadString", "WebClient", "-nop",
     "Reflection.Assembly", "FromBase64String", "-w hidden")
-| where Timestamp > ago(24h)
-| project Timestamp, DeviceName, AccountName,
+| where TimeGenerated > ago(24h)
+| project TimeGenerated, DeviceName, AccountName,
     ProcessCommandLine, InitiatingProcessFileName
 ```
 
 ### Office spawning shells
 ```kql
 DeviceProcessEvents
-| where Timestamp > ago(7d)
+| where TimeGenerated > ago(7d)
 | where InitiatingProcessFileName in~ (
     "winword.exe", "excel.exe", "powerpnt.exe",
     "outlook.exe", "onenote.exe", "msaccess.exe")
@@ -100,15 +100,15 @@ DeviceProcessEvents
     "cmd.exe", "powershell.exe", "wscript.exe", "cscript.exe",
     "mshta.exe", "regsvr32.exe", "rundll32.exe",
     "certutil.exe", "bitsadmin.exe", "wmic.exe")
-| project Timestamp, DeviceName, AccountName,
+| project TimeGenerated, DeviceName, AccountName,
     InitiatingProcessFileName, FileName, ProcessCommandLine
-| order by Timestamp desc
+| order by TimeGenerated desc
 ```
 
 ### All LOLBin abuse
 ```kql
 DeviceProcessEvents
-| where Timestamp > ago(24h)
+| where TimeGenerated > ago(24h)
 | where (
     (FileName =~ "certutil.exe" and ProcessCommandLine has_any("-urlcache","-decode","http"))
     or (FileName =~ "powershell.exe" and ProcessCommandLine has_any("-enc","IEX","DownloadString","-w hidden","Reflection.Assembly"))
@@ -118,7 +118,7 @@ DeviceProcessEvents
     or (FileName =~ "wmic.exe" and ProcessCommandLine has_any("process call create","shadowcopy delete","/node:"))
     or (FileName =~ "bitsadmin.exe" and ProcessCommandLine has_any("/transfer","http","SetNotifyCmdLine"))
 )
-| project Timestamp, DeviceName, AccountName, FileName,
+| project TimeGenerated, DeviceName, AccountName, FileName,
     ProcessCommandLine, InitiatingProcessFileName
-| order by Timestamp desc
+| order by TimeGenerated desc
 ```

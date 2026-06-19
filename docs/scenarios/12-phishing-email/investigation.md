@@ -19,8 +19,8 @@ Search Threat Explorer by whichever IOC you have: sender, subject, attachment fi
 ```kql
 EmailEvents
 | where SenderFromAddress =~ "attacker@malicious.com"
-| where Timestamp > ago(7d)
-| project Timestamp, SenderFromAddress, RecipientEmailAddress,
+| where TimeGenerated > ago(7d)
+| project TimeGenerated, SenderFromAddress, RecipientEmailAddress,
     Subject, DeliveryAction, DeliveryLocation, NetworkMessageId
 ```
 
@@ -42,7 +42,7 @@ EmailEvents
 ```kql
 EmailEvents
 | where NetworkMessageId == "PASTE_MESSAGE_ID_HERE"
-| project Timestamp, RecipientEmailAddress,
+| project TimeGenerated, RecipientEmailAddress,
     DeliveryAction, DeliveryLocation
 ```
 
@@ -53,14 +53,14 @@ EmailEvents
 ```kql
 EmailAttachmentInfo
 | where NetworkMessageId == "PASTE_MESSAGE_ID_HERE"
-| project Timestamp, FileName, FileType, SHA256,
+| project TimeGenerated, FileName, FileType, SHA256,
     MalwareFamily, DetectionMethods
 ```
 
 ```kql
 DeviceFileEvents
 | where SHA256 == "PASTE_HASH_HERE"
-| where Timestamp > ago(7d)
+| where TimeGenerated > ago(7d)
 | summarize Devices = make_set(DeviceName), Count = count()
 ```
 
@@ -71,8 +71,8 @@ DeviceFileEvents
 ```kql
 UrlClickEvents
 | where Url has "SUSPICIOUS_DOMAIN_HERE"
-| where Timestamp > ago(7d)
-| project Timestamp, AccountUpn, Url, ActionType,
+| where TimeGenerated > ago(7d)
+| project TimeGenerated, AccountUpn, Url, ActionType,
     IsClickedThrough, IPAddress
 ```
 
@@ -85,14 +85,14 @@ UrlClickEvents
 ```kql
 let EmailTime = EmailEvents
 | where NetworkMessageId == "PASTE_MESSAGE_ID_HERE"
-| project EmailTime = Timestamp, RecipientEmailAddress;
+| project EmailTime = TimeGenerated, RecipientEmailAddress;
 DeviceProcessEvents
 | join kind=inner EmailTime
     on $left.AccountName == $right.RecipientEmailAddress
-| where Timestamp between ((EmailTime) .. (EmailTime + 30min))
-| project Timestamp, DeviceName, FileName,
+| where TimeGenerated between ((EmailTime) .. (EmailTime + 30min))
+| project TimeGenerated, DeviceName, FileName,
     ProcessCommandLine, InitiatingProcessFileName
-| order by Timestamp asc
+| order by TimeGenerated asc
 ```
 
 ---

@@ -6,6 +6,6 @@
 DeviceProcessEvents
 | where (FileName == "wevtutil.exe" and ProcessCommandLine has " cl ")
     or (FileName == "wevtutil.exe" and ProcessCommandLine has "clear-log")
-| where Timestamp > ago(24h)
-| project Timestamp, DeviceName, AccountName,
+| where TimeGenerated > ago(24h)
+| project TimeGenerated, DeviceName, AccountName,
     ProcessCommandLine, InitiatingProcessFileName

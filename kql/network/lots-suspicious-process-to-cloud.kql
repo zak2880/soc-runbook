@@ -16,7 +16,7 @@ DeviceNetworkEvents
     "chrome.exe", "msedge.exe", "firefox.exe", "opera.exe",
     "brave.exe", "iexplore.exe", "teams.exe",
     "outlook.exe", "onedrive.exe", "dropbox.exe")
-| where Timestamp > ago(24h)
-| project Timestamp, DeviceName, AccountName,
+| where TimeGenerated > ago(24h)
+| project TimeGenerated, DeviceName, AccountName,
     RemoteUrl, RemoteIP, RemotePort,
     InitiatingProcessFileName, InitiatingProcessCommandLine

@@ -11,5 +11,5 @@ DeviceFileEvents
     ".exe", ".dll", ".ps1", ".vbs", ".bat", ".hta", ".js", ".wsf")
 | where FolderPath has_any (
     "AppData", "Temp", "ProgramData", "Public")
-| where Timestamp > ago(24h)
-| project Timestamp, FileName, FolderPath, SHA256, InitiatingProcessFileName
+| where TimeGenerated > ago(24h)
+| project TimeGenerated, FileName, FolderPath, SHA256, InitiatingProcessFileName

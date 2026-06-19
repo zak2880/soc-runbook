@@ -2,7 +2,7 @@
 
 Index of all queries in this library. Each file contains a single query with a comment block explaining what it detects, what the key thresholds are, and which doc it relates to.
 
-All queries are syntax-checked by the harness in `tests/kql-smoke/`. See [docs/kql-validation.md](../docs/kql-validation.md) for details.
+All queries are syntax-checked by the harness in `tests/kql-smoke/`. See [docs/reference/kql-validation.md](../docs/reference/kql-validation.md) for details.
 
 Replace `HOSTNAME`, `USERNAME`, `PASTE_HASH_HERE`, and datetime placeholders before running.
 

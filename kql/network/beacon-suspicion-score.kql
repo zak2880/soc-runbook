@@ -5,12 +5,12 @@
 // Ref: docs/08-c2-beaconing.md
 
 DeviceNetworkEvents
-| where Timestamp > ago(24h)
+| where TimeGenerated > ago(24h)
 | where RemoteIPType != "Private"
 | where RemoteIP != ""
 | summarize
     TotalConns = count(),
-    NightConns = countif(hourofday(Timestamp) between (0 .. 6)),
+    NightConns = countif(hourofday(TimeGenerated) between (0 .. 6)),
     DistinctPorts = dcount(RemotePort),
     Processes = make_set(InitiatingProcessFileName, 3)
     by DeviceName, RemoteIP, RemoteUrl

@@ -12,6 +12,6 @@ DeviceProcessEvents
     "-nop", "-NonInteractive",
     "Reflection.Assembly", "FromBase64String",
     "-w hidden", "-WindowStyle Hidden")
-| where Timestamp > ago(24h)
-| project Timestamp, DeviceName, AccountName,
+| where TimeGenerated > ago(24h)
+| project TimeGenerated, DeviceName, AccountName,
     ProcessCommandLine, InitiatingProcessFileName

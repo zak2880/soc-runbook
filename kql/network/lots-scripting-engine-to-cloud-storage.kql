@@ -13,7 +13,7 @@ DeviceNetworkEvents
     "drive.google.com", "docs.google.com",
     "github.com", "raw.githubusercontent.com",
     "discord", "telegram", "dropbox.com", "pastebin.com")
-| where Timestamp > ago(24h)
-| project Timestamp, DeviceName, AccountName,
+| where TimeGenerated > ago(24h)
+| project TimeGenerated, DeviceName, AccountName,
     RemoteUrl, RemoteIP,
     InitiatingProcessFileName, InitiatingProcessCommandLine

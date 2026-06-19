@@ -5,8 +5,8 @@
 
 DeviceProcessEvents
 | where DeviceName == "HOSTNAME"
-| where Timestamp between (
+| where TimeGenerated between (
     datetime(2024-01-01T10:00) .. datetime(2024-01-01T11:00))
-| project Timestamp, InitiatingProcessFileName, FileName,
+| project TimeGenerated, InitiatingProcessFileName, FileName,
     ProcessCommandLine, FolderPath, AccountName
-| order by Timestamp asc
+| order by TimeGenerated asc

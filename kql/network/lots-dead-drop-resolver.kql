@@ -13,11 +13,11 @@ let SuspiciousProcesses = DeviceNetworkEvents
     "docs.google.com", "drive.google.com", "api.telegram.org",
     "cdn.discordapp.com")
 | project DeviceName, InitiatingProcessFileName,
-    InitiatingProcessId, Timestamp;
+    InitiatingProcessId, TimeGenerated;
 DeviceNetworkEvents
 | where RemoteIPType == "Public"
 | where isempty(RemoteUrl)
 | join kind=inner SuspiciousProcesses on DeviceName, InitiatingProcessId
-| where Timestamp1 between (Timestamp .. (Timestamp + 5min))
-| project Timestamp, DeviceName, InitiatingProcessFileName,
+| where TimeGenerated1 between (TimeGenerated .. (TimeGenerated + 5min))
+| project TimeGenerated, DeviceName, InitiatingProcessFileName,
     RemoteIP, RemotePort

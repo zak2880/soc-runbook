@@ -4,7 +4,7 @@
 // Ref: docs/08-c2-beaconing.md, docs/03-network-investigation.md
 
 DeviceNetworkEvents
-| where Timestamp > ago(24h)
+| where TimeGenerated > ago(24h)
 | where RemotePort == 53
 | extend Subdomain = tostring(split(RemoteUrl, ".")[0])
 | where strlen(Subdomain) > 12

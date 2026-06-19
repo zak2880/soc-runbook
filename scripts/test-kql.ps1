@@ -9,7 +9,7 @@
     Syntax-only — does not validate against a live Sentinel or Defender XDR
     schema. Placeholder values (HOSTNAME, USERNAME, PASTE_HASH_HERE) and
     unresolved table/column names are expected and will not cause failures.
-    See docs/kql-validation.md for details.
+    See docs/reference/kql-validation.md for details.
 
 .PARAMETER RepoRoot
     Override the repo root. Defaults to the parent of this script's directory.

@@ -51,8 +51,8 @@ DeviceNetworkEvents
     "github.com", "raw.githubusercontent.com",
     "cdn.discordapp.com", "api.telegram.org",
     "dropbox.com", "pastebin.com")
-| where Timestamp > ago(24h)
-| project Timestamp, DeviceName, AccountName, RemoteUrl, RemoteIP,
+| where TimeGenerated > ago(24h)
+| project TimeGenerated, DeviceName, AccountName, RemoteUrl, RemoteIP,
     InitiatingProcessFileName, InitiatingProcessCommandLine
 ```
 
@@ -66,13 +66,13 @@ let SuspiciousProcesses = DeviceNetworkEvents
     "pastebin.com", "raw.githubusercontent.com",
     "docs.google.com", "api.telegram.org", "cdn.discordapp.com")
 | project DeviceName, InitiatingProcessFileName,
-    InitiatingProcessId, Timestamp;
+    InitiatingProcessId, TimeGenerated;
 DeviceNetworkEvents
 | where RemoteIPType == "Public"
 | where isempty(RemoteUrl)
 | join kind=inner SuspiciousProcesses on DeviceName, InitiatingProcessId
-| where Timestamp1 between (Timestamp .. (Timestamp + 5min))
-| project Timestamp, DeviceName, InitiatingProcessFileName,
+| where TimeGenerated1 between (TimeGenerated .. (TimeGenerated + 5min))
+| project TimeGenerated, DeviceName, InitiatingProcessFileName,
     RemoteIP, RemotePort
 ```
 
@@ -86,8 +86,8 @@ DeviceNetworkEvents
     "onedrive.live.com", "sharepoint.com", "drive.google.com",
     "dropboxapi.com", "s3.amazonaws.com", "blob.core.windows.net")
 | where SentBytes > 5000000
-| where Timestamp > ago(24h)
-| project Timestamp, DeviceName, AccountName,
+| where TimeGenerated > ago(24h)
+| project TimeGenerated, DeviceName, AccountName,
     RemoteUrl, SentBytes, InitiatingProcessFileName
 | order by SentBytes desc
 ```

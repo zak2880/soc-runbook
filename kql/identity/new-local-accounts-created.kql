@@ -7,6 +7,6 @@
 DeviceEvents
 | where DeviceName == "HOSTNAME"
 | where ActionType == "UserAccountCreated"
-| where Timestamp > ago(7d)
-| project Timestamp, AccountName, InitiatingProcessFileName,
+| where TimeGenerated > ago(7d)
+| project TimeGenerated, AccountName, InitiatingProcessFileName,
     InitiatingProcessCommandLine

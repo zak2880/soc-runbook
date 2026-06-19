@@ -22,13 +22,13 @@ Expected output for a clean repo:
 ```
 soc-runbook — KQL syntax check
 Root : C:\...\soc-runbook
-Files: 30 (scratchpad/ excluded)
+Files: 32 (scratchpad/ excluded)
 ------------------------------------------------------------------------
 PASS  kql/network/beacon-after-hours.kql
 PASS  kql/network/beacon-high-connection-count.kql
 ...
 ------------------------------------------------------------------------
-Total: 30   Pass: 30   Fail: 0
+Total: 32   Pass: 32   Fail: 0
 ```
 
 ## What causes a FAIL

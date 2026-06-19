@@ -4,14 +4,14 @@
 // Ref: docs/08-c2-beaconing.md
 
 DeviceNetworkEvents
-| where Timestamp > ago(7d)
+| where TimeGenerated > ago(7d)
 | where RemoteIPType != "Private"
-| extend HourUTC = hourofday(Timestamp)
+| extend HourUTC = hourofday(TimeGenerated)
 | where HourUTC between (1 .. 5)
 | summarize
     NightConns = count(),
     Destinations = make_set(RemoteIP, 5),
     Processes = make_set(InitiatingProcessFileName, 3)
-    by DeviceName, bin(Timestamp, 1d)
+    by DeviceName, bin(TimeGenerated, 1d)
 | where NightConns > 10
 | order by NightConns desc

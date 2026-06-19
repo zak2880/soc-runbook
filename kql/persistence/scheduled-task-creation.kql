@@ -7,5 +7,5 @@ DeviceProcessEvents
 | where DeviceName == "HOSTNAME"
 | where FileName == "schtasks.exe"
 | where ProcessCommandLine has "/create"
-| where Timestamp > ago(7d)
-| project Timestamp, ProcessCommandLine, InitiatingProcessFileName
+| where TimeGenerated > ago(7d)
+| project TimeGenerated, ProcessCommandLine, InitiatingProcessFileName

@@ -24,8 +24,8 @@ DeviceProcessEvents
 | where ProcessCommandLine has_any (
     "AmsiUtils", "amsiInitFailed", "AmsiScanBuffer",
     "amsi.dll", "HookAmsi", "Bypass", "DisableAmsi")
-| where Timestamp > ago(24h)
-| project Timestamp, DeviceName, AccountName,
+| where TimeGenerated > ago(24h)
+| project TimeGenerated, DeviceName, AccountName,
     ProcessCommandLine, InitiatingProcessFileName
 ```
 
@@ -49,8 +49,8 @@ DeviceProcessEvents
     "fodhelper.exe", "eventvwr.exe",
     "computerdefaults.exe", "sdclt.exe", "cmstp.exe")
 | where FileName !in~ ("conhost.exe", "WerFault.exe")
-| where Timestamp > ago(24h)
-| project Timestamp, DeviceName, AccountName,
+| where TimeGenerated > ago(24h)
+| project TimeGenerated, DeviceName, AccountName,
     InitiatingProcessFileName, FileName, ProcessCommandLine
 ```
 
@@ -65,8 +65,8 @@ DeviceRegistryEvents
     "DisableAntiSpyware", "DisableRealtimeMonitoring",
     "DisableBehaviorMonitoring", "DisableIOAVProtection")
 | where RegistryValueData == "1"
-| where Timestamp > ago(24h)
-| project Timestamp, DeviceName, RegistryKey, InitiatingProcessFileName
+| where TimeGenerated > ago(24h)
+| project TimeGenerated, DeviceName, RegistryKey, InitiatingProcessFileName
 ```
 
 **EDR process killed:**
@@ -75,8 +75,8 @@ DeviceProcessEvents
 | where FileName =~ "taskkill.exe"
 | where ProcessCommandLine has_any (
     "MsMpEng", "csagent", "falconhost", "xagt", "cyserver", "bdagent")
-| where Timestamp > ago(24h)
-| project Timestamp, DeviceName, AccountName, ProcessCommandLine
+| where TimeGenerated > ago(24h)
+| project TimeGenerated, DeviceName, AccountName, ProcessCommandLine
 ```
 
 ---
@@ -90,8 +90,8 @@ DeviceProcessEvents
     and ProcessCommandLine has_any (" cl ", "clear-log"))
     or (FileName == "powershell.exe"
     and ProcessCommandLine has "Clear-EventLog")
-| where Timestamp > ago(24h)
-| project Timestamp, DeviceName, AccountName,
+| where TimeGenerated > ago(24h)
+| project TimeGenerated, DeviceName, AccountName,
     ProcessCommandLine, InitiatingProcessFileName
 ```
 
@@ -108,7 +108,7 @@ DeviceNetworkEvents
 | where InitiatingProcessFileName in~ (
     "notepad.exe", "calc.exe", "mspaint.exe", "wordpad.exe")
 | where RemoteIPType == "Public"
-| where Timestamp > ago(24h)
-| project Timestamp, DeviceName, InitiatingProcessFileName,
+| where TimeGenerated > ago(24h)
+| project TimeGenerated, DeviceName, InitiatingProcessFileName,
     RemoteIP, RemoteUrl, RemotePort
 ```

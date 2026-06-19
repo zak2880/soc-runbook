@@ -54,13 +54,13 @@ Looks random — but tiny standard deviation. The regularity KQL catches this.
 ### High connection count
 ```kql
 DeviceNetworkEvents
-| where Timestamp > ago(24h)
+| where TimeGenerated > ago(24h)
 | where RemoteIPType != "Private"
 | where RemoteIP != ""
 | summarize
     ConnectionCount = count(),
-    FirstSeen = min(Timestamp),
-    LastSeen = max(Timestamp),
+    FirstSeen = min(TimeGenerated),
+    LastSeen = max(TimeGenerated),
     Processes = make_set(InitiatingProcessFileName, 3),
     TotalBytesSent = sum(SentBytes)
     by DeviceName, RemoteIP, RemoteUrl, RemotePort
@@ -71,14 +71,14 @@ DeviceNetworkEvents
 ### Interval regularity
 ```kql
 DeviceNetworkEvents
-| where Timestamp > ago(24h)
+| where TimeGenerated > ago(24h)
 | where RemoteIPType != "Private"
-| sort by DeviceName, RemoteIP, Timestamp asc
-| extend PrevTime = prev(Timestamp, 1)
+| sort by DeviceName, RemoteIP, TimeGenerated asc
+| extend PrevTime = prev(TimeGenerated, 1)
 | extend PrevDevice = prev(DeviceName, 1)
 | extend PrevIP = prev(RemoteIP, 1)
 | where DeviceName == PrevDevice and RemoteIP == PrevIP
-| extend IntervalSec = datetime_diff('second', Timestamp, PrevTime)
+| extend IntervalSec = datetime_diff('second', TimeGenerated, PrevTime)
 | where IntervalSec between (5 .. 3600)
 | summarize
     ConnCount = count(),
@@ -96,12 +96,12 @@ Regularity: **95%+** = almost certainly beaconing. **70–90%** = investigate. *
 ### Combined suspicion score
 ```kql
 DeviceNetworkEvents
-| where Timestamp > ago(24h)
+| where TimeGenerated > ago(24h)
 | where RemoteIPType != "Private"
 | where RemoteIP != ""
 | summarize
     TotalConns = count(),
-    NightConns = countif(hourofday(Timestamp) between (0 .. 6)),
+    NightConns = countif(hourofday(TimeGenerated) between (0 .. 6)),
     DistinctPorts = dcount(RemotePort),
     Processes = make_set(InitiatingProcessFileName, 3)
     by DeviceName, RemoteIP, RemoteUrl

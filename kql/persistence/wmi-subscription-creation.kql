@@ -9,6 +9,6 @@ DeviceEvents
     "WmiBindingCreated",
     "WmiFilterCreated",
     "WmiConsumerCreated")
-| where Timestamp > ago(7d)
-| project Timestamp, ActionType, InitiatingProcessFileName,
+| where TimeGenerated > ago(7d)
+| project TimeGenerated, ActionType, InitiatingProcessFileName,
     InitiatingProcessCommandLine, AdditionalFields
