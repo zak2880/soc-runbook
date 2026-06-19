@@ -31,6 +31,7 @@ Each scenario folder contains an **investigation guide** (what to look for, how 
 | Doc | Covers |
 |-----|--------|
 | [Escalation triggers](docs/reference/escalation-triggers.md) | When to stop investigating and escalate — severity guide |
+| [Common false positives](docs/reference/common-false-positives.md) | Benign activity that pattern-matches to malicious behaviour — FP confirmation and closure |
 | [Threat intel enrichment](docs/reference/threat-intel-enrichment.md) | VirusTotal, AbuseIPDB, Shodan, URLScan, Defender TI |
 | [KQL validation](docs/reference/kql-validation.md) | Running the syntax checker, adding new queries |
 
