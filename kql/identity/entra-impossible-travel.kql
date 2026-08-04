@@ -5,7 +5,7 @@
 // Ref: docs/scenarios/06-credential-compromise/investigation.md
 
 let Window = 1h;
-AADSignInEventsBeta
+EntraIdSignInEvents
 | where TimeGenerated > ago(7d)
 | where ErrorCode == 0  // successful sign-ins only
 | summarize

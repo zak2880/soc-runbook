@@ -20,7 +20,7 @@ Built for daily use as an L2 CSOC Analyst. Queries are written against:
 - `DeviceAlertEvents`
 - `DeviceLogonEvents`
 - `DeviceEvents`
-- `AADSignInEventsBeta`
+- `EntraIdSignInEvents`
 
 All tables are standard Microsoft Defender XDR / Sentinel Advanced Hunting schema.
 

@@ -95,7 +95,7 @@ DeviceLogonEvents
 
 ### Entra ID impossible travel
 ```kql
-AADSignInEventsBeta
+EntraIdSignInEvents
 | where TimeGenerated > ago(7d)
 | where ErrorCode == 0
 | summarize Locations = make_set(Country), SignInCount = count()
@@ -106,7 +106,7 @@ AADSignInEventsBeta
 
 ### MFA fatigue
 ```kql
-AADSignInEventsBeta
+EntraIdSignInEvents
 | where TimeGenerated > ago(24h)
 | where AuthenticationRequirement == "multiFactorAuthentication"
 | where ErrorCode != 0

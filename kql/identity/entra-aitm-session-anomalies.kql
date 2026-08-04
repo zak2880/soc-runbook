@@ -15,13 +15,13 @@
 // Ref: docs/scenarios/06-credential-compromise/investigation.md, docs/scenarios/12-phishing-email/investigation.md
 
 let Window = 30m;
-let TokenReplay = AADSignInEventsBeta
+let TokenReplay = EntraIdSignInEvents
 | where TimeGenerated > ago(24h)
 | where ErrorCode == 0
 | where AuthenticationRequirement == "multiFactorAuthentication"
 | project AccountUpn, MfaTime = TimeGenerated, MfaIP = IPAddress, MfaCountry = Country
 | join kind=inner (
-    AADSignInEventsBeta
+    EntraIdSignInEvents
     | where TimeGenerated > ago(24h)
     | where ErrorCode == 0
     | where IsInteractive == false
@@ -31,7 +31,7 @@ let TokenReplay = AADSignInEventsBeta
 | where ActIP != MfaIP
 | extend Reason = "Token replay — activity IP differs from MFA sign-in IP"
 | project TimeGenerated = ActTime, AccountUpn, Reason, MfaIP, ActIP, MfaCountry, ActCountry;
-let ImpossibleTravelPostMfa = AADSignInEventsBeta
+let ImpossibleTravelPostMfa = EntraIdSignInEvents
 | where TimeGenerated > ago(24h)
 | where ErrorCode == 0
 | where AuthenticationRequirement == "multiFactorAuthentication"
@@ -42,13 +42,13 @@ let ImpossibleTravelPostMfa = AADSignInEventsBeta
 | project TimeGenerated, AccountUpn, Reason,
     MfaIP = tostring(IPs[0]), ActIP = tostring(IPs[-1]),
     MfaCountry = tostring(Countries[0]), ActCountry = tostring(Countries[-1]);
-let ComplianceDrop = AADSignInEventsBeta
+let ComplianceDrop = EntraIdSignInEvents
 | where TimeGenerated > ago(30d) and TimeGenerated < ago(24h)
 | where ErrorCode == 0
 | where IsCompliant == true
 | summarize by AccountUpn
 | join kind=inner (
-    AADSignInEventsBeta
+    EntraIdSignInEvents
     | where TimeGenerated > ago(24h)
     | where ErrorCode == 0
     | where IsCompliant == false or isempty(IsCompliant)
@@ -56,13 +56,13 @@ let ComplianceDrop = AADSignInEventsBeta
 | extend Reason = "No device compliance state after previously compliant sessions"
 | project TimeGenerated, AccountUpn, Reason,
     MfaIP = "", ActIP = IPAddress, MfaCountry = "", ActCountry = Country;
-let UserAgentMismatch = AADSignInEventsBeta
+let UserAgentMismatch = EntraIdSignInEvents
 | where TimeGenerated > ago(24h)
 | where ErrorCode == 0
 | where AuthenticationRequirement == "multiFactorAuthentication"
 | project AccountUpn, MfaTime = TimeGenerated, MfaUA = UserAgent
 | join kind=inner (
-    AADSignInEventsBeta
+    EntraIdSignInEvents
     | where TimeGenerated > ago(24h)
     | where ErrorCode == 0
     | project AccountUpn, ActTime = TimeGenerated, ActUA = UserAgent,

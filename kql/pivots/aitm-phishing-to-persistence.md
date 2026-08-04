@@ -1,9 +1,9 @@
 ## aitm-phishing-to-persistence.kql
 
 **MITRE:** T1556.006, T1098.001, T1114.003, T1528 — Modify Authentication Process → Account Manipulation: Additional Cloud Credentials → Email Forwarding Rule → Steal Application Access Token  
-**Tables:** AADSignInEventsBeta, CloudAppEvents  
+**Tables:** EntraIdSignInEvents, CloudAppEvents  
 **Platform:** Defender XDR Advanced Hunting only. Neither table is Sentinel-native — the closest Sentinel equivalents are `SigninLogs` (Azure AD connector) and `OfficeActivity` (Office 365 connector), which have different schemas; native Advanced Hunting also uses `Timestamp` rather than this repo's `TimeGenerated` alias  
-**Licence:** Microsoft Defender for Cloud Apps (for both `AADSignInEventsBeta` visibility and `CloudAppEvents`), or Entra ID P1/P2 with Identity Protection integrated into Defender XDR for the sign-in portion — Microsoft 365 E5 covers all of it  
+**Licence:** Microsoft Defender for Cloud Apps (for both `EntraIdSignInEvents` visibility and `CloudAppEvents`), or Entra ID P1/P2 with Identity Protection integrated into Defender XDR for the sign-in portion — Microsoft 365 E5 covers all of it  
 **When to use:** You've identified a device code or AiTM-flagged sign-in and need to know, in one pass, whether the attacker has already planted persistence — not just whether the sign-in itself was suspicious.
 
 ### Why this query
@@ -20,7 +20,7 @@ The 24-hour persistence window reflects that urgency — an attacker with a fres
 // for the persistence mechanisms an attacker plants once they have a live session —
 // the point of this query is to catch the attacker BEFORE they finish setting up
 // their way back in, not just after the fact
-// Chains: identity sign-in (AADSignInEventsBeta) -> MFA registration, inbox rules,
+// Chains: identity sign-in (EntraIdSignInEvents) -> MFA registration, inbox rules,
 // OAuth consent, and app registration (CloudAppEvents)
 // Uses CloudAppEvents as the single source table for the forward hunt (Defender
 // XDR Advanced Hunting, requires Defender for Cloud Apps). If your tenant is
@@ -33,7 +33,7 @@ The 24-hour persistence window reflects that urgency — an attacker with a fres
 let lookback = 7d;                // how far back to search for the initial sign-in
 let persistence_window = 24h;     // how far forward from the sign-in to hunt
 
-let CompromisedSignIns = AADSignInEventsBeta
+let CompromisedSignIns = EntraIdSignInEvents
 | where TimeGenerated > ago(lookback)
 | where AuthenticationProtocol == "deviceCode" or RiskLevelDuringSignIn != "none"
 | project AccountUpn, SignInTime = TimeGenerated, IPAddress, Country;

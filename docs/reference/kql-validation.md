@@ -6,7 +6,7 @@ The `tests/kql-smoke/` harness (`KqlSmoke.csproj`) parses every `.kql` file unde
 
 It does **not** validate against a live schema. The following are intentional and will not cause failures:
 - Placeholder values: `HOSTNAME`, `USERNAME`, `PASTE_HASH_HERE`, datetime literals
-- Unknown table names: `DeviceProcessEvents`, `AADSignInEventsBeta`, etc.
+- Unknown table names: `DeviceProcessEvents`, `EntraIdSignInEvents`, etc.
 - Unknown column names, functions, or variables
 
 ## Running it

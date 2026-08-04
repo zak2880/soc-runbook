@@ -1,9 +1,17 @@
+// ⚠️  TUNING REQUIRED — verify ActionType values before use in production
+// This query chains three data sources across a 24-hour window using ActionType
+// string matches for inbox rule creation, OAuth grants, and service principal events.
+// ActionType values vary by tenant configuration and licence tier.
+// Run each sub-query independently against your tenant first to confirm the
+// ActionType strings match what your environment actually logs.
+// Least battle-tested query in this repo — treat as a starting point, not a detection.
+//
 // Pivot — AiTM / device code phishing to persistence timeline
 // Starts from a suspicious device code or AiTM-flagged sign-in, then hunts forward
 // for the persistence mechanisms an attacker plants once they have a live session —
 // the point of this query is to catch the attacker BEFORE they finish setting up
 // their way back in, not just after the fact
-// Chains: identity sign-in (AADSignInEventsBeta) -> MFA registration, inbox rules,
+// Chains: identity sign-in (EntraIdSignInEvents) -> MFA registration, inbox rules,
 // OAuth consent, and app registration (CloudAppEvents)
 // Uses CloudAppEvents as the single source table for the forward hunt (Defender
 // XDR Advanced Hunting, requires Defender for Cloud Apps). If your tenant is
@@ -16,7 +24,7 @@
 let lookback = 7d;                // how far back to search for the initial sign-in
 let persistence_window = 24h;     // how far forward from the sign-in to hunt
 
-let CompromisedSignIns = AADSignInEventsBeta
+let CompromisedSignIns = EntraIdSignInEvents
 | where TimeGenerated > ago(lookback)
 | where AuthenticationProtocol == "deviceCode" or RiskLevelDuringSignIn != "none"
 | project AccountUpn, SignInTime = TimeGenerated, IPAddress, Country;

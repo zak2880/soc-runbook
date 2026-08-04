@@ -12,11 +12,11 @@
 // Business hours window: 07:00-19:00 UTC — adjust for your customer timezone
 // Ref: docs/scenarios/06-credential-compromise/investigation.md, docs/scenarios/12-phishing-email/investigation.md
 
-let KnownLocations = AADSignInEventsBeta
+let KnownLocations = EntraIdSignInEvents
 | where TimeGenerated between (ago(37d) .. ago(7d))
 | where ErrorCode == 0
 | summarize by AccountUpn, Country;
-AADSignInEventsBeta
+EntraIdSignInEvents
 | where TimeGenerated > ago(7d)
 | where AuthenticationProtocol == "deviceCode"
 | extend HourUTC = hourofday(TimeGenerated)

@@ -43,18 +43,19 @@ Everything else in the query — table name, columns, operators, `where`/`projec
 | `DeviceLogonEvents` | Yes — via the Microsoft Defender XDR connector | Yes (native) |
 | `DeviceAlertEvents` | No | Yes (native) |
 | `DeviceEvents` | Yes — via the Microsoft Defender XDR connector | Yes (native) |
-| `AADSignInEventsBeta` | No — the Sentinel equivalent is `SigninLogs` via the Azure AD / Entra ID connector, with a different schema | Yes (native) |
+| `EntraIdSignInEvents` | No — the Sentinel equivalent is `SigninLogs` via the Azure AD / Entra ID connector, with a different schema | Yes (native) |
 | `EmailEvents` | No — not exposed as a queryable Sentinel table even with the connector configured | Yes (native) |
 | `EmailAttachmentInfo` | No | Yes (native) |
 | `EmailUrlInfo` | No | Yes (native) |
 | `UrlClickEvents` | No | Yes (native) |
-| `CloudAppEvents` | No — Defender for Cloud Apps does not write to a Sentinel-native table | Yes (native) |
+| `CloudAppEvents` | Yes — no separate connector needed; exposed automatically once Microsoft Defender for Cloud Apps is deployed in the tenant's Defender XDR environment | Yes (native) |
 | `OfficeActivity` | Yes — via the **Office 365** data connector | No |
 
 **Connector notes:**
 - `OfficeActivity` requires the **Office 365** data connector to be enabled in your Sentinel workspace, and unified audit logging enabled in the tenant — without both, the table exists but stays empty.
-- `AADSignInEventsBeta` has no Sentinel path at all — don't go looking for a connector to enable. If you need sign-in log data in Sentinel, that's `SigninLogs` via the **Azure Active Directory** connector, and you'll need to rewrite the query against its schema (see Section 4).
+- `EntraIdSignInEvents` has no Sentinel path at all — don't go looking for a connector to enable. If you need sign-in log data in Sentinel, that's `SigninLogs` via the **Azure Active Directory** connector, and you'll need to rewrite the query against its schema (see Section 4).
 - `DeviceProcessEvents`, `DeviceNetworkEvents`, `DeviceFileEvents`, `DeviceRegistryEvents`, `DeviceLogonEvents`, and `DeviceEvents` all require the **Microsoft Defender XDR** connector in Sentinel to appear at all — without it, those table names simply don't exist in your workspace.
+- `CloudAppEvents` does **not** require a separate Sentinel connector — it's available in Sentinel automatically once Microsoft Defender for Cloud Apps is deployed in the tenant's Defender XDR environment, same schema as Advanced Hunting. As of February 2026, data lake tier ingestion for `CloudAppEvents` into Sentinel is generally available.
 
 ---
 
@@ -64,7 +65,7 @@ Everything else in the query — table name, columns, operators, `where`/`projec
 - **`DeviceAlertEvents` is only available in Advanced Hunting** — not in Sentinel Log Analytics directly. `all-alerts-for-device.kql` will not run in a Sentinel workspace.
 - **`EmailEvents` and the other email tables are Advanced Hunting only** — not available in Sentinel unless you're bringing individual alerts across via the Microsoft 365 Defender connector's incident/alert sync, which is not the same as being able to query the raw table.
 - **`OfficeActivity` is Sentinel-only**, via the Office 365 data connector — it does not exist in Advanced Hunting. Don't go looking for it there.
-- **`CloudAppEvents` is Advanced Hunting** — where a Sentinel-side equivalent exists via connector, expect schema differences serious enough that you should treat it as a different table, not a drop-in replacement.
+- **`CloudAppEvents` is available in both platforms with the same schema** — no separate Sentinel connector needed, just Microsoft Defender for Cloud Apps deployed in the tenant. Don't confuse it with `OfficeActivity`, which is a genuinely different, Sentinel-only table.
 - **Case sensitivity: `==` is case sensitive, `=~` is not.** Use `=~` for usernames, device names, and filenames — Windows itself is largely case-insensitive for these, and a hostname or account logged as `DESKTOP-ABC` won't match a hardcoded `"desktop-abc"` under `==`. Every query in this repo that filters on `FileName` uses `=~` for exactly this reason.
 - **`ago()` is relative to when the query runs, not to any fixed clock.** A query with `ago(24h)` run at 3am covers a completely different 24-hour window than the same query run at 9am the same day. If you're re-running a query to reproduce yesterday's results, use explicit `datetime()` bounds instead of `ago()`.
 
@@ -79,8 +80,8 @@ Everything else in the query — table name, columns, operators, `where`/`projec
 | `InitiatingProcessFileName` | `InitiatingProcessFileName` | Identical on Device* tables in both platforms |
 | `AccountName` | `AccountName` | Identical on Device* tables in both platforms |
 | `| join kind=inner (...) on Column` | `| join kind=inner (...) on Column` | Join syntax itself doesn't change between platforms — only the tables/columns on either side of it do |
-| `AADSignInEventsBeta` (whole table) | `SigninLogs` | Different table, different schema — e.g. `AccountUpn` becomes `UserPrincipalName`, `Country` has to be pulled out of the `LocationDetails` dynamic column instead of being a top-level field |
-| `CloudAppEvents` (whole table) | Connector-specific Sentinel table | Not a like-for-like rename — treat the Sentinel-side table as a different schema and re-check column names rather than assuming parity |
+| `EntraIdSignInEvents` (whole table) | `SigninLogs` | Different table, different schema — e.g. `AccountUpn` becomes `UserPrincipalName`, `Country` has to be pulled out of the `LocationDetails` dynamic column instead of being a top-level field |
+| `CloudAppEvents` (whole table) | `CloudAppEvents` | No conversion needed — same table, same schema, in both platforms (requires Defender for Cloud Apps) |
 | `OfficeActivity` (whole table) | *(no Advanced Hunting equivalent)* | This table only exists in Sentinel; there is nothing to convert it to |
 
 ---
@@ -90,9 +91,9 @@ Everything else in the query — table name, columns, operators, `where`/`projec
 | Table | Minimum licence |
 |-------|-----------------|
 | `DeviceProcessEvents`, `DeviceNetworkEvents`, `DeviceFileEvents`, `DeviceRegistryEvents`, `DeviceLogonEvents`, `DeviceAlertEvents`, `DeviceEvents` | Microsoft Defender for Endpoint Plan 2 (bundled in Microsoft 365 E5) |
-| `AADSignInEventsBeta` | Microsoft Entra ID P1 at minimum for sign-in log retention; full Advanced Hunting visibility additionally needs Microsoft Defender for Cloud Apps, or Entra ID P2 with Identity Protection integrated into Defender XDR |
+| `EntraIdSignInEvents` | Microsoft Entra ID P1 at minimum for sign-in log retention; full Advanced Hunting visibility additionally needs Microsoft Defender for Cloud Apps, or Entra ID P2 with Identity Protection integrated into Defender XDR |
 | `EmailEvents`, `EmailAttachmentInfo`, `EmailUrlInfo`, `UrlClickEvents` | Defender for Office 365 Plan 1 minimum (Plan 2 adds richer attachment/URL detonation verdicts, but the raw events exist on Plan 1) |
-| `CloudAppEvents` | Microsoft Defender for Cloud Apps |
+| `CloudAppEvents` | Microsoft Defender for Cloud Apps (as of February 2026, also available via Sentinel's data lake tier ingestion, now generally available) |
 | `OfficeActivity` | Any Microsoft 365 licence covering the audited workload (Exchange Online, SharePoint Online, etc.), **plus** the Sentinel Office 365 data connector configured and unified audit logging enabled in the tenant — the licence alone isn't sufficient without both |
 
 Microsoft 365 E5 covers every row in this table. If your tenant is on E3, expect to be missing at least Defender for Cloud Apps and Defender for Endpoint Plan 2 — check with the client before assuming a query in this repo will return anything.

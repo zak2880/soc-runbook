@@ -1,8 +1,8 @@
 ## entra-device-code-auth-flow.kql
 
 **MITRE:** T1556.006 — Modify Authentication Process: Multi-Factor Authentication  
-**Tables:** AADSignInEventsBeta  
-**Platform:** Defender XDR Advanced Hunting only. `AADSignInEventsBeta` is not a Sentinel-native table — the Sentinel equivalent is `SigninLogs` (via the Azure AD / Entra ID connector), which has a different schema; native Advanced Hunting also uses `Timestamp` rather than this repo's `TimeGenerated` alias  
+**Tables:** EntraIdSignInEvents  
+**Platform:** Defender XDR Advanced Hunting only. `EntraIdSignInEvents` is not a Sentinel-native table — the Sentinel equivalent is `SigninLogs` (via the Azure AD / Entra ID connector), which has a different schema; native Advanced Hunting also uses `Timestamp` rather than this repo's `TimeGenerated` alias  
 **Licence:** Microsoft Defender for Cloud Apps, or Entra ID P1/P2 with Identity Protection integrated into Defender XDR  
 **When to use:** You suspect device code phishing — a user reports being asked to enter a code at microsoft.com/devicelogin, or you're proactively hunting for this initial-access vector across the tenant.
 
@@ -29,11 +29,11 @@ The query surfaces every device-code sign-in regardless of location or time — 
 // Business hours window: 07:00-19:00 UTC — adjust for your customer timezone
 // Ref: docs/scenarios/06-credential-compromise/investigation.md, docs/scenarios/12-phishing-email/investigation.md
 
-let KnownLocations = AADSignInEventsBeta
+let KnownLocations = EntraIdSignInEvents
 | where TimeGenerated between (ago(37d) .. ago(7d))
 | where ErrorCode == 0
 | summarize by AccountUpn, Country;
-AADSignInEventsBeta
+EntraIdSignInEvents
 | where TimeGenerated > ago(7d)
 | where AuthenticationProtocol == "deviceCode"
 | extend HourUTC = hourofday(TimeGenerated)

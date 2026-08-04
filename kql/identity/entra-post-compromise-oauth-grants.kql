@@ -24,7 +24,7 @@
 //           app connector — OAuth consent events specifically require the
 //           Cloud App Security "App governance" add-on to be enabled
 // ============================================================
-let SuspiciousSignIns = AADSignInEventsBeta
+let SuspiciousSignIns = EntraIdSignInEvents
 | where TimeGenerated > ago(7d)
 | where AuthenticationProtocol == "deviceCode" or RiskLevelDuringSignIn != "none"
 | project AccountUpn, SignInTime = TimeGenerated;

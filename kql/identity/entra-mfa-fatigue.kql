@@ -4,7 +4,7 @@
 // Threshold: 5+ MFA prompts in 10 minutes — tune for your environment
 // Ref: docs/scenarios/06-credential-compromise/investigation.md
 
-AADSignInEventsBeta
+EntraIdSignInEvents
 | where TimeGenerated > ago(24h)
 | where AuthenticationRequirement == "multiFactorAuthentication"
 | where ErrorCode != 0  // failed sign-ins — MFA not yet approved

@@ -1,8 +1,8 @@
 ## entra-aitm-session-anomalies.kql
 
 **MITRE:** T1539 — Steal Web Session Cookie  
-**Tables:** AADSignInEventsBeta  
-**Platform:** Defender XDR Advanced Hunting only. `AADSignInEventsBeta` is not a Sentinel-native table — the Sentinel equivalent is `SigninLogs` (via the Azure AD / Entra ID connector), which has a different schema; native Advanced Hunting also uses `Timestamp` rather than this repo's `TimeGenerated` alias  
+**Tables:** EntraIdSignInEvents  
+**Platform:** Defender XDR Advanced Hunting only. `EntraIdSignInEvents` is not a Sentinel-native table — the Sentinel equivalent is `SigninLogs` (via the Azure AD / Entra ID connector), which has a different schema; native Advanced Hunting also uses `Timestamp` rather than this repo's `TimeGenerated` alias  
 **Licence:** Microsoft Defender for Cloud Apps, or Entra ID P1/P2 with Identity Protection integrated into Defender XDR  
 **When to use:** MFA was satisfied but something about the session still looks wrong — a risky sign-in alert fired despite successful MFA, or you're proactively hunting for AiTM reverse-proxy phishing (Evilginx, EvilProxy) across the tenant.
 
@@ -32,13 +32,13 @@ Each of the four checks reuses a window chosen to match how fast a stolen token 
 // Ref: docs/scenarios/06-credential-compromise/investigation.md, docs/scenarios/12-phishing-email/investigation.md
 
 let Window = 30m;
-let TokenReplay = AADSignInEventsBeta
+let TokenReplay = EntraIdSignInEvents
 | where TimeGenerated > ago(24h)
 | where ErrorCode == 0
 | where AuthenticationRequirement == "multiFactorAuthentication"
 | project AccountUpn, MfaTime = TimeGenerated, MfaIP = IPAddress, MfaCountry = Country
 | join kind=inner (
-    AADSignInEventsBeta
+    EntraIdSignInEvents
     | where TimeGenerated > ago(24h)
     | where ErrorCode == 0
     | where IsInteractive == false
@@ -48,7 +48,7 @@ let TokenReplay = AADSignInEventsBeta
 | where ActIP != MfaIP
 | extend Reason = "Token replay — activity IP differs from MFA sign-in IP"
 | project TimeGenerated = ActTime, AccountUpn, Reason, MfaIP, ActIP, MfaCountry, ActCountry;
-let ImpossibleTravelPostMfa = AADSignInEventsBeta
+let ImpossibleTravelPostMfa = EntraIdSignInEvents
 | where TimeGenerated > ago(24h)
 | where ErrorCode == 0
 | where AuthenticationRequirement == "multiFactorAuthentication"
@@ -59,13 +59,13 @@ let ImpossibleTravelPostMfa = AADSignInEventsBeta
 | project TimeGenerated, AccountUpn, Reason,
     MfaIP = tostring(IPs[0]), ActIP = tostring(IPs[-1]),
     MfaCountry = tostring(Countries[0]), ActCountry = tostring(Countries[-1]);
-let ComplianceDrop = AADSignInEventsBeta
+let ComplianceDrop = EntraIdSignInEvents
 | where TimeGenerated > ago(30d) and TimeGenerated < ago(24h)
 | where ErrorCode == 0
 | where IsCompliant == true
 | summarize by AccountUpn
 | join kind=inner (
-    AADSignInEventsBeta
+    EntraIdSignInEvents
     | where TimeGenerated > ago(24h)
     | where ErrorCode == 0
     | where IsCompliant == false or isempty(IsCompliant)
@@ -73,13 +73,13 @@ let ComplianceDrop = AADSignInEventsBeta
 | extend Reason = "No device compliance state after previously compliant sessions"
 | project TimeGenerated, AccountUpn, Reason,
     MfaIP = "", ActIP = IPAddress, MfaCountry = "", ActCountry = Country;
-let UserAgentMismatch = AADSignInEventsBeta
+let UserAgentMismatch = EntraIdSignInEvents
 | where TimeGenerated > ago(24h)
 | where ErrorCode == 0
 | where AuthenticationRequirement == "multiFactorAuthentication"
 | project AccountUpn, MfaTime = TimeGenerated, MfaUA = UserAgent
 | join kind=inner (
-    AADSignInEventsBeta
+    EntraIdSignInEvents
     | where TimeGenerated > ago(24h)
     | where ErrorCode == 0
     | project AccountUpn, ActTime = TimeGenerated, ActUA = UserAgent,

@@ -22,7 +22,7 @@
 //           (Parameters.ForwardTo etc.) mirror the underlying Exchange audit
 //           payload MDCA ingests, so they track Exchange schema changes
 // ============================================================
-let SuspiciousSignIns = AADSignInEventsBeta
+let SuspiciousSignIns = EntraIdSignInEvents
 | where TimeGenerated > ago(7d)
 | where AuthenticationProtocol == "deviceCode" or RiskLevelDuringSignIn != "none"
 | project AccountUpn, SignInTime = TimeGenerated;

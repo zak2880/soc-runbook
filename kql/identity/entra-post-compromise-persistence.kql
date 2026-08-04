@@ -28,7 +28,7 @@
 //           behind what appears natively in the Azure AD audit log — cross-check
 //           against Version 2 if something looks incomplete
 // ============================================================
-let SuspiciousSignIns = AADSignInEventsBeta
+let SuspiciousSignIns = EntraIdSignInEvents
 | where TimeGenerated > ago(7d)
 | where AuthenticationProtocol == "deviceCode" or RiskLevelDuringSignIn != "none"
 | project AccountUpn, SignInTime = TimeGenerated;
