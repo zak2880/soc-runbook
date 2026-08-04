@@ -6,6 +6,14 @@
 **Licence:** Microsoft Defender for Cloud Apps, or Entra ID P1/P2 with Identity Protection integrated into Defender XDR  
 **When to use:** MFA was satisfied but something about the session still looks wrong — a risky sign-in alert fired despite successful MFA, or you're proactively hunting for AiTM reverse-proxy phishing (Evilginx, EvilProxy) across the tenant.
 
+### Why this query
+
+An AiTM reverse proxy sits between the victim and Entra ID, transparently relaying every step of a real sign-in — including the MFA challenge — so the victim completes an entirely normal, successful authentication. What the attacker actually steals isn't a password or a second factor; it's the session token issued at the end of that exchange, which they lift from the proxied traffic and replay from their own infrastructure. Because the sign-in itself was genuine, there's no failed-MFA or wrong-password signal to catch. What's left are the downstream artefacts of the token being used somewhere the real user wasn't: a different IP picking up the session, the account appearing in two countries too close together in time, a "compliant device" session suddenly showing no compliance state, or a client string that doesn't match what approved the MFA prompt.
+
+Each of the four checks reuses a window chosen to match how fast a stolen token typically gets used. The 30-minute window on token replay and UserAgent mismatch is short enough that ordinary causes — a VPN rotating egress IPs, a user switching from Wi-Fi to cellular — are less likely to coincide by chance, but long enough to catch an attacker who doesn't act on the stolen token instantly. The impossible-travel window is 1 hour, reused directly from `entra-impossible-travel.kql` so the two queries agree on what "impossible" means across this repo.
+
+**What this won't catch:** An AiTM kit that's careful about IP hygiene — relaying through infrastructure in the same country or city as the victim — won't trip Token Replay or Impossible Travel, since those depend on the attacker's IP looking geographically wrong. A kit that proxies the *entire* session end-to-end, not just the login, may never show a distinct "activity from a different IP" at all. And an attacker who sits on a stolen token for longer than these windows before using it evades every check here, since they're all time-boxed. This query detects the aftermath of token theft, not the phishing email that delivered it — see `docs/scenarios/12-phishing-email/investigation.md` for the delivery-stage indicators, and pair this with `aitm-phishing-to-persistence.kql` to check whether the attacker has already moved on to planting persistence.
+
 ```kql
 // Identity — Adversary-in-the-Middle (AiTM) phishing session anomalies
 // AiTM reverse-proxy kits (Evilginx, Modlishka, EvilProxy) sit between the user and

@@ -6,6 +6,14 @@
 **Licence:** Microsoft Defender for Endpoint Plan 2 (bundled in Microsoft 365 E5)  
 **When to use:** You have a confirmed patient-zero device and an infection time (T0) and need to know, in one pass, whether the compromise actually spread — not just what happened locally on that device.
 
+### Why this query
+
+Once a device is compromised, the attacker's next move is usually to use whatever credentials were live on it to reach further into the network — PsExec, WMI, or WinRM remote execution against internal IPs, using accounts that had no prior reason to log into anywhere else. Seeing remote-execution tooling run *on* the patient-zero device only tells you the attacker tried; it doesn't tell you they succeeded. The actual spread event is a different signal entirely — one of those same accounts authenticating to a *different* device — which is why this query's real payload is the fourth stage, not the third.
+
+The 72-hour forward window is deliberately generous rather than tight, because lateral movement doesn't always happen in the first hour after compromise — a patient attacker may sit for a day or two doing reconnaissance before moving. There's no scoring or threshold beyond that window; every account, internal IP, and remote-exec tool seen in it is surfaced, and the analyst decides what's routine IT activity versus what isn't, using the false-positive guidance below.
+
+**What this won't catch:** The `AccountsUsed` set is built entirely from logons observed *on* the patient-zero device — an attacker who harvests a credential from memory or a config file for an account that never actually logged into that machine interactively (a service account password sitting in a script, for example) will pivot using an account this query never learns about, and `SpreadToOtherDevices` will silently miss it. This also depends heavily on an accurate T0: set it too late and you miss the real first movement; set it too early and you'll pull in unrelated pre-compromise activity that just adds noise to the timeline.
+
 ```kql
 // Pivot — device compromise to lateral movement timeline
 // Takes a compromised device and its infection time (T0), then follows the account(s)

@@ -6,6 +6,14 @@
 **Licence:** Defender for Office 365 Plan 1 (email/attachment events) **and** Defender for Endpoint Plan 2 (device-side events) — both bundled in Microsoft 365 E5  
 **When to use:** You've identified a suspicious email (by sender or `NetworkMessageId`) and need to know, in one pass, whether it actually led to code execution on any device — not just delivery.
 
+### Why this query
+
+A phishing email landing in an inbox tells you almost nothing about impact on its own — MDO delivery status only says the mail engine let it through, not what the recipient did with it. This pivot exists because "was delivered" and "was compromised" are genuinely different questions, and answering the second one by hand means manually carrying a SHA256 from Explorer into Advanced Hunting, then carrying it again from file events into process events. Chaining all three stages into one query removes that manual hand-off and puts the whole timeline — received, landed, executed — in front of you at once.
+
+There's no numeric threshold here; the "detection logic" is structural. The join key is SHA256, not filename, because attackers routinely rename the same payload across campaigns while the file content — and therefore its hash — stays constant. The execution stage is explicitly filtered to `TimeGenerated > FileLandedTime`, so the timeline can never show a process "executing" a file before that file existed on the device, which would otherwise be possible if an unrelated process happened to touch a file with a coincidentally matching hash.
+
+**What this won't catch:** Fileless or macro-based attachments where the malicious code runs inside Office's own process and never gets written to disk as a separate file with a matching hash — there's nothing for the `DeviceFileEvents` stage to join against, so the chain breaks at Stage 2 even if the document is malicious. Use `office-spawning-shells.kql` for that pattern instead, which looks at what Office spawns rather than what lands on disk. This query is also bounded by `lookback` (7 days by default) — a slow-burn case where the attachment sits unopened for weeks before someone finally clicks it will fall outside that window and return nothing; widen it if you're investigating an old email.
+
 ```kql
 // Pivot — phishing email to device compromise timeline
 // Starts from a known suspicious email, pulls its attachment hash, then follows that

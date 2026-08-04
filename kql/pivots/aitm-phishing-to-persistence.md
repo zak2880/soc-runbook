@@ -6,6 +6,14 @@
 **Licence:** Microsoft Defender for Cloud Apps (for both `AADSignInEventsBeta` visibility and `CloudAppEvents`), or Entra ID P1/P2 with Identity Protection integrated into Defender XDR for the sign-in portion — Microsoft 365 E5 covers all of it  
 **When to use:** You've identified a device code or AiTM-flagged sign-in and need to know, in one pass, whether the attacker has already planted persistence — not just whether the sign-in itself was suspicious.
 
+### Why this query
+
+Once a token is stolen, the reflexive first remediation is to reset the account's password — which does nothing against any of the four persistence mechanisms this query hunts for. A new MFA method survives a password reset. An inbox rule survives it. An OAuth grant survives it. A rogue service principal, being its own identity with its own credential, was never tied to the user's password in the first place. An attacker who's gone to the effort of device-code or AiTM phishing knows this, and typically moves to plant at least one of these before the victim (or the SOC) catches on and locks them out.
+
+The 24-hour persistence window reflects that urgency — an attacker with a freshly stolen token usually acts on it quickly, both because the token may be short-lived and because they don't know how long they have before detection. It deliberately queries `CloudAppEvents` as a single table across all four checks rather than four separate queries, so this stays a one-pass forward hunt you run immediately after triaging a suspicious sign-in from `entra-device-code-auth-flow.kql` or `entra-aitm-session-anomalies.kql` — it is not designed to be a standalone trigger, which the false-positive note below explains in more detail.
+
+**What this won't catch:** An attacker who waits longer than `persistence_window` before acting evades every check here, since all four are time-boxed to the sign-in; if initial results come back empty and the sign-in still looks wrong, re-run with a wider window before concluding the tenant is clean. This query also only recognises the specific `ActionType` strings currently listed — if Microsoft renames these audit events (which has happened with Entra/Cloud App Security event naming before) or the attacker uses a persistence mechanism outside this list entirely (a new email alias, or an app password on a tenant that still permits them), it produces no signal. Honestly, this is the least battle-tested query in the repo — the persistence window and the exact `ActionType` values are the two things most likely to need adjustment once you've run this against a real tenant.
+
 ```kql
 // Pivot — AiTM / device code phishing to persistence timeline
 // Starts from a suspicious device code or AiTM-flagged sign-in, then hunts forward

@@ -6,6 +6,14 @@
 **Licence:** Microsoft Defender for Endpoint Plan 2 (bundled in Microsoft 365 E5)  
 **When to use:** You suspect data is being exfiltrated or C2 traffic is being tunnelled through DNS — e.g. a device shows a high volume of port-53 traffic to one domain with no corresponding web activity.
 
+### Why this query
+
+DNS is one of the few outbound protocols almost never blocked, even in tightly locked-down environments — every device needs it to resolve hostnames, so egress filtering rarely touches port 53. That makes it an attractive channel for both C2 tasking and data exfiltration: the attacker chunks data (or commands) into the subdomain label of a DNS query, and the resolution chain carries it out through the firewall disguised as ordinary lookup traffic. A normal query changes on every request because it's for a different real hostname; a tunnelling query changes on every request because the payload changes, but the parent domain stays fixed.
+
+The two filters — subdomain length over 12 characters, and a regex restricted to the base64 character set — are chosen to separate "unusually long but real" hostnames (CDN resource IDs, some SaaS tenant subdomains) from "structured, high-entropy" ones. Real hostnames are rarely a clean, dense base64-charset string; encoded payloads are, because that's what encoding produces. `QueryCount > 5` filters out the one-off long hostname that just happens to look encoded.
+
+**What this won't catch:** A tool that keeps each individual subdomain label short — deliberately staying under the 12-character floor by chunking data into more, smaller queries — evades the length filter entirely, even though the aggregate exfiltrated volume could be the same or higher. Encoding schemes outside the base64 character set (hex, custom alphabets) also won't match the regex as written. And a patient exfiltration that spreads queries out to stay under `QueryCount > 5` inside the 24h window will slip through — if you suspect slow DNS exfiltration, lower the threshold and widen the lookback rather than trusting the defaults here.
+
 ```kql
 // DNS beaconing / tunnelling detection
 // Hunts for DNS queries with base64-encoded subdomains — sign of DNS-based C2 or exfil

@@ -6,6 +6,14 @@
 **Licence:** Microsoft Defender for Cloud Apps, or Entra ID P1/P2 with Identity Protection integrated into Defender XDR  
 **When to use:** You suspect device code phishing — a user reports being asked to enter a code at microsoft.com/devicelogin, or you're proactively hunting for this initial-access vector across the tenant.
 
+### Why this query
+
+Device code phishing works by getting the victim to complete a normal, legitimate-looking sign-in — the user goes to microsoft.com/devicelogin themselves, enters a code the attacker generated, and satisfies MFA as usual. The attacker never sees a password prompt and never needs to defeat MFA, because the real user does both steps for them; what the attacker gets back is a valid token. That's why this can't be caught by anything that looks for failed authentication or MFA bypass — from Entra ID's perspective, this was a normal successful sign-in. The only anomaly is the authentication *protocol* itself: `deviceCode` is a flow built for CLI tools and headless devices, and it's rare for a typical office worker to use it at all.
+
+The query surfaces every device-code sign-in regardless of location or time — `NewLocation` and `OutsideBusinessHours` are prioritisation flags, not filters, because device-code auth itself is already a narrow enough signal that hiding any of it would be a mistake. The 07:00–19:00 UTC business-hours window is a reasonable default for a single-timezone SME/mid-market org, which is this repo's stated target audience, but it's a guess, not a measured baseline — for a global or follow-the-sun organisation this threshold needs tuning, and you should lean more heavily on `NewLocation` in that case.
+
+**What this won't catch:** An attacker who already knows the victim's usual working hours and approximate location (easy to infer from a prior phishing email, LinkedIn, or a previous reconnaissance pass) can time the device-code prompt to land inside both flags and still get flagged as suspicious — but only because the query returns everything, not because the flags caught them; if you filter down to just the flagged rows before triage, you could miss it. This query also only detects the device-code vector specifically — it has nothing to say about AiTM reverse-proxy phishing, which is a different mechanism entirely and doesn't use `deviceCode` as the `AuthenticationProtocol`; use `entra-aitm-session-anomalies.kql` for that.
+
 ```kql
 // Identity — Entra ID device code authentication flow abuse
 // Device code phishing tricks a user into entering an attacker-generated code at

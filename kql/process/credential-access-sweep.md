@@ -6,6 +6,14 @@
 **Licence:** Microsoft Defender for Endpoint Plan 2 (bundled in Microsoft 365 E5)  
 **When to use:** Run estate-wide as a daily/hourly hunt, or scoped to a device already flagged for suspicious activity, to catch Mimikatz-style credential theft, DCSync, Kerberoasting, or AS-REP roasting in command-line telemetry.
 
+### Why this query
+
+Once an attacker has a foothold on one device, that device alone is rarely the goal — they need credentials to reach further into the environment. This query covers four distinct ways of getting them: in-memory dumping against lsass (Mimikatz's `sekurlsa::`/`lsadump::` modules), abusing domain controller replication rights to pull password hashes directly (`DCSync`), and requesting Kerberos service tickets or AS-REP responses offline-crackable for accounts with weak passwords (Kerberoasting and AS-REP roasting). All four leave a footprint in `ProcessCommandLine` because the public tooling that implements them uses recognisable module names and flags.
+
+This is a keyword sweep, not a statistical threshold, because the strings involved are specific enough that legitimate use is rare — nobody runs `Invoke-Kerberoast` or types `sekurlsa::logonpasswords` as part of routine IT work. That's also why the guide treats any hit here as an immediate escalation rather than something to trend: the false-positive rate is expected to be near zero outside of authorised testing.
+
+**What this won't catch:** Anything that doesn't put a matching string into a *logged* command line. A recompiled or renamed Mimikatz build with its internal module names stripped or obfuscated won't match; a payload loaded reflectively in memory via an encoded PowerShell one-liner (where the actual `sekurlsa::` string only exists after decoding, at runtime) won't match the raw command line either — pair this with `suspicious-powershell.kql` to catch that stage instead. Custom-written tooling that calls the underlying Windows credential APIs directly, without going through any of these named tools, produces no distinctive string at all and is invisible to a keyword-based query by design.
+
 ```kql
 // Process — credential access sweep
 // Hunts for Mimikatz keywords, credential dumping tools, and related command patterns
