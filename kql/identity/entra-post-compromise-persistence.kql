@@ -1,0 +1,129 @@
+// Identity — persistence mechanisms created post-compromise
+// A smart attacker doesn't just steal a session — they plant a way back in that
+// survives a password reset, so a "credentials changed" remediation alone won't
+// evict them
+// Covers, all correlated to a suspicious sign-in time window:
+//   - new MFA methods registered on the account (attacker adds their own phone
+//     number or authenticator so they can re-auth even after a password reset)
+//   - new service principals / app registrations (a backdoor app with its own
+//     credential, independent of any user account)
+//   - new Conditional Access policy exclusions (attacker adds the compromised
+//     account, or a new one, to an exclusion group so future sign-ins skip MFA)
+//   - guest account invitations (a new external identity with a foothold in the
+//     tenant that doesn't show up in normal employee account reviews)
+//   - directory role assignments (attacker grants the compromised account, or a
+//     new one, Global Admin or another privileged role)
+// Correlation window: 24h following the suspicious sign-in — feed AccountUpn/UserId
+// and SignInTime from entra-device-code-auth-flow.kql,
+// entra-aitm-session-anomalies.kql, or entra-impossible-travel.kql
+// Ref: docs/scenarios/06-credential-compromise/investigation.md
+
+// ============================================================
+// Version 1 — CloudAppEvents
+// Table   : CloudAppEvents — Defender for Cloud Apps activity log
+// Licence : Defender for Cloud Apps (MDCA), Microsoft 365 E5 or E3 + add-on
+// Access  : Defender XDR Advanced Hunting only — not a Sentinel-native table
+// Limits  : MDCA's Azure AD app connector covers directory-level changes, but
+//           coverage of newer AAD activity types (e.g. CA policy edits) lags
+//           behind what appears natively in the Azure AD audit log — cross-check
+//           against Version 2 if something looks incomplete
+// ============================================================
+let SuspiciousSignIns = AADSignInEventsBeta
+| where TimeGenerated > ago(7d)
+| where AuthenticationProtocol == "deviceCode" or RiskLevelDuringSignIn != "none"
+| project AccountUpn, SignInTime = TimeGenerated;
+CloudAppEvents
+| where TimeGenerated > ago(7d)
+| where ActionType in (
+    "Update user.", "Add strong authentication method.",           // new MFA method
+    "Add service principal.", "Add application.",                  // new app / SP
+    "Update conditional access policy.",                           // CA exclusion added
+    "Invite external user.",                                       // guest invite
+    "Add member to role.")                                         // role assignment
+| join kind=inner SuspiciousSignIns on $left.AccountId == $right.AccountUpn
+| where TimeGenerated between (SignInTime .. (SignInTime + 24h))
+| project TimeGenerated, AccountId, ActionType, Application,
+    RawEventData, IPAddress, SignInTime
+| order by TimeGenerated desc
+
+// ─────────────────────────────────────────────────────────────
+// INVESTIGATION NOTES — CloudAppEvents version
+// ─────────────────────────────────────────────────────────────
+//
+// entra-post-compromise-persistence.kql (CloudAppEvents) — [date run: YYYY-MM-DD] — Analyst: [initials]
+//
+// Result: [ ] No results — no new MFA methods, service principals, Conditional Access exclusions, guest invitations, or role assignments detected within 24h of the suspicious sign-in
+//         [ ] Results found — see findings below
+//
+// Findings:
+//   Account(s):
+//   IP address(es):
+//   Location(s):
+//   Timeframe:
+//   Notes:
+//
+// Conclusion:
+//   [ ] No suspicious activity identified — no persistence mechanisms identified for this account in the post-sign-in window (CloudAppEvents)
+//   [ ] Suspicious activity identified — escalating
+//   [ ] False positive — reason:
+//
+// ─────────────────────────────────────────────────────────────
+;
+// ============================================================
+// Version 2 — OfficeActivity (AuditData parsed for AAD directory events)
+// Table   : OfficeActivity — unified audit log, RecordType == "AzureActiveDirectory"
+// Licence : Microsoft 365 E3+ with unified audit logging enabled, and Azure AD
+//           audit logs configured to flow into the unified log (Purview ›
+//           Audit › AAD integration — off by default in some older tenants)
+// Access  : Sentinel only, via the "Office 365" data connector — does NOT exist
+//           in Defender XDR Advanced Hunting. For guaranteed AAD directory audit
+//           coverage in Sentinel, prefer the dedicated AuditLogs table (Azure AD
+//           connector) over OfficeActivity if it's available in your workspace
+// Limits  : Operation naming for AAD events in the unified log mirrors the Azure
+//           AD audit log's ActivityDisplayName, parsed out of AuditData JSON —
+//           some fields (e.g. exact CA policy diff) are only fully populated in
+//           the native AuditLogs table, not in OfficeActivity's copy
+// ============================================================
+let SuspiciousSignIns = SigninLogs
+| where TimeGenerated > ago(7d)
+| where AuthenticationRequirement != "singleFactorAuthentication" or RiskLevelDuringSignIn != "none"
+| project UserPrincipalName, SignInTime = TimeGenerated;
+OfficeActivity
+| where TimeGenerated > ago(7d)
+| where RecordType == "AzureActiveDirectory"
+| extend AuditParsed = parse_json(AuditData)
+| extend ActivityDisplayName = tostring(AuditParsed.ActivityDisplayName)
+| where ActivityDisplayName has_any (
+    "Update user", "Register security info",                       // new MFA method
+    "Add service principal", "Add application",                    // new app / SP
+    "Update conditional access policy",                             // CA exclusion added
+    "Invite external user",                                         // guest invite
+    "Add member to role")                                           // role assignment
+| join kind=inner SuspiciousSignIns on $left.UserId == $right.UserPrincipalName
+| where TimeGenerated between (SignInTime .. (SignInTime + 24h))
+| project TimeGenerated, UserId, ActivityDisplayName, AuditParsed,
+    ClientIP, SignInTime
+| order by TimeGenerated desc
+
+// ─────────────────────────────────────────────────────────────
+// INVESTIGATION NOTES — OfficeActivity version
+// ─────────────────────────────────────────────────────────────
+//
+// entra-post-compromise-persistence.kql (OfficeActivity) — [date run: YYYY-MM-DD] — Analyst: [initials]
+//
+// Result: [ ] No results — no new MFA methods, service principals, Conditional Access exclusions, guest invitations, or role assignments detected within 24h of the suspicious sign-in
+//         [ ] Results found — see findings below
+//
+// Findings:
+//   Account(s):
+//   IP address(es):
+//   Location(s):
+//   Timeframe:
+//   Notes:
+//
+// Conclusion:
+//   [ ] No suspicious activity identified — no persistence mechanisms identified for this account in the post-sign-in window (OfficeActivity)
+//   [ ] Suspicious activity identified — escalating
+//   [ ] False positive — reason:
+//
+// ─────────────────────────────────────────────────────────────

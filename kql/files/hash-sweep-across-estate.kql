@@ -3,8 +3,9 @@
 // Replace PASTE_HASH_HERE with the SHA256 from the Defender alert or VirusTotal
 // Ref: docs/scenarios/05-malicious-file/investigation.md, docs/scenarios/01-malware-alert/investigation.md
 
+let target_hash = "PASTE_HASH_HERE";   // replace with the SHA256 from the Defender alert or VirusTotal
 DeviceFileEvents
-| where SHA256 == "PASTE_HASH_HERE"
+| where SHA256 == target_hash
 | where TimeGenerated > ago(7d)
 | summarize
     Count = count(),

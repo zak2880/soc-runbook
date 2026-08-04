@@ -4,8 +4,9 @@
 // Replace HOSTNAME or remove filter to hunt estate-wide
 // Ref: docs/scenarios/04-persistence-detected/investigation.md
 
+let target_device = "HOSTNAME";   // replace before running, or remove the filter below to hunt estate-wide
 DeviceRegistryEvents
-| where DeviceName == "HOSTNAME"
+| where DeviceName == target_device
 | where RegistryKey has_any (
     "CurrentVersion\\Run",
     "CurrentVersion\\RunOnce",

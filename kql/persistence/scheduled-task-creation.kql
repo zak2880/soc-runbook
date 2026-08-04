@@ -3,8 +3,9 @@
 // Look for: random task names, Temp/AppData paths, PowerShell -enc in the action
 // Ref: docs/scenarios/04-persistence-detected/investigation.md
 
+let target_device = "HOSTNAME";   // replace before running
 DeviceProcessEvents
-| where DeviceName == "HOSTNAME"
+| where DeviceName == target_device
 | where FileName == "schtasks.exe"
 | where ProcessCommandLine has "/create"
 | where TimeGenerated > ago(7d)

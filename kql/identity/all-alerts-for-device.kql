@@ -3,8 +3,32 @@
 // Replace HOSTNAME before running
 // Ref: docs/scenarios/01-malware-alert/investigation.md
 
+let target_device = "HOSTNAME";   // replace before running
 DeviceAlertEvents
-| where DeviceName == "HOSTNAME"
+| where DeviceName == target_device
 | where TimeGenerated > ago(7d)
 | project TimeGenerated, AlertId, Title, Severity
 | order by TimeGenerated desc
+
+// ─────────────────────────────────────────────────────────────
+// INVESTIGATION NOTES — copy paste into ticket / incident report
+// ─────────────────────────────────────────────────────────────
+//
+// all-alerts-for-device.kql — [date run: YYYY-MM-DD] — Analyst: [initials]
+//
+// Result: [ ] No results — no Defender alerts found for this device in the review window
+//         [ ] Results found — see findings below
+//
+// Findings:
+//   Account(s):
+//   IP address(es):
+//   Location(s):
+//   Timeframe:
+//   Notes:
+//
+// Conclusion:
+//   [ ] No suspicious activity identified — device alert history for the review window appears clean
+//   [ ] Suspicious activity identified — escalating
+//   [ ] False positive — reason:
+//
+// ─────────────────────────────────────────────────────────────

@@ -1,0 +1,69 @@
+## entra-device-code-auth-flow.kql
+
+**MITRE:** T1556.006 — Modify Authentication Process: Multi-Factor Authentication  
+**Tables:** AADSignInEventsBeta  
+**Platform:** Defender XDR Advanced Hunting only. `AADSignInEventsBeta` is not a Sentinel-native table — the Sentinel equivalent is `SigninLogs` (via the Azure AD / Entra ID connector), which has a different schema; native Advanced Hunting also uses `Timestamp` rather than this repo's `TimeGenerated` alias  
+**Licence:** Microsoft Defender for Cloud Apps, or Entra ID P1/P2 with Identity Protection integrated into Defender XDR  
+**When to use:** You suspect device code phishing — a user reports being asked to enter a code at microsoft.com/devicelogin, or you're proactively hunting for this initial-access vector across the tenant.
+
+```kql
+// Identity — Entra ID device code authentication flow abuse
+// Device code phishing tricks a user into entering an attacker-generated code at
+// microsoft.com/devicelogin, handing the attacker a valid token without the victim
+// ever seeing a credential prompt on the attacker's side — MFA gets satisfied by
+// the real user, so it doesn't get bypassed, which is what makes this hard to catch
+// on MFA-based alerting alone
+// Flags all deviceCode sign-ins, then highlights the ones from a country the account
+// has never signed in from and/or outside business hours — treat any hit as a likely
+// initial compromise
+// ASN is not a native column on this table — cross-reference IPAddress against known
+// corporate/ISP ranges manually for the unusual-ASN check
+// Business hours window: 07:00-19:00 UTC — adjust for your customer timezone
+// Ref: docs/scenarios/06-credential-compromise/investigation.md, docs/scenarios/12-phishing-email/investigation.md
+
+let KnownLocations = AADSignInEventsBeta
+| where TimeGenerated between (ago(37d) .. ago(7d))
+| where ErrorCode == 0
+| summarize by AccountUpn, Country;
+AADSignInEventsBeta
+| where TimeGenerated > ago(7d)
+| where AuthenticationProtocol == "deviceCode"
+| extend HourUTC = hourofday(TimeGenerated)
+| extend OutsideBusinessHours = HourUTC !between (7 .. 19)
+| join kind=leftouter KnownLocations on AccountUpn, Country
+| extend NewLocation = isnull(Country1)
+| project TimeGenerated, AccountUpn, Country, IPAddress, UserAgent,
+    ErrorCode, NewLocation, OutsideBusinessHours, AuthenticationRequirement
+| order by TimeGenerated desc
+```
+
+### False positives
+- Legitimate device code flows for CLI tools and headless devices (Azure CLI on a server, `az login --use-device-code`, some IoT/kiosk enrollment flows). Confirm with the account owner or IT whether they intentionally used a device-code sign-in — this is rare enough in most SME/mid-market tenants that any hit should still be verified, not auto-dismissed.
+- Conference-room or shared devices enrolling via device code during initial setup — check the device/location against known IT deployment activity.
+- New starters signing in for the first time will always show `NewLocation = true`; that flag alone isn't suspicious, correlate it with `OutsideBusinessHours` and the account's onboarding date.
+
+### Investigation notes
+```
+─────────────────────────────────────────────────────────────
+INVESTIGATION NOTES — copy paste into ticket / incident report
+─────────────────────────────────────────────────────────────
+
+entra-device-code-auth-flow.kql — [date run: YYYY-MM-DD] — Analyst: [initials]
+
+Result: [ ] No results — no device code authentication flows detected in the review window
+        [ ] Results found — see findings below
+
+Findings:
+  Account(s):
+  IP address(es):
+  Location(s):
+  Timeframe:
+  Notes:
+
+Conclusion:
+  [ ] No suspicious activity identified — no device code sign-ins identified for this account/tenant in the review window
+  [ ] Suspicious activity identified — escalating
+  [ ] False positive — reason:
+
+─────────────────────────────────────────────────────────────
+```

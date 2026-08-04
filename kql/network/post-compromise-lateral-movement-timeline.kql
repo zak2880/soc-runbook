@@ -1,0 +1,43 @@
+// Network — lateral movement timeline following device compromise
+// Correlates DeviceLogonEvents, DeviceNetworkEvents, and DeviceProcessEvents into a
+// single ordered timeline from T0 (the initial compromise time on the patient-zero
+// device) so you can see, in sequence: which accounts logged in, which internal IPs
+// got touched, and what got spawned remotely
+// Remote-execution parents to watch for in the ProcessSpawn rows:
+//   wsmprovhost.exe  — WinRM / PowerShell remoting
+//   psexesvc.exe     — PsExec
+//   wmiprvse.exe     — WMI remote process creation
+//   services.exe     — remote service creation (SCM)
+// Replace HOSTNAME and T0 before running — widen the device filter to a list of
+// devices once you've identified spread, to keep building the same timeline
+// Ref: docs/scenarios/06-credential-compromise/investigation.md, docs/scenarios/10-initial-access/investigation.md
+
+let Device = "HOSTNAME";
+let T0 = datetime(2024-01-01T00:00:00Z);
+let Window = 72h;
+let AccountLogons = DeviceLogonEvents
+| where DeviceName == Device
+| where TimeGenerated between (T0 .. (T0 + Window))
+| where LogonType in ("Network", "RemoteInteractive", "Interactive")
+| extend EventType = "AccountLogon"
+| project TimeGenerated, DeviceName, EventType,
+    Detail = strcat(AccountName, " via ", LogonType), RemoteIP = "";
+let InternalIPsAccessed = DeviceNetworkEvents
+| where DeviceName == Device
+| where TimeGenerated between (T0 .. (T0 + Window))
+| where RemoteIPType == "Private"
+| where RemotePort in (445, 3389, 5985, 5986, 135)
+| extend EventType = "InternalConnection"
+| project TimeGenerated, DeviceName, EventType,
+    Detail = strcat(InitiatingProcessFileName, " -> port ", tostring(RemotePort)),
+    RemoteIP;
+let RemoteProcessSpawns = DeviceProcessEvents
+| where DeviceName == Device
+| where TimeGenerated between (T0 .. (T0 + Window))
+| where InitiatingProcessFileName in~ ("wsmprovhost.exe", "psexesvc.exe", "wmiprvse.exe", "services.exe")
+| extend EventType = "RemoteProcessSpawn"
+| project TimeGenerated, DeviceName, EventType,
+    Detail = strcat(InitiatingProcessFileName, " spawned ", FileName, " — ", ProcessCommandLine),
+    RemoteIP = "";
+union AccountLogons, InternalIPsAccessed, RemoteProcessSpawns
+| order by TimeGenerated asc

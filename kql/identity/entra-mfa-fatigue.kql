@@ -15,3 +15,26 @@ AADSignInEventsBeta
     by AccountUpn, bin(TimeGenerated, 10m)
 | where MFAPrompts >= 5
 | order by MFAPrompts desc
+
+// ─────────────────────────────────────────────────────────────
+// INVESTIGATION NOTES — copy paste into ticket / incident report
+// ─────────────────────────────────────────────────────────────
+//
+// entra-mfa-fatigue.kql — [date run: YYYY-MM-DD] — Analyst: [initials]
+//
+// Result: [ ] No results — no MFA fatigue pattern detected — no high-volume MFA prompt sequences identified
+//         [ ] Results found — see findings below
+//
+// Findings:
+//   Account(s):
+//   IP address(es):
+//   Location(s):
+//   Timeframe:
+//   Notes:
+//
+// Conclusion:
+//   [ ] No suspicious activity identified — MFA prompt volume for this account appears normal, no push-bombing pattern identified
+//   [ ] Suspicious activity identified — escalating
+//   [ ] False positive — reason:
+//
+// ─────────────────────────────────────────────────────────────

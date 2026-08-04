@@ -1,0 +1,119 @@
+// Identity — inbox rules created post-compromise
+// Attackers with mailbox access create rules to auto-forward, hide, or destroy
+// evidence of their own activity (invoice fraud replies, password reset emails)
+// Flags New-InboxRule / Set-InboxRule operations that do any of:
+//   - forward or redirect externally (ForwardTo, ForwardAsAttachmentTo, RedirectTo
+//     pointing outside the tenant's own domains)
+//   - delete based on finance/credential keywords (invoice, payment, wire, password, MFA)
+//   - mark items as read (hides the message from an unsuspecting user re-opening
+//     their inbox, buys the attacker more time before discovery)
+// Correlate the rule creation time against a suspicious sign-in window — feed
+// AccountUpn/UserId and SignInTime from entra-device-code-auth-flow.kql,
+// entra-aitm-session-anomalies.kql, or entra-impossible-travel.kql
+// Ref: docs/scenarios/06-credential-compromise/investigation.md, docs/scenarios/12-phishing-email/investigation.md
+
+// ============================================================
+// Version 1 — CloudAppEvents
+// Table   : CloudAppEvents — Defender for Cloud Apps activity log
+// Licence : Defender for Cloud Apps (MDCA), Microsoft 365 E5 or E3 + add-on
+// Access  : Defender XDR Advanced Hunting only — not a Sentinel-native table
+// Limits  : Requires the Office 365 app connector enabled in MDCA; rule contents
+//           are nested in RawEventData JSON and the property names below
+//           (Parameters.ForwardTo etc.) mirror the underlying Exchange audit
+//           payload MDCA ingests, so they track Exchange schema changes
+// ============================================================
+let SuspiciousSignIns = AADSignInEventsBeta
+| where TimeGenerated > ago(7d)
+| where AuthenticationProtocol == "deviceCode" or RiskLevelDuringSignIn != "none"
+| project AccountUpn, SignInTime = TimeGenerated;
+CloudAppEvents
+| where TimeGenerated > ago(7d)
+| where ActionType in ("New-InboxRule", "Set-InboxRule")
+| extend Params = parse_json(RawEventData).Parameters
+| extend
+    ForwardsExternally = isnotempty(Params.ForwardTo) or isnotempty(Params.ForwardAsAttachmentTo) or isnotempty(Params.RedirectTo),
+    DeletesByKeyword = Params.SubjectContainsWords has_any ("invoice", "payment", "wire", "password", "mfa"),
+    MarksAsRead = tostring(Params.MarkAsRead) =~ "true"
+| where ForwardsExternally or DeletesByKeyword or MarksAsRead
+| join kind=inner SuspiciousSignIns on $left.AccountId == $right.AccountUpn
+| where TimeGenerated between (SignInTime .. (SignInTime + 1h))
+| project TimeGenerated, AccountId, ActionType, ForwardsExternally,
+    DeletesByKeyword, MarksAsRead, Params, SignInTime
+| order by TimeGenerated desc
+
+// ─────────────────────────────────────────────────────────────
+// INVESTIGATION NOTES — CloudAppEvents version
+// ─────────────────────────────────────────────────────────────
+//
+// entra-post-compromise-mailbox-rules.kql (CloudAppEvents) — [date run: YYYY-MM-DD] — Analyst: [initials]
+//
+// Result: [ ] No results — no suspicious inbox rules created in the post-compromise window
+//         [ ] Results found — see findings below
+//
+// Findings:
+//   Account(s):
+//   IP address(es):
+//   Location(s):
+//   Timeframe:
+//   Notes:
+//
+// Conclusion:
+//   [ ] No suspicious activity identified — inbox rule activity for this account in the post-compromise window appears clean (CloudAppEvents)
+//   [ ] Suspicious activity identified — escalating
+//   [ ] False positive — reason:
+//
+// ─────────────────────────────────────────────────────────────
+;
+// ============================================================
+// Version 2 — OfficeActivity
+// Table   : OfficeActivity — Exchange admin audit log (unified audit log)
+// Licence : Exchange Online / Microsoft 365 E3 or above with unified audit
+//           logging enabled
+// Access  : Sentinel only, via the "Office 365" data connector — does NOT exist
+//           in Defender XDR Advanced Hunting
+// Limits  : Requires mailbox auditing to be enabled on the target mailbox (on by
+//           default for E3/E5 since 2019, but check for older tenants); rule
+//           parameters live inside the AuditData JSON blob
+// ============================================================
+let SuspiciousSignIns = SigninLogs
+| where TimeGenerated > ago(7d)
+| where AuthenticationRequirement != "singleFactorAuthentication" or RiskLevelDuringSignIn != "none"
+| project UserPrincipalName, SignInTime = TimeGenerated;
+OfficeActivity
+| where TimeGenerated > ago(7d)
+| where Operation in ("New-InboxRule", "Set-InboxRule")
+| extend AuditParsed = parse_json(AuditData)
+| extend Params = AuditParsed.Parameters
+| extend
+    ForwardsExternally = isnotempty(Params.ForwardTo) or isnotempty(Params.ForwardAsAttachmentTo) or isnotempty(Params.RedirectTo),
+    DeletesByKeyword = Params.SubjectContainsWords has_any ("invoice", "payment", "wire", "password", "mfa"),
+    MarksAsRead = tostring(Params.MarkAsRead) =~ "true"
+| where ForwardsExternally or DeletesByKeyword or MarksAsRead
+| join kind=inner SuspiciousSignIns on $left.UserId == $right.UserPrincipalName
+| where TimeGenerated between (SignInTime .. (SignInTime + 1h))
+| project TimeGenerated, UserId, Operation, ForwardsExternally,
+    DeletesByKeyword, MarksAsRead, Params, ClientIP, SignInTime
+| order by TimeGenerated desc
+
+// ─────────────────────────────────────────────────────────────
+// INVESTIGATION NOTES — OfficeActivity version
+// ─────────────────────────────────────────────────────────────
+//
+// entra-post-compromise-mailbox-rules.kql (OfficeActivity) — [date run: YYYY-MM-DD] — Analyst: [initials]
+//
+// Result: [ ] No results — no suspicious inbox rules created in the post-compromise window
+//         [ ] Results found — see findings below
+//
+// Findings:
+//   Account(s):
+//   IP address(es):
+//   Location(s):
+//   Timeframe:
+//   Notes:
+//
+// Conclusion:
+//   [ ] No suspicious activity identified — inbox rule activity for this account in the post-compromise window appears clean (OfficeActivity)
+//   [ ] Suspicious activity identified — escalating
+//   [ ] False positive — reason:
+//
+// ─────────────────────────────────────────────────────────────

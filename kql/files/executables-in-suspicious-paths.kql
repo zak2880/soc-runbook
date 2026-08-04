@@ -4,10 +4,11 @@
 // Replace HOSTNAME or remove filter to hunt estate-wide
 // Ref: docs/scenarios/05-malicious-file/investigation.md
 
+let target_device = "HOSTNAME";   // replace before running, or remove the filter below to hunt estate-wide
 DeviceFileEvents
-| where DeviceName == "HOSTNAME"
+| where DeviceName == target_device
 | where ActionType == "FileCreated"
-| where FileName endswith_any (
+| where FileName has_any (
     ".exe", ".dll", ".ps1", ".vbs", ".bat", ".hta", ".js", ".wsf")
 | where FolderPath has_any (
     "AppData", "Temp", "ProgramData", "Public")

@@ -13,14 +13,14 @@ Coverage: Techniques commonly seen in incidents handled at a UK MSSP targeting S
 |--------|-------------------|
 | Initial Access | T1078, T1133, T1189, T1195, T1566.001, T1566.002, T1566.003 |
 | Execution | T1059.001, T1059.005, T1059.007, T1106, T1204.002, T1218 |
-| Persistence | T1053.005, T1136.001, T1543.003, T1546.003, T1547.001 |
+| Persistence | T1053.005, T1098.001, T1098.003, T1136.001, T1543.003, T1546.003, T1547.001 |
 | Privilege Escalation | T1548.002, T1055, T1078 |
 | Defence Evasion | T1027, T1036.005, T1055, T1070.001, T1112, T1218, T1562.001, T1562.002 |
-| Credential Access | T1003.001, T1003.002, T1003.003, T1558.003, T1558.004, T1621 |
-| Discovery | T1018, T1057, T1082, T1083 |
+| Credential Access | T1003.001, T1003.002, T1003.003, T1528, T1539, T1556.006, T1558.003, T1558.004, T1621 |
+| Discovery | T1016, T1018, T1033, T1057, T1082, T1083, T1087.001, T1087.002, T1482 |
 | Lateral Movement | T1021.001, T1021.002, T1021.006, T1550.002 |
-| Collection | T1560, T1074 |
-| Command and Control | T1071.001, T1071.004, T1095, T1102, T1102.001, T1571, T1573 |
+| Collection | T1114, T1114.003, T1213, T1560, T1074 |
+| Command and Control | T1071.001, T1071.004, T1095, T1102, T1102.001, T1568.002, T1571, T1573 |
 | Exfiltration | T1041, T1567, T1567.002 |
 | Impact | T1486, T1490, T1489 |
 
@@ -64,6 +64,8 @@ Coverage: Techniques commonly seen in incidents handled at a UK MSSP targeting S
 | Windows service | T1543.003 | New service installed | [new-services-installed.kql](kql/persistence/new-services-installed.kql) |
 | WMI event subscription | T1546.003 | WMI filter, consumer, binding creation | [wmi-subscription-creation.kql](kql/persistence/wmi-subscription-creation.kql) |
 | Local account creation | T1136.001 | New local user account created | [new-local-accounts-created.kql](kql/identity/new-local-accounts-created.kql) |
+| Account manipulation — additional cloud credentials | T1098.001 | New MFA methods, service principals, or app registrations added post-compromise | [entra-post-compromise-persistence.kql](kql/identity/entra-post-compromise-persistence.kql) |
+| Account manipulation — additional cloud roles | T1098.003 | New Conditional Access exclusions, guest invites, or directory role assignments post-compromise | [entra-post-compromise-persistence.kql](kql/identity/entra-post-compromise-persistence.kql) |
 
 ---
 
@@ -104,6 +106,9 @@ Coverage: Techniques commonly seen in incidents handled at a UK MSSP targeting S
 | Kerberoasting | T1558.003 | GetUserSPNs, Invoke-Kerberoast in command lines | [credential-access-sweep.kql](kql/process/credential-access-sweep.kql) |
 | AS-REP roasting | T1558.004 | GetNPUsers, ASREPRoast in command lines | [credential-access-sweep.kql](kql/process/credential-access-sweep.kql) |
 | MFA fatigue | T1621 | 5+ failed MFA prompts in 10 minutes | [entra-mfa-fatigue.kql](kql/identity/entra-mfa-fatigue.kql) |
+| Modify authentication process — device registration | T1556.006 | Device code auth flow, flagged from new locations or outside business hours | [entra-device-code-auth-flow.kql](kql/identity/entra-device-code-auth-flow.kql) |
+| Steal web session cookie | T1539 | Token replay, impossible travel post-MFA, compliance-state drop, UserAgent mismatch | [entra-aitm-session-anomalies.kql](kql/identity/entra-aitm-session-anomalies.kql) |
+| Steal application access token | T1528 | Suspicious OAuth consent grant within 1h of a suspicious sign-in | [entra-post-compromise-oauth-grants.kql](kql/identity/entra-post-compromise-oauth-grants.kql) |
 
 ---
 
@@ -115,6 +120,11 @@ Coverage: Techniques commonly seen in incidents handled at a UK MSSP targeting S
 | Process discovery | T1057 | wmic process list, tasklist in command lines | [lolbin-sweep.kql](kql/process/lolbin-sweep.kql) |
 | System info discovery | T1082 | wmic computersystem, systeminfo, hostname | [docs/02-process-investigation.md](docs/02-process-investigation.md) |
 | File and directory discovery | T1083 | dir /s, Get-ChildItem recursing filesystem | [docs/05-file-artefacts.md](docs/05-file-artefacts.md) |
+| System owner/user discovery | T1033 | whoami run as part of a post-compromise recon burst | [post-compromise-discovery-commands.kql](kql/process/post-compromise-discovery-commands.kql) |
+| Account discovery — local account | T1087.001 | net user in a post-compromise recon burst | [post-compromise-discovery-commands.kql](kql/process/post-compromise-discovery-commands.kql) |
+| Account discovery — domain account | T1087.002 | net localgroup administrators in a post-compromise recon burst | [post-compromise-discovery-commands.kql](kql/process/post-compromise-discovery-commands.kql) |
+| Domain trust discovery | T1482 | nltest /domain_trusts in a post-compromise recon burst | [post-compromise-discovery-commands.kql](kql/process/post-compromise-discovery-commands.kql) |
+| System network configuration discovery | T1016 | ipconfig /all, nslookup, arp -a in a post-compromise recon burst | [post-compromise-discovery-commands.kql](kql/process/post-compromise-discovery-commands.kql) |
 
 ---
 
@@ -129,6 +139,16 @@ Coverage: Techniques commonly seen in incidents handled at a UK MSSP targeting S
 
 ---
 
+### Collection
+
+| Technique | ID | Detection | KQL |
+|-----------|-----|-----------|-----|
+| Email collection | T1114 | Unusual volume of MailItemsAccessed, mail export operations, or non-admin eDiscovery searches post-compromise | [entra-post-compromise-email-exfil.kql](kql/identity/entra-post-compromise-email-exfil.kql) |
+| Email collection — forwarding rule | T1114.003 | Inbox rule forwards externally, deletes by keyword, or marks as read post-compromise | [entra-post-compromise-mailbox-rules.kql](kql/identity/entra-post-compromise-mailbox-rules.kql) |
+| Data from information repositories | T1213 | Bulk SharePoint/OneDrive access above baseline, off-hours access, or external sharing post-compromise | [entra-post-compromise-sharepoint-access.kql](kql/identity/entra-post-compromise-sharepoint-access.kql) |
+
+---
+
 ### Command and Control
 
 | Technique | ID | Detection | KQL |
@@ -138,6 +158,7 @@ Coverage: Techniques commonly seen in incidents handled at a UK MSSP targeting S
 | Non-application layer protocol | T1095 | Raw socket connections, unusual protocol usage | [unusual-outbound-ports.kql](kql/network/unusual-outbound-ports.kql) |
 | Web service — LOTS | T1102 | Scripting engine connecting to Discord, Telegram, Pastebin | [lots-suspicious-process-to-cloud.kql](kql/network/lots-suspicious-process-to-cloud.kql) |
 | Web service — dead drop | T1102.001 | Paste service GET followed by raw IP connection | [lots-dead-drop-resolver.kql](kql/network/lots-dead-drop-resolver.kql) |
+| Dynamic resolution — newly registered domains | T1568.002 | DNS queries to domains never queried by a device before infection | [post-compromise-c2-from-malware.kql](kql/network/post-compromise-c2-from-malware.kql) |
 | Non-standard port | T1571 | Connections on ports 4444, 50050, 1337, 8080, etc. | [unusual-outbound-ports.kql](kql/network/unusual-outbound-ports.kql) |
 | Encrypted channel | T1573 | Low-volume HTTPS beaconing to single CDN IP | [beacon-interval-regularity.kql](kql/network/beacon-interval-regularity.kql) |
 
