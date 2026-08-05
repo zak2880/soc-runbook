@@ -1,0 +1,51 @@
+// Platform: Microsoft Sentinel
+// Identity — mass email access or forwarding following account compromise (OfficeActivity)
+// Once an attacker has a live session they read, export, or forward mail to stage
+// the follow-on fraud (invoice redirection, further phishing from a trusted account)
+// Covers: unusual volume of MailItemsAccessed operations, external forwarding rules
+// being enabled (Set-Mailbox — not just created, see entra-post-compromise-mailbox-
+// rules.kql for creation events), eDiscovery searches, and mail export operations
+// MailItemsAccessed volume threshold: 50+ in 1 hour is well above normal interactive
+// use and typically indicates a script pulling the mailbox via Graph/EWS
+// Requires unified audit logging enabled and mailbox auditing on the target mailbox —
+// high-volume MailItemsAccessed events can be throttled or batched by Exchange under
+// heavy load, so treat the count as a floor, not an exact figure
+// Ref: docs/scenarios/06-credential-compromise/investigation.md, docs/scenarios/12-phishing-email/investigation.md
+
+let lookback = 24h;
+OfficeActivity
+| where TimeGenerated > ago(lookback)
+| where Operation in ("MailItemsAccessed", "Set-Mailbox", "New-ComplianceSearch",
+    "New-ComplianceSearchAction", "Search-Mailbox")
+| summarize
+    AccessCount = countif(Operation == "MailItemsAccessed"),
+    ExternalForwardEnabled = countif(Operation == "Set-Mailbox" and AuditData has "ForwardingSmtpAddress"),
+    eDiscoverySearches = countif(Operation in ("New-ComplianceSearch", "New-ComplianceSearchAction")),
+    MailExports = countif(Operation == "Search-Mailbox"),
+    RunByNonAdmin = countif(Operation in ("New-ComplianceSearch", "Search-Mailbox") and UserType != "Admin")
+    by UserId, bin(TimeGenerated, 1h)
+| where AccessCount > 50 or ExternalForwardEnabled > 0 or eDiscoverySearches > 0
+    or MailExports > 0 or RunByNonAdmin > 0
+| order by AccessCount desc
+
+// ─────────────────────────────────────────────────────────────
+// INVESTIGATION NOTES — copy paste into ticket / incident report
+// ─────────────────────────────────────────────────────────────
+//
+// entra-post-compromise-email-exfil.kql — [date run: YYYY-MM-DD] — Analyst: [initials]
+//
+// Result: [ ] No results — no high-volume mailbox access, external-forwarding enablement, non-admin eDiscovery searches, or mail export operations detected
+//         [ ] Results found — see findings below
+//
+// Findings:
+//   Account(s):
+//   IP address(es):
+//   Timeframe:
+//   Notes:
+//
+// Conclusion:
+//   [ ] No suspicious activity identified — mailbox access volume and export/eDiscovery activity for this account appear normal
+//   [ ] Suspicious activity identified — escalating
+//   [ ] False positive — reason:
+//
+// ─────────────────────────────────────────────────────────────

@@ -1,0 +1,21 @@
+// Platform: Microsoft Sentinel
+// Note: EmailEvents is a Defender XDR Advanced Hunting-only table — it is NOT
+// exposed as a queryable Sentinel Log Analytics table, even with the Microsoft
+// Defender XDR connector configured (see docs/reference/sentinel-vs-advanced-hunting.md,
+// Section 2/3). This file is kept for structural parity with kql/xdr/email/ and will
+// error with "table not found" in a real Sentinel workspace today. Bring MDO alerts
+// into Sentinel incidents via the Microsoft Defender XDR connector instead.
+// Email — phishing delivery detection
+// Flags mail that was actually delivered to the mailbox despite being flagged
+// Phish or Malware — the highest-priority subset of email threat telemetry, since
+// DeliveryLocation tells you exactly where to go clean it up
+// Ref: docs/scenarios/12-phishing-email/investigation.md
+
+let lookback = 24h;
+EmailEvents
+| where TimeGenerated > ago(lookback)
+| where DeliveryAction == "Delivered"
+| where ThreatTypes has_any ("Phish", "Malware")
+| project TimeGenerated, SenderFromAddress, RecipientEmailAddress, Subject,
+    DeliveryAction, DeliveryLocation, NetworkMessageId, ThreatTypes, DetectionMethods
+| order by TimeGenerated desc

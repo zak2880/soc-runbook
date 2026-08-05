@@ -1,0 +1,25 @@
+// Platform: Microsoft Sentinel
+// C2 beaconing detection — high connection count to single external destination
+// Primary beacon signal: same device hitting same external IP 30+ times per day
+// Sort by ConnectionCount desc and investigate anything above 30 to a non-CDN destination
+// Ref: docs/scenarios/08-c2-beaconing/investigation.md
+
+DeviceNetworkEvents
+| where TimeGenerated > ago(24h)
+| where RemoteIPType != "Private"
+| where RemoteIP != ""
+| where isnotempty(AdditionalFields)
+| extend AdditionalFieldsData = parse_json(AdditionalFields)
+| extend SentBytes = tolong(AdditionalFieldsData.orig_bytes)
+| where SentBytes > 0
+| summarize
+    ConnectionCount = count(),
+    FirstSeen = min(TimeGenerated),
+    LastSeen = max(TimeGenerated),
+    Processes = make_set(InitiatingProcessFileName, 3),
+    TotalBytesSent = sum(SentBytes)
+    by DeviceName, RemoteIP, RemoteUrl, RemotePort
+| where ConnectionCount > 30
+| extend DurationHrs = round(
+    datetime_diff('minute', LastSeen, FirstSeen) / 60.0, 1)
+| order by ConnectionCount desc

@@ -1,0 +1,15 @@
+// Platform: Microsoft Sentinel
+// Ransomware / defence evasion — Defender disabled and audit logs cleared
+// Attackers disable security controls before deploying payload
+// Any of these = active attacker, not just malware — escalate immediately
+// Ref: docs/reference/escalation-triggers.md
+
+// Defender disabled via registry
+DeviceRegistryEvents
+| where RegistryKey has_any (
+    "DisableAntiSpyware",
+    "DisableRealtimeMonitoring",
+    "DisableBehaviorMonitoring")
+| where RegistryValueData == "1"
+| where TimeGenerated > ago(24h)
+| project TimeGenerated, DeviceName, RegistryKey, InitiatingProcessFileName

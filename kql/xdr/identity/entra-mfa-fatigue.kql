@@ -1,0 +1,44 @@
+// Platform: Microsoft Defender XDR Advanced Hunting
+// Identity — Entra ID MFA fatigue / MFA push bombing
+// Attacker has valid credentials and hammers the user with MFA prompts hoping
+// they approve one to make it stop
+// Threshold: 5+ MFA prompts in 10 minutes — tune for your environment
+// Ref: docs/scenarios/06-credential-compromise/investigation.md
+
+let lookback = 24h;
+let window = 10m;
+let fatigue_threshold = 5;
+EntraIdSignInEvents
+| where Timestamp > ago(lookback)
+| where AuthenticationRequirement == "multiFactorAuthentication"
+| where ErrorCode != 0  // failed sign-ins — MFA not yet approved
+| summarize
+    MFAPrompts = count(),
+    SourceIPs = make_set(IPAddress),
+    Countries = make_set(Country)
+    by AccountUpn, bin(Timestamp, window)
+| where MFAPrompts >= fatigue_threshold
+| order by MFAPrompts desc
+
+// ─────────────────────────────────────────────────────────────
+// INVESTIGATION NOTES — copy paste into ticket / incident report
+// ─────────────────────────────────────────────────────────────
+//
+// entra-mfa-fatigue.kql — [date run: YYYY-MM-DD] — Analyst: [initials]
+//
+// Result: [ ] No results — no MFA fatigue pattern detected — no high-volume MFA prompt sequences identified
+//         [ ] Results found — see findings below
+//
+// Findings:
+//   Account(s):
+//   IP address(es):
+//   Country/countries:
+//   Timeframe:
+//   Notes:
+//
+// Conclusion:
+//   [ ] No suspicious activity identified — MFA prompt volume for this account appears normal, no push-bombing pattern identified
+//   [ ] Suspicious activity identified — escalating
+//   [ ] False positive — reason:
+//
+// ─────────────────────────────────────────────────────────────

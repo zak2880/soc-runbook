@@ -1,0 +1,13 @@
+// Platform: Microsoft Defender XDR Advanced Hunting
+// Email — Safe Links click-through detection
+// A user who clicks through a Safe Links warning has been told the URL is
+// suspicious/malicious and proceeded anyway — high-priority for follow-up regardless
+// of what happened next on the device
+// Ref: docs/scenarios/12-phishing-email/investigation.md
+
+let lookback = 24h;
+UrlClickEvents
+| where Timestamp > ago(lookback)
+| where IsClickedThrough == true
+| project Timestamp, AccountUpn, Url, ActionType, IPAddress
+| order by Timestamp desc

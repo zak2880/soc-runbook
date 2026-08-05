@@ -1,0 +1,35 @@
+// Platform: Microsoft Defender XDR Advanced Hunting
+// Function — known-good beaconing software allowlist check
+// Returns true if a process/destination combination matches known-good beaconing
+// software — RMM-style regular check-ins that pattern-match to C2 but aren't.
+// Use this inside beacon detection queries to filter false positives before they
+// ever reach an analyst, e.g. `| where not(fn_is_known_good_beacon(...))`
+//
+// Parameters:
+//   ProcessFileName : string — e.g. InitiatingProcessFileName
+//   RemoteUrl       : string — destination hostname/URL
+//
+// Covers: OneDrive, CrowdStrike Falcon, Teams, Zoom, Windows Update, NTP
+//
+// Returns: bool
+//
+// Example call:
+//   DeviceNetworkEvents
+//   | where not(fn_is_known_good_beacon(InitiatingProcessFileName, RemoteUrl))
+//
+// Ref: docs/scenarios/08-c2-beaconing/investigation.md, docs/reference/common-false-positives.md
+
+let fn_is_known_good_beacon = (ProcessFileName: string, RemoteUrl: string) {
+    (ProcessFileName =~ "onedrive.exe" and RemoteUrl has_any ("onedrive.live.com", "sharepoint.com"))
+    or (ProcessFileName has_any ("csfalconservice.exe", "csagent.exe") and RemoteUrl has "crowdstrike.com")
+    or (ProcessFileName =~ "teams.exe" and RemoteUrl has_any ("teams.microsoft.com", "trouter.teams.microsoft.com"))
+    or (ProcessFileName =~ "zoom.exe" and RemoteUrl has "zoom.us")
+    or (ProcessFileName in~ ("usoclient.exe", "svchost.exe", "wuauclt.exe") and RemoteUrl has_any ("windowsupdate.com", "delivery.mp.microsoft.com"))
+    or RemoteUrl has_any ("time.windows.com", "pool.ntp.org", "time.nist.gov")
+};
+// Example call — filters known-good beacons out of a raw connection sweep
+DeviceNetworkEvents
+| where Timestamp > ago(24h)
+| where RemoteIPType != "Private"
+| where not(fn_is_known_good_beacon(InitiatingProcessFileName, RemoteUrl))
+| project Timestamp, DeviceName, InitiatingProcessFileName, RemoteUrl, RemoteIP

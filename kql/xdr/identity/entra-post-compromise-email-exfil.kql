@@ -1,0 +1,65 @@
+// Platform: Microsoft Defender XDR Advanced Hunting
+// Identity — mass email access or forwarding following account compromise
+// Once an attacker has a live session they read, export, or forward mail to stage
+// the follow-on fraud (invoice redirection, further phishing from a trusted account)
+// Two separate queries below, run independently — CloudAppEvents covers volume/
+// export/eDiscovery signals, EmailEvents covers external forwarding of mail actually
+// sent from the compromised account. Run both; there is no single table that covers
+// everything here in Advanced Hunting
+// MailItemsAccessed volume threshold: 50+ in 1 hour is well above normal interactive
+// use and typically indicates a script pulling the mailbox via Graph/EWS
+// For attachment/URL-based exfil signals from the compromised account's received
+// mail, see kql/xdr/pivots/phishing-to-device-compromise.kql and kql/xdr/email/
+// Ref: docs/scenarios/06-credential-compromise/investigation.md, docs/scenarios/12-phishing-email/investigation.md
+
+let lookback = 24h;
+
+// ============================================================
+// Query 1 — CloudAppEvents: mailbox access volume, export, eDiscovery
+// ============================================================
+CloudAppEvents
+| where Timestamp > ago(lookback)
+| where ActionType in ("MailItemsAccessed", "Set-Mailbox", "New-ComplianceSearch",
+    "New-ComplianceSearchAction", "Search-Mailbox")
+| summarize
+    AccessCount = countif(ActionType == "MailItemsAccessed"),
+    ExternalForwardEnabled = countif(ActionType == "Set-Mailbox" and RawEventData has "ForwardingSmtpAddress"),
+    eDiscoverySearches = countif(ActionType in ("New-ComplianceSearch", "New-ComplianceSearchAction")),
+    MailExports = countif(ActionType == "Search-Mailbox")
+    by AccountId, bin(Timestamp, 1h)
+| where AccessCount > 50 or ExternalForwardEnabled > 0 or eDiscoverySearches > 0 or MailExports > 0
+| order by AccessCount desc;
+
+// ============================================================
+// Query 2 — EmailEvents: external forwarding of mail sent from the compromised account
+// ============================================================
+let CompromisedAccount = "USERNAME@example.com";   // replace before running
+let CompromiseWindowStart = datetime(2024-01-01T00:00:00Z);   // replace with the compromise start time
+EmailEvents
+| where Timestamp > CompromiseWindowStart
+| where SenderFromAddress =~ CompromisedAccount
+| where EmailDirection == "Outbound"
+| where DetectionMethods has "Forward" or Subject startswith "FW:"
+| project Timestamp, NetworkMessageId, RecipientEmailAddress, Subject
+
+// ─────────────────────────────────────────────────────────────
+// INVESTIGATION NOTES — copy paste into ticket / incident report
+// ─────────────────────────────────────────────────────────────
+//
+// entra-post-compromise-email-exfil.kql — [date run: YYYY-MM-DD] — Analyst: [initials]
+//
+// Result: [ ] No results — no high-volume mailbox access, external-forwarding enablement, eDiscovery searches, mail export operations, or externally forwarded mail detected
+//         [ ] Results found — see findings below
+//
+// Findings:
+//   Account(s):
+//   Recipient(s) mail was forwarded to:
+//   Timeframe:
+//   Notes:
+//
+// Conclusion:
+//   [ ] No suspicious activity identified — mailbox access volume, export/eDiscovery activity, and outbound forwarding for this account appear normal
+//   [ ] Suspicious activity identified — escalating
+//   [ ] False positive — reason:
+//
+// ─────────────────────────────────────────────────────────────

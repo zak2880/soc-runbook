@@ -1,0 +1,43 @@
+// Platform: Microsoft Sentinel
+// Note: DeviceAlertEvents is NOT available in Microsoft Sentinel Log Analytics — it
+// is a Defender XDR Advanced Hunting-only table, even with the Microsoft Defender
+// XDR connector enabled (see docs/reference/sentinel-vs-advanced-hunting.md, Section
+// 2/3). This file is kept for structural parity with kql/xdr/identity/ and as a
+// reference for what the equivalent Sentinel query would look like if Microsoft
+// ever exposes this table — it will not return results, and will error with
+// "table not found", in a real Sentinel workspace today. Use Sentinel's own
+// SecurityAlert / SecurityIncident tables for device-scoped alert history instead.
+// Identity / triage — all Defender alerts for a specific device
+// Use at the start of any investigation to get the full picture before drilling into logs
+// Replace HOSTNAME before running
+// Ref: docs/scenarios/01-malware-alert/investigation.md
+
+let target_device = "HOSTNAME";   // replace before running
+let lookback = 7d;
+DeviceAlertEvents
+| where DeviceName == target_device
+| where TimeGenerated > ago(lookback)
+| project TimeGenerated, AlertId, Title, Severity
+| order by TimeGenerated desc
+
+// ─────────────────────────────────────────────────────────────
+// INVESTIGATION NOTES — copy paste into ticket / incident report
+// ─────────────────────────────────────────────────────────────
+//
+// all-alerts-for-device.kql — [date run: YYYY-MM-DD] — Analyst: [initials]
+//
+// Result: [ ] No results — no Defender alerts found for this device in the review window
+//         [ ] Results found — see findings below
+//
+// Findings:
+//   Device(s):
+//   Alert(s):
+//   Timeframe:
+//   Notes:
+//
+// Conclusion:
+//   [ ] No suspicious activity identified — device alert history for the review window appears clean
+//   [ ] Suspicious activity identified — escalating
+//   [ ] False positive — reason:
+//
+// ─────────────────────────────────────────────────────────────

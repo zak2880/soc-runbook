@@ -1,0 +1,61 @@
+// Platform: Microsoft Defender XDR Advanced Hunting
+// Identity — inbox rules created post-compromise (CloudAppEvents)
+// Attackers with mailbox access create rules to auto-forward, hide, or destroy
+// evidence of their own activity (invoice fraud replies, password reset emails)
+// Flags New-InboxRule / Set-InboxRule operations that do any of:
+//   - forward or redirect externally (ForwardTo, ForwardAsAttachmentTo, RedirectTo
+//     pointing outside the tenant's own domains)
+//   - delete based on finance/credential keywords (invoice, payment, wire, password, MFA)
+//   - mark items as read (hides the message from an unsuspecting user re-opening
+//     their inbox, buys the attacker more time before discovery)
+// Requires the Office 365 app connector enabled in MDCA; rule contents are nested in
+// RawEventData JSON and the property names below (Parameters.ForwardTo etc.) mirror
+// the underlying Exchange audit payload MDCA ingests, so they track Exchange schema
+// changes
+// Correlate the rule creation time against a suspicious sign-in window — feed
+// AccountUpn/UserId and SignInTime from entra-device-code-auth-flow.kql,
+// entra-aitm-session-anomalies.kql, or entra-impossible-travel.kql
+// Ref: docs/scenarios/06-credential-compromise/investigation.md, docs/scenarios/12-phishing-email/investigation.md
+
+let lookback = 7d;
+let correlation_window = 1h;
+let SuspiciousSignIns = EntraIdSignInEvents
+| where Timestamp > ago(lookback)
+| where AuthenticationProtocol == "deviceCode" or RiskLevelDuringSignIn != "none"
+| project AccountUpn, SignInTime = Timestamp;
+CloudAppEvents
+| where Timestamp > ago(lookback)
+| where ActionType in ("New-InboxRule", "Set-InboxRule")
+| extend Params = parse_json(RawEventData).Parameters
+| extend
+    ForwardsExternally = isnotempty(Params.ForwardTo) or isnotempty(Params.ForwardAsAttachmentTo) or isnotempty(Params.RedirectTo),
+    DeletesByKeyword = Params.SubjectContainsWords has_any ("invoice", "payment", "wire", "password", "mfa"),
+    MarksAsRead = tostring(Params.MarkAsRead) =~ "true"
+| where ForwardsExternally or DeletesByKeyword or MarksAsRead
+| join kind=inner SuspiciousSignIns on $left.AccountId == $right.AccountUpn
+| where Timestamp between (SignInTime .. (SignInTime + correlation_window))
+| project Timestamp, AccountId, ActionType, ForwardsExternally,
+    DeletesByKeyword, MarksAsRead, Params, SignInTime
+| order by Timestamp desc
+
+// ─────────────────────────────────────────────────────────────
+// INVESTIGATION NOTES — copy paste into ticket / incident report
+// ─────────────────────────────────────────────────────────────
+//
+// entra-post-compromise-mailbox-rules.kql — [date run: YYYY-MM-DD] — Analyst: [initials]
+//
+// Result: [ ] No results — no suspicious inbox rules created in the post-compromise window
+//         [ ] Results found — see findings below
+//
+// Findings:
+//   Account(s):
+//   Rule action (forward / delete / mark as read):
+//   Timeframe:
+//   Notes:
+//
+// Conclusion:
+//   [ ] No suspicious activity identified — inbox rule activity for this account in the post-compromise window appears clean
+//   [ ] Suspicious activity identified — escalating
+//   [ ] False positive — reason:
+//
+// ─────────────────────────────────────────────────────────────

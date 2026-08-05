@@ -1,0 +1,18 @@
+// Platform: Microsoft Sentinel
+// Suspicious PowerShell command-line flags
+// Covers: encoded commands, download cradles, fileless execution, evasion switches
+// Replace HOSTNAME or remove the device filter to run estate-wide
+// Ref: docs/scenarios/02-suspicious-process/investigation.md, docs/scenarios/07-lolbin-abuse/investigation.md
+
+DeviceProcessEvents
+| where FileName =~ "powershell.exe"
+| where ProcessCommandLine has_any (
+    "-enc", "-EncodedCommand",
+    "IEX", "Invoke-Expression",
+    "DownloadString", "WebClient",
+    "-nop", "-NonInteractive",
+    "Reflection.Assembly", "FromBase64String",
+    "-w hidden", "-WindowStyle Hidden")
+| where TimeGenerated > ago(24h)
+| project TimeGenerated, DeviceName, AccountName,
+    ProcessCommandLine, InitiatingProcessFileName

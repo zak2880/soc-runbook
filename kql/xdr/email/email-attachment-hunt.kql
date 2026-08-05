@@ -1,0 +1,19 @@
+// Platform: Microsoft Defender XDR Advanced Hunting
+// Email — suspicious attachment hunt
+// Finds emails with attachments matching a suspicious file type, or a specific
+// known-bad SHA256 if you have one from an alert/VirusTotal
+// Ref: docs/scenarios/12-phishing-email/investigation.md, docs/scenarios/05-malicious-file/investigation.md
+
+let lookback = 7d;
+let known_bad_sha256 = "PASTE_HASH_HERE";   // replace with a known-bad SHA256, or leave as-is to hunt by file type only
+let suspicious_file_types = dynamic(["exe", "dll", "js", "vbs", "hta", "iso", "lnk", "ps1"]);
+EmailAttachmentInfo
+| where Timestamp > ago(lookback)
+| where FileType in (suspicious_file_types) or SHA256 == known_bad_sha256
+| join kind=inner (
+    EmailEvents
+    | where Timestamp > ago(lookback)
+) on NetworkMessageId
+| project Timestamp, NetworkMessageId, SenderFromAddress, RecipientEmailAddress,
+    FileName, FileType, SHA256, MalwareFamily, DetectionMethods
+| order by Timestamp desc

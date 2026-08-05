@@ -1,0 +1,53 @@
+// Platform: Microsoft Sentinel
+// Note: EmailEvents / EmailAttachmentInfo are Defender XDR Advanced Hunting-only
+// tables — NOT exposed as queryable Sentinel Log Analytics tables, even with the
+// Microsoft Defender XDR connector configured (see
+// docs/reference/sentinel-vs-advanced-hunting.md, Section 2/3). DeviceFileEvents and
+// DeviceProcessEvents ARE available in Sentinel via that connector, but the first two
+// stages of this pivot are not — this file is kept for structural parity with
+// kql/xdr/pivots/ and will error with "table not found" on the EmailStage in a real
+// Sentinel workspace today. If you need this pivot in Sentinel, start from an
+// individual MDO alert synced into Sentinel incidents instead of querying EmailEvents
+// directly.
+// Pivot — phishing email to device compromise timeline
+// Starts from a known suspicious email, pulls its attachment hash, then follows that
+// hash onto the endpoint to see which devices received it and which ones actually
+// executed it — the difference between "was delivered" and "was compromised"
+// Chains: email investigation (EmailEvents, EmailAttachmentInfo) -> file artefacts
+// (DeviceFileEvents) -> process execution (DeviceProcessEvents)
+// Match by NetworkMessageId if you have it (most precise); otherwise leave it empty
+// and match by sender instead
+// Ref: docs/scenarios/12-phishing-email/investigation.md, docs/scenarios/05-malicious-file/investigation.md, docs/scenarios/01-malware-alert/investigation.md
+
+let target_message_id = "";                      // paste NetworkMessageId here if known
+let target_sender = "attacker@malicious.com";     // used only if target_message_id is empty
+let lookback = 7d;                                // how far back to search
+
+let EmailStage = EmailEvents
+| where TimeGenerated > ago(lookback)
+| where (isnotempty(target_message_id) and NetworkMessageId == target_message_id)
+    or (isempty(target_message_id) and SenderFromAddress =~ target_sender)
+| project EmailTime = TimeGenerated, NetworkMessageId, SenderFromAddress,
+    RecipientEmailAddress, Subject;
+let AttachmentStage = EmailAttachmentInfo
+| where TimeGenerated > ago(lookback)
+| join kind=inner EmailStage on NetworkMessageId
+| project EmailTime, NetworkMessageId, RecipientEmailAddress, FileName, SHA256;
+let FileLandedStage = DeviceFileEvents
+| where TimeGenerated > ago(lookback)
+| where ActionType == "FileCreated"
+| join kind=inner AttachmentStage on SHA256
+| project FileLandedTime = TimeGenerated, DeviceName, FileName, SHA256, FolderPath,
+    EmailTime, NetworkMessageId, RecipientEmailAddress;
+let ExecutionStage = DeviceProcessEvents
+| where TimeGenerated > ago(lookback)
+| join kind=inner FileLandedStage on SHA256, DeviceName
+| where TimeGenerated > FileLandedTime
+| project ExecutionTime = TimeGenerated, DeviceName, FileName, SHA256,
+    ProcessCommandLine, AccountName, EmailTime, FileLandedTime,
+    NetworkMessageId, RecipientEmailAddress;
+union
+    (EmailStage | extend Stage = "1-EmailReceived", TimelineTime = EmailTime),
+    (FileLandedStage | extend Stage = "2-FileLanded", TimelineTime = FileLandedTime),
+    (ExecutionStage | extend Stage = "3-ProcessExecuted", TimelineTime = ExecutionTime)
+| order by TimelineTime asc

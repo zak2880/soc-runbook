@@ -1,0 +1,16 @@
+// Platform: Microsoft Defender XDR Advanced Hunting
+// Persistence — WMI event subscription creation
+// Advanced persistence technique: malware registers WMI events that fire on system conditions
+// Does not appear in normal startup tools — requires specific hunting
+// Ref: docs/scenarios/04-persistence-detected/investigation.md
+
+let target_device = "HOSTNAME";   // replace before running
+DeviceEvents
+| where DeviceName == target_device
+| where ActionType in (
+    "WmiBindingCreated",
+    "WmiFilterCreated",
+    "WmiConsumerCreated")
+| where Timestamp > ago(7d)
+| project Timestamp, ActionType, InitiatingProcessFileName,
+    InitiatingProcessCommandLine, AdditionalFields

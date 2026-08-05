@@ -1,0 +1,59 @@
+// Platform: Microsoft Sentinel
+// Identity — suspicious OAuth app consent grants following a compromised sign-in (AuditLogs)
+// Attackers who've phished a session (device code, AiTM) often register or consent to
+// a malicious OAuth app instead of setting up mailbox rules — it survives a password
+// reset and doesn't need repeated interactive sign-in
+// AuditLogs is the Sentinel-native directory audit table (Azure AD / Entra ID
+// connector) — TargetResources and its nested modifiedProperties carry the scope
+// data for consent/grant operations; property/value shape can vary slightly by
+// operation, confirm the parsed fields against a real event before relying on them
+// Flags: Consent to application, Add delegated permission grant — where the granted
+// scope includes mail.read, files.readwrite, offline_access, mail.readwrite, or the
+// grant was tenant-wide admin consent (AllPrincipals)
+// Correlation window: consent granted within 1 hour of a suspicious sign-in for the
+// same account
+// Ref: docs/scenarios/06-credential-compromise/investigation.md, docs/scenarios/12-phishing-email/investigation.md
+
+let lookback = 7d;
+let correlation_window = 1h;
+let SuspiciousSignIns = SigninLogs
+| where TimeGenerated > ago(lookback)
+| where AuthenticationRequirement != "singleFactorAuthentication" or RiskLevelDuringSignIn != "none"
+| project UserPrincipalName, SignInTime = TimeGenerated;
+AuditLogs
+| where TimeGenerated > ago(lookback)
+| where OperationName in ("Consent to application", "Add delegated permission grant")
+| extend InitiatedByUpn = tostring(InitiatedBy.user.userPrincipalName)
+| mv-expand TargetResource = TargetResources
+| extend ModifiedProperties = TargetResource.modifiedProperties
+| mv-expand ModifiedProperty = ModifiedProperties
+| extend PropName = tostring(ModifiedProperty.displayName), PropNewValue = tostring(ModifiedProperty.newValue)
+| where PropNewValue has_any ("Mail.Read", "Files.ReadWrite", "offline_access", "Mail.ReadWrite", "AllPrincipals")
+| join kind=inner SuspiciousSignIns on $left.InitiatedByUpn == $right.UserPrincipalName
+| where TimeGenerated between (SignInTime .. (SignInTime + correlation_window))
+| project TimeGenerated, InitiatedByUpn, OperationName, PropName, PropNewValue,
+    AdditionalDetails, Result, SignInTime
+| order by TimeGenerated desc
+
+// ─────────────────────────────────────────────────────────────
+// INVESTIGATION NOTES — copy paste into ticket / incident report
+// ─────────────────────────────────────────────────────────────
+//
+// entra-post-compromise-oauth-grants.kql — [date run: YYYY-MM-DD] — Analyst: [initials]
+//
+// Result: [ ] No results — no suspicious OAuth consent grants (mail.read, files.readwrite, offline_access, or tenant-wide admin consent) detected within 1h of the suspicious sign-in
+//         [ ] Results found — see findings below
+//
+// Findings:
+//   Account(s):
+//   Application:
+//   Scopes granted:
+//   Timeframe:
+//   Notes:
+//
+// Conclusion:
+//   [ ] No suspicious activity identified — OAuth consent activity for this account in the post-sign-in window appears clean
+//   [ ] Suspicious activity identified — escalating
+//   [ ] False positive — reason:
+//
+// ─────────────────────────────────────────────────────────────

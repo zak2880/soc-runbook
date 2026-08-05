@@ -1,0 +1,19 @@
+// Platform: Microsoft Defender XDR Advanced Hunting
+// Email — attachment landed on device
+// Joins a received attachment's SHA256 against DeviceFileEvents to see which devices
+// actually received and stored the file — the file-artefact half of
+// kql/xdr/pivots/phishing-to-device-compromise.kql, useful on its own when you just
+// need "who has this file" without the full execution timeline
+// Ref: docs/scenarios/12-phishing-email/investigation.md, docs/scenarios/05-malicious-file/investigation.md
+
+let lookback = 7d;
+EmailAttachmentInfo
+| where Timestamp > ago(lookback)
+| join kind=inner (
+    DeviceFileEvents
+    | where Timestamp > ago(lookback)
+    | where ActionType == "FileCreated"
+) on SHA256
+| project Timestamp, DeviceName, FileName, FolderPath, SHA256,
+    NetworkMessageId, InitiatingProcessFileName
+| order by Timestamp desc

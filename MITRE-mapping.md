@@ -5,6 +5,8 @@ Full mapping of soc-runbook detection content to MITRE ATT&CK tactics and techni
 Framework version: ATT&CK v14 (Enterprise)  
 Coverage: Techniques commonly seen in incidents handled at a UK MSSP targeting SME and mid-market organisations.
 
+Every technique below that has a KQL detection now has **both** a Sentinel (`kql/sentinel/…`, `TimeGenerated`) and an XDR (`kql/xdr/…`, `Timestamp`) version — the Query column links to both where they exist. A handful of Sentinel-tree links point at files kept for structural parity only (the table they query isn't actually available in Sentinel yet); those are called out in the file's own header comment and in [docs/reference/sentinel-vs-advanced-hunting.md](docs/reference/sentinel-vs-advanced-hunting.md). Rows that link to a `docs/` investigation guide instead of a `.kql` file are unaffected by the platform split.
+
 ---
 
 ## Coverage by tactic
@@ -30,12 +32,12 @@ Coverage: Techniques commonly seen in incidents handled at a UK MSSP targeting S
 
 ### Initial Access
 
-| Technique | ID | Detection | KQL |
+| Technique | ID | Detection | Query |
 |-----------|-----|-----------|-----|
-| Phishing — spearphishing attachment | T1566.001 | Malicious attachment delivered via email | [office-spawning-shells.kql](kql/process/office-spawning-shells.kql) |
+| Phishing — spearphishing attachment | T1566.001 | Malicious attachment delivered via email | [Sentinel](kql/sentinel/process/office-spawning-shells.kql) · [XDR](kql/xdr/process/office-spawning-shells.kql) |
 | Phishing — spearphishing link | T1566.002 | User clicks malicious link from email | [docs/13-email-investigation.md](docs/13-email-investigation.md) |
 | Phishing — spearphishing via Teams | T1566.003 | External Teams message with malicious content | [docs/13-email-investigation.md](docs/13-email-investigation.md) |
-| Valid accounts | T1078 | Credential-based logon from unusual location | [entra-impossible-travel.kql](kql/identity/entra-impossible-travel.kql) |
+| Valid accounts | T1078 | Credential-based logon from unusual location | [Sentinel](kql/sentinel/identity/entra-impossible-travel.kql) · [XDR](kql/xdr/identity/entra-impossible-travel.kql) |
 | External remote services (RDP) | T1133 | RDP brute force — many failures then success | [docs/11-initial-access.md](docs/11-initial-access.md) |
 | Drive-by compromise | T1189 | Browser download of executable or script | [docs/11-initial-access.md](docs/11-initial-access.md) |
 | Supply chain compromise | T1195 | Trojanised installer or update | [docs/11-initial-access.md](docs/11-initial-access.md) |
@@ -44,52 +46,52 @@ Coverage: Techniques commonly seen in incidents handled at a UK MSSP targeting S
 
 ### Execution
 
-| Technique | ID | Detection | KQL |
+| Technique | ID | Detection | Query |
 |-----------|-----|-----------|-----|
-| PowerShell | T1059.001 | Encoded commands, download cradles, AMSI bypass | [suspicious-powershell.kql](kql/process/suspicious-powershell.kql) |
-| Visual Basic (VBScript) | T1059.005 | wscript/cscript spawning shells | [lolbin-sweep.kql](kql/process/lolbin-sweep.kql) |
-| JavaScript | T1059.007 | mshta inline JavaScript execution | [lolbin-sweep.kql](kql/process/lolbin-sweep.kql) |
+| PowerShell | T1059.001 | Encoded commands, download cradles, AMSI bypass | [Sentinel](kql/sentinel/process/suspicious-powershell.kql) · [XDR](kql/xdr/process/suspicious-powershell.kql) |
+| Visual Basic (VBScript) | T1059.005 | wscript/cscript spawning shells | [Sentinel](kql/sentinel/process/lolbin-sweep.md) · [XDR](kql/xdr/process/lolbin-sweep.md) |
+| JavaScript | T1059.007 | mshta inline JavaScript execution | [Sentinel](kql/sentinel/process/lolbin-sweep.md) · [XDR](kql/xdr/process/lolbin-sweep.md) |
 | Native API | T1106 | Process hollowing via memory write APIs | [docs/12-defence-evasion.md](docs/12-defence-evasion.md) |
-| User execution — malicious file | T1204.002 | User opens phishing attachment | [office-spawning-shells.kql](kql/process/office-spawning-shells.kql) |
-| Signed binary proxy execution | T1218 | certutil, mshta, regsvr32, rundll32, wmic, bitsadmin | [lolbin-sweep.kql](kql/process/lolbin-sweep.kql) |
+| User execution — malicious file | T1204.002 | User opens phishing attachment | [Sentinel](kql/sentinel/process/office-spawning-shells.kql) · [XDR](kql/xdr/process/office-spawning-shells.kql) |
+| Signed binary proxy execution | T1218 | certutil, mshta, regsvr32, rundll32, wmic, bitsadmin | [Sentinel](kql/sentinel/process/lolbin-sweep.md) · [XDR](kql/xdr/process/lolbin-sweep.md) |
 
 ---
 
 ### Persistence
 
-| Technique | ID | Detection | KQL |
+| Technique | ID | Detection | Query |
 |-----------|-----|-----------|-----|
-| Registry run keys | T1547.001 | Run/RunOnce key modifications | [registry-run-key-modifications.kql](kql/persistence/registry-run-key-modifications.kql) |
-| Scheduled task | T1053.005 | Task creation via schtasks.exe | [scheduled-task-creation.kql](kql/persistence/scheduled-task-creation.kql) |
-| Windows service | T1543.003 | New service installed | [new-services-installed.kql](kql/persistence/new-services-installed.kql) |
-| WMI event subscription | T1546.003 | WMI filter, consumer, binding creation | [wmi-subscription-creation.kql](kql/persistence/wmi-subscription-creation.kql) |
-| Local account creation | T1136.001 | New local user account created | [new-local-accounts-created.kql](kql/identity/new-local-accounts-created.kql) |
-| Account manipulation — additional cloud credentials | T1098.001 | New MFA methods, service principals, or app registrations added post-compromise | [entra-post-compromise-persistence.kql](kql/identity/entra-post-compromise-persistence.kql) |
-| Account manipulation — additional cloud roles | T1098.003 | New Conditional Access exclusions, guest invites, or directory role assignments post-compromise | [entra-post-compromise-persistence.kql](kql/identity/entra-post-compromise-persistence.kql) |
+| Registry run keys | T1547.001 | Run/RunOnce key modifications | [Sentinel](kql/sentinel/persistence/registry-run-key-modifications.kql) · [XDR](kql/xdr/persistence/registry-run-key-modifications.kql) |
+| Scheduled task | T1053.005 | Task creation via schtasks.exe | [Sentinel](kql/sentinel/persistence/scheduled-task-creation.kql) · [XDR](kql/xdr/persistence/scheduled-task-creation.kql) |
+| Windows service | T1543.003 | New service installed | [Sentinel](kql/sentinel/persistence/new-services-installed.kql) · [XDR](kql/xdr/persistence/new-services-installed.kql) |
+| WMI event subscription | T1546.003 | WMI filter, consumer, binding creation | [Sentinel](kql/sentinel/persistence/wmi-subscription-creation.kql) · [XDR](kql/xdr/persistence/wmi-subscription-creation.kql) |
+| Local account creation | T1136.001 | New local user account created | [Sentinel](kql/sentinel/identity/new-local-accounts-created.kql) · [XDR](kql/xdr/identity/new-local-accounts-created.kql) |
+| Account manipulation — additional cloud credentials | T1098.001 | New MFA/auth methods, service principals, or app registrations added post-compromise | [Sentinel](kql/sentinel/identity/entra-post-compromise-persistence.kql) · [XDR](kql/xdr/identity/entra-post-compromise-persistence.kql) |
+| Account manipulation — additional cloud roles | T1098.003 | New guest invites or directory role assignments post-compromise | [Sentinel](kql/sentinel/identity/entra-post-compromise-persistence.kql) · [XDR](kql/xdr/identity/entra-post-compromise-persistence.kql) |
 
 ---
 
 ### Privilege Escalation
 
-| Technique | ID | Detection | KQL |
+| Technique | ID | Detection | Query |
 |-----------|-----|-----------|-----|
 | UAC bypass | T1548.002 | fodhelper, eventvwr, computerdefaults spawning children | [docs/12-defence-evasion.md](docs/12-defence-evasion.md) |
 | Process injection | T1055 | Legitimate process making unexpected network connections | [docs/12-defence-evasion.md](docs/12-defence-evasion.md) |
-| Valid accounts | T1078 | Compromised account used for privilege escalation | [user-on-multiple-devices.kql](kql/identity/user-on-multiple-devices.kql) |
+| Valid accounts | T1078 | Compromised account used for privilege escalation | [Sentinel](kql/sentinel/identity/user-on-multiple-devices.kql) · [XDR](kql/xdr/identity/user-on-multiple-devices.kql) |
 
 ---
 
 ### Defence Evasion
 
-| Technique | ID | Detection | KQL |
+| Technique | ID | Detection | Query |
 |-----------|-----|-----------|-----|
-| Obfuscated files / encoding | T1027 | Base64 encoded PowerShell, char array obfuscation | [suspicious-powershell.kql](kql/process/suspicious-powershell.kql) |
-| Masquerading — match legitimate name | T1036.005 | Executables in Temp/AppData with system process names | [executables-in-suspicious-paths.kql](kql/files/executables-in-suspicious-paths.kql) |
+| Obfuscated files / encoding | T1027 | Base64 encoded PowerShell, char array obfuscation | [Sentinel](kql/sentinel/process/suspicious-powershell.kql) · [XDR](kql/xdr/process/suspicious-powershell.kql) |
+| Masquerading — match legitimate name | T1036.005 | Executables in Temp/AppData with system process names | [Sentinel](kql/sentinel/files/executables-in-suspicious-paths.kql) · [XDR](kql/xdr/files/executables-in-suspicious-paths.kql) |
 | Process injection | T1055 | Memory API calls from unexpected processes | [docs/12-defence-evasion.md](docs/12-defence-evasion.md) |
-| Indicator removal — clear event logs | T1070.001 | wevtutil cl, Clear-EventLog | [event-log-clearing.kql](kql/ransomware/event-log-clearing.kql) |
+| Indicator removal — clear event logs | T1070.001 | wevtutil cl, Clear-EventLog | [Sentinel](kql/sentinel/ransomware/event-log-clearing.kql) · [XDR](kql/xdr/ransomware/event-log-clearing.kql) |
 | Modify registry | T1112 | UAC bypass registry modifications | [docs/12-defence-evasion.md](docs/12-defence-evasion.md) |
-| Signed binary proxy execution | T1218 | LOLBin abuse | [lolbin-sweep.kql](kql/process/lolbin-sweep.kql) |
-| Impair defences — disable AV | T1562.001 | Defender disabled via registry | [defence-evasion-defender-disabled.kql](kql/ransomware/defence-evasion-defender-disabled.kql) |
+| Signed binary proxy execution | T1218 | LOLBin abuse | [Sentinel](kql/sentinel/process/lolbin-sweep.md) · [XDR](kql/xdr/process/lolbin-sweep.md) |
+| Impair defences — disable AV | T1562.001 | Defender disabled via registry | [Sentinel](kql/sentinel/ransomware/defence-evasion-defender-disabled.kql) · [XDR](kql/xdr/ransomware/defence-evasion-defender-disabled.kql) |
 | Impair defences — disable logging | T1562.002 | ETW patching, audit policy modification | [docs/12-defence-evasion.md](docs/12-defence-evasion.md) |
 | AMSI bypass | T1562.001 | AmsiUtils / amsiInitFailed in PowerShell command line | [docs/12-defence-evasion.md](docs/12-defence-evasion.md) |
 | Timestomping | T1070.006 | Files with suspiciously old timestamps in temp paths | [docs/12-defence-evasion.md](docs/12-defence-evasion.md) |
@@ -98,86 +100,86 @@ Coverage: Techniques commonly seen in incidents handled at a UK MSSP targeting S
 
 ### Credential Access
 
-| Technique | ID | Detection | KQL |
+| Technique | ID | Detection | Query |
 |-----------|-----|-----------|-----|
-| OS credential dumping — lsass | T1003.001 | lsass.exe accessed by non-Windows process | [lsass-access-credential-dump.kql](kql/identity/lsass-access-credential-dump.kql) |
-| OS credential dumping — SAM | T1003.002 | SAM hive read by non-system process | [credential-access-sweep.kql](kql/process/credential-access-sweep.kql) |
-| OS credential dumping — NTDS | T1003.003 | NTDS.dit accessed by non-system process | [credential-access-sweep.kql](kql/process/credential-access-sweep.kql) |
-| Kerberoasting | T1558.003 | GetUserSPNs, Invoke-Kerberoast in command lines | [credential-access-sweep.kql](kql/process/credential-access-sweep.kql) |
-| AS-REP roasting | T1558.004 | GetNPUsers, ASREPRoast in command lines | [credential-access-sweep.kql](kql/process/credential-access-sweep.kql) |
-| MFA fatigue | T1621 | 5+ failed MFA prompts in 10 minutes | [entra-mfa-fatigue.kql](kql/identity/entra-mfa-fatigue.kql) |
-| Modify authentication process — device registration | T1556.006 | Device code auth flow, flagged from new locations or outside business hours | [entra-device-code-auth-flow.kql](kql/identity/entra-device-code-auth-flow.kql) |
-| Steal web session cookie | T1539 | Token replay, impossible travel post-MFA, compliance-state drop, UserAgent mismatch | [entra-aitm-session-anomalies.kql](kql/identity/entra-aitm-session-anomalies.kql) |
-| Steal application access token | T1528 | Suspicious OAuth consent grant within 1h of a suspicious sign-in | [entra-post-compromise-oauth-grants.kql](kql/identity/entra-post-compromise-oauth-grants.kql) |
+| OS credential dumping — lsass | T1003.001 | lsass.exe accessed by non-Windows process | [Sentinel](kql/sentinel/identity/lsass-access-credential-dump.kql) · [XDR](kql/xdr/identity/lsass-access-credential-dump.kql) |
+| OS credential dumping — SAM | T1003.002 | SAM hive read by non-system process | [Sentinel](kql/sentinel/process/credential-access-sweep.md) · [XDR](kql/xdr/process/credential-access-sweep.md) |
+| OS credential dumping — NTDS | T1003.003 | NTDS.dit accessed by non-system process | [Sentinel](kql/sentinel/process/credential-access-sweep.md) · [XDR](kql/xdr/process/credential-access-sweep.md) |
+| Kerberoasting | T1558.003 | GetUserSPNs, Invoke-Kerberoast in command lines | [Sentinel](kql/sentinel/process/credential-access-sweep.md) · [XDR](kql/xdr/process/credential-access-sweep.md) |
+| AS-REP roasting | T1558.004 | GetNPUsers, ASREPRoast in command lines | [Sentinel](kql/sentinel/process/credential-access-sweep.md) · [XDR](kql/xdr/process/credential-access-sweep.md) |
+| MFA fatigue | T1621 | 5+ failed MFA prompts in 10 minutes | [Sentinel](kql/sentinel/identity/entra-mfa-fatigue.kql) · [XDR](kql/xdr/identity/entra-mfa-fatigue.kql) |
+| Modify authentication process — device registration | T1556.006 | Device code auth flow, flagged from new locations or outside business hours | [Sentinel](kql/sentinel/identity/entra-device-code-auth-flow.md) · [XDR](kql/xdr/identity/entra-device-code-auth-flow.md) |
+| Steal web session cookie | T1539 | IP change post-MFA, impossible travel, compliance-state drift, UserAgent mismatch | [Sentinel](kql/sentinel/identity/entra-aitm-session-anomalies.kql) · [XDR](kql/xdr/identity/entra-aitm-session-anomalies.md) |
+| Steal application access token | T1528 | Suspicious OAuth consent grant within 1h of a suspicious sign-in | [Sentinel](kql/sentinel/identity/entra-post-compromise-oauth-grants.kql) · [XDR](kql/xdr/identity/entra-post-compromise-oauth-grants.kql) |
 
 ---
 
 ### Discovery
 
-| Technique | ID | Detection | KQL |
+| Technique | ID | Detection | Query |
 |-----------|-----|-----------|-----|
 | Remote system discovery | T1018 | wmic querying network, arp -a, nslookup sweeps | [docs/02-process-investigation.md](docs/02-process-investigation.md) |
-| Process discovery | T1057 | wmic process list, tasklist in command lines | [lolbin-sweep.kql](kql/process/lolbin-sweep.kql) |
+| Process discovery | T1057 | wmic process list, tasklist in command lines | [Sentinel](kql/sentinel/process/lolbin-sweep.md) · [XDR](kql/xdr/process/lolbin-sweep.md) |
 | System info discovery | T1082 | wmic computersystem, systeminfo, hostname | [docs/02-process-investigation.md](docs/02-process-investigation.md) |
 | File and directory discovery | T1083 | dir /s, Get-ChildItem recursing filesystem | [docs/05-file-artefacts.md](docs/05-file-artefacts.md) |
-| System owner/user discovery | T1033 | whoami run as part of a post-compromise recon burst | [post-compromise-discovery-commands.kql](kql/process/post-compromise-discovery-commands.kql) |
-| Account discovery — local account | T1087.001 | net user in a post-compromise recon burst | [post-compromise-discovery-commands.kql](kql/process/post-compromise-discovery-commands.kql) |
-| Account discovery — domain account | T1087.002 | net localgroup administrators in a post-compromise recon burst | [post-compromise-discovery-commands.kql](kql/process/post-compromise-discovery-commands.kql) |
-| Domain trust discovery | T1482 | nltest /domain_trusts in a post-compromise recon burst | [post-compromise-discovery-commands.kql](kql/process/post-compromise-discovery-commands.kql) |
-| System network configuration discovery | T1016 | ipconfig /all, nslookup, arp -a in a post-compromise recon burst | [post-compromise-discovery-commands.kql](kql/process/post-compromise-discovery-commands.kql) |
+| System owner/user discovery | T1033 | whoami run as part of a post-compromise recon burst | [Sentinel](kql/sentinel/process/post-compromise-discovery-commands.kql) · [XDR](kql/xdr/process/post-compromise-discovery-commands.kql) |
+| Account discovery — local account | T1087.001 | net user in a post-compromise recon burst | [Sentinel](kql/sentinel/process/post-compromise-discovery-commands.kql) · [XDR](kql/xdr/process/post-compromise-discovery-commands.kql) |
+| Account discovery — domain account | T1087.002 | net localgroup administrators in a post-compromise recon burst | [Sentinel](kql/sentinel/process/post-compromise-discovery-commands.kql) · [XDR](kql/xdr/process/post-compromise-discovery-commands.kql) |
+| Domain trust discovery | T1482 | nltest /domain_trusts in a post-compromise recon burst | [Sentinel](kql/sentinel/process/post-compromise-discovery-commands.kql) · [XDR](kql/xdr/process/post-compromise-discovery-commands.kql) |
+| System network configuration discovery | T1016 | ipconfig /all, nslookup, arp -a in a post-compromise recon burst | [Sentinel](kql/sentinel/process/post-compromise-discovery-commands.kql) · [XDR](kql/xdr/process/post-compromise-discovery-commands.kql) |
 
 ---
 
 ### Lateral Movement
 
-| Technique | ID | Detection | KQL |
+| Technique | ID | Detection | Query |
 |-----------|-----|-----------|-----|
-| RDP | T1021.001 | Account logging into new devices via RemoteInteractive | [user-on-multiple-devices.kql](kql/identity/user-on-multiple-devices.kql) |
-| SMB / Windows Admin Shares | T1021.002 | Connections to port 445 on multiple internal IPs | [lateral-movement-scanning.kql](kql/network/lateral-movement-scanning.kql) |
-| WinRM | T1021.006 | Connections to port 5985/5986 on multiple internal IPs | [lateral-movement-scanning.kql](kql/network/lateral-movement-scanning.kql) |
+| RDP | T1021.001 | Account logging into new devices via RemoteInteractive | [Sentinel](kql/sentinel/identity/user-on-multiple-devices.kql) · [XDR](kql/xdr/identity/user-on-multiple-devices.kql) |
+| SMB / Windows Admin Shares | T1021.002 | Connections to port 445 on multiple internal IPs | [Sentinel](kql/sentinel/network/lateral-movement-scanning.kql) · [XDR](kql/xdr/network/lateral-movement-scanning.kql) |
+| WinRM | T1021.006 | Connections to port 5985/5986 on multiple internal IPs | [Sentinel](kql/sentinel/network/lateral-movement-scanning.kql) · [XDR](kql/xdr/network/lateral-movement-scanning.kql) |
 | Pass the Hash | T1550.002 | Network logons from unexpected source using domain account | [docs/06-identity-and-credentials.md](docs/06-identity-and-credentials.md) |
 
 ---
 
 ### Collection
 
-| Technique | ID | Detection | KQL |
+| Technique | ID | Detection | Query |
 |-----------|-----|-----------|-----|
-| Email collection | T1114 | Unusual volume of MailItemsAccessed, mail export operations, or non-admin eDiscovery searches post-compromise | [entra-post-compromise-email-exfil.kql](kql/identity/entra-post-compromise-email-exfil.kql) |
-| Email collection — forwarding rule | T1114.003 | Inbox rule forwards externally, deletes by keyword, or marks as read post-compromise | [entra-post-compromise-mailbox-rules.kql](kql/identity/entra-post-compromise-mailbox-rules.kql) |
-| Data from information repositories | T1213 | Bulk SharePoint/OneDrive access above baseline, off-hours access, or external sharing post-compromise | [entra-post-compromise-sharepoint-access.kql](kql/identity/entra-post-compromise-sharepoint-access.kql) |
+| Email collection | T1114 | Unusual volume of mailbox access, mail export operations, or non-admin eDiscovery searches post-compromise | [Sentinel](kql/sentinel/identity/entra-post-compromise-email-exfil.kql) · [XDR](kql/xdr/identity/entra-post-compromise-email-exfil.kql) |
+| Email collection — forwarding rule | T1114.003 | Inbox rule forwards externally, deletes by keyword, or marks as read post-compromise | [Sentinel](kql/sentinel/identity/entra-post-compromise-mailbox-rules.md) · [XDR](kql/xdr/identity/entra-post-compromise-mailbox-rules.kql) |
+| Data from information repositories | T1213 | Bulk SharePoint/OneDrive access above baseline, off-hours access, or external sharing post-compromise | [Sentinel](kql/sentinel/identity/entra-post-compromise-sharepoint-access.kql) · [XDR](kql/xdr/identity/entra-post-compromise-sharepoint-access.kql) |
 
 ---
 
 ### Command and Control
 
-| Technique | ID | Detection | KQL |
+| Technique | ID | Detection | Query |
 |-----------|-----|-----------|-----|
-| Application layer protocol — web | T1071.001 | Regular beaconing over HTTP/S | [beacon-suspicion-score.kql](kql/network/beacon-suspicion-score.kql) |
-| Application layer protocol — DNS | T1071.004 | DNS tunnelling via encoded subdomains | [dns-tunnelling.kql](kql/network/dns-tunnelling.kql) |
-| Non-application layer protocol | T1095 | Raw socket connections, unusual protocol usage | [unusual-outbound-ports.kql](kql/network/unusual-outbound-ports.kql) |
-| Web service — LOTS | T1102 | Scripting engine connecting to Discord, Telegram, Pastebin | [lots-suspicious-process-to-cloud.kql](kql/network/lots-suspicious-process-to-cloud.kql) |
-| Web service — dead drop | T1102.001 | Paste service GET followed by raw IP connection | [lots-dead-drop-resolver.kql](kql/network/lots-dead-drop-resolver.kql) |
-| Dynamic resolution — newly registered domains | T1568.002 | DNS queries to domains never queried by a device before infection | [post-compromise-c2-from-malware.kql](kql/network/post-compromise-c2-from-malware.kql) |
-| Non-standard port | T1571 | Connections on ports 4444, 50050, 1337, 8080, etc. | [unusual-outbound-ports.kql](kql/network/unusual-outbound-ports.kql) |
-| Encrypted channel | T1573 | Low-volume HTTPS beaconing to single CDN IP | [beacon-interval-regularity.kql](kql/network/beacon-interval-regularity.kql) |
+| Application layer protocol — web | T1071.001 | Regular beaconing over HTTP/S | [Sentinel](kql/sentinel/network/beacon-suspicion-score.md) · [XDR](kql/xdr/network/beacon-suspicion-score.md) |
+| Application layer protocol — DNS | T1071.004 | DNS tunnelling via encoded subdomains | [Sentinel](kql/sentinel/network/dns-tunnelling.kql) · [XDR](kql/xdr/network/dns-tunnelling.kql) |
+| Non-application layer protocol | T1095 | Raw socket connections, unusual protocol usage | [Sentinel](kql/sentinel/network/unusual-outbound-ports.kql) · [XDR](kql/xdr/network/unusual-outbound-ports.kql) |
+| Web service — LOTS | T1102 | Scripting engine connecting to Discord, Telegram, Pastebin | [Sentinel](kql/sentinel/network/lots-suspicious-process-to-cloud.kql) · [XDR](kql/xdr/network/lots-suspicious-process-to-cloud.kql) |
+| Web service — dead drop | T1102.001 | Paste service GET followed by raw IP connection | [Sentinel](kql/sentinel/network/lots-dead-drop-resolver.kql) · [XDR](kql/xdr/network/lots-dead-drop-resolver.kql) |
+| Dynamic resolution — newly registered domains | T1568.002 | DNS queries to domains never queried by a device before infection | [Sentinel](kql/sentinel/network/post-compromise-c2-from-malware.kql) · [XDR](kql/xdr/network/post-compromise-c2-from-malware.kql) |
+| Non-standard port | T1571 | Connections on ports 4444, 50050, 1337, 8080, etc. | [Sentinel](kql/sentinel/network/unusual-outbound-ports.kql) · [XDR](kql/xdr/network/unusual-outbound-ports.kql) |
+| Encrypted channel | T1573 | Low-volume HTTPS beaconing to single CDN IP | [Sentinel](kql/sentinel/network/beacon-interval-regularity.md) · [XDR](kql/xdr/network/beacon-interval-regularity.md) |
 
 ---
 
 ### Exfiltration
 
-| Technique | ID | Detection | KQL |
+| Technique | ID | Detection | Query |
 |-----------|-----|-----------|-----|
 | Exfil over C2 channel | T1041 | Large outbound transfers from unexpected process | [docs/03-network-investigation.md](docs/03-network-investigation.md) |
-| Exfil to cloud storage | T1567 | High-volume uploads to OneDrive, S3, Dropbox from non-browser | [lots-exfiltration-via-cloud.kql](kql/network/lots-exfiltration-via-cloud.kql) |
-| Exfil to code repository | T1567.002 | Non-browser process pushing to GitHub | [lots-scripting-engine-to-cloud-storage.kql](kql/network/lots-scripting-engine-to-cloud-storage.kql) |
+| Exfil to cloud storage | T1567 | High-volume uploads to OneDrive, S3, Dropbox from non-browser | [Sentinel](kql/sentinel/network/lots-exfiltration-via-cloud.kql) · [XDR](kql/xdr/network/lots-exfiltration-via-cloud.kql) |
+| Exfil to code repository | T1567.002 | Non-browser process pushing to GitHub | [Sentinel](kql/sentinel/network/lots-scripting-engine-to-cloud-storage.kql) · [XDR](kql/xdr/network/lots-scripting-engine-to-cloud-storage.kql) |
 
 ---
 
 ### Impact
 
-| Technique | ID | Detection | KQL |
+| Technique | ID | Detection | Query |
 |-----------|-----|-----------|-----|
-| Data encrypted for impact (ransomware) | T1486 | Mass file renames, new extensions across filesystem | [mass-file-renames.kql](kql/ransomware/mass-file-renames.kql) |
-| Inhibit system recovery | T1490 | VSS deletion, bcdedit recovery disabled | [vss-shadow-copy-deletion.kql](kql/ransomware/vss-shadow-copy-deletion.kql) |
+| Data encrypted for impact (ransomware) | T1486 | Mass file renames, new extensions across filesystem | [Sentinel](kql/sentinel/ransomware/mass-file-renames.kql) · [XDR](kql/xdr/ransomware/mass-file-renames.kql) |
+| Inhibit system recovery | T1490 | VSS deletion, bcdedit recovery disabled | [Sentinel](kql/sentinel/ransomware/vss-shadow-copy-deletion.kql) · [XDR](kql/xdr/ransomware/vss-shadow-copy-deletion.kql) |
 | Service stop | T1489 | Security tools killed via taskkill | [docs/12-defence-evasion.md](docs/12-defence-evasion.md) |

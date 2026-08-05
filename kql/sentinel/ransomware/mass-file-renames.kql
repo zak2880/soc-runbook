@@ -1,0 +1,18 @@
+// Platform: Microsoft Sentinel
+// Ransomware detection — mass file rename activity
+// Ransomware renames/re-extensions hundreds of files per minute during encryption
+// Threshold: >20 renames per minute from a single process — tune for your environment
+// Replace HOSTNAME or remove filter to monitor estate-wide
+// Ref: docs/scenarios/05-malicious-file/investigation.md, docs/reference/escalation-triggers.md
+
+let target_device = "HOSTNAME";   // replace before running, or remove the filter below to monitor estate-wide
+DeviceFileEvents
+| where DeviceName == target_device
+| where ActionType == "FileRenamed"
+| where TimeGenerated > ago(2h)
+| summarize
+    RenameCount = count(),
+    SampleFiles = make_set(FileName, 5)
+    by bin(TimeGenerated, 1m), InitiatingProcessFileName
+| where RenameCount > 20
+| order by TimeGenerated asc

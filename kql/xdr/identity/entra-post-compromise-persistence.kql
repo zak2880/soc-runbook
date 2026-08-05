@@ -1,0 +1,62 @@
+// Platform: Microsoft Defender XDR Advanced Hunting
+// Identity — persistence mechanisms created post-compromise (CloudAppEvents)
+// A smart attacker doesn't just steal a session — they plant a way back in that
+// survives a password reset, so a "credentials changed" remediation alone won't
+// evict them
+// Covers, all correlated to a suspicious sign-in time window:
+//   - new MFA methods registered on the account (attacker adds their own phone
+//     number or authenticator so they can re-auth even after a password reset)
+//   - new service principals / app registrations (a backdoor app with its own
+//     credential, independent of any user account)
+//   - directory role assignments (attacker grants the compromised account, or a
+//     new one, Global Admin or another privileged role)
+//   - guest account invitations (a new external identity with a foothold in the
+//     tenant that doesn't show up in normal employee account reviews)
+// MDCA's Azure AD app connector covers directory-level changes, but coverage of
+// newer AAD activity types can lag behind what appears natively in the Azure AD
+// audit log — parse RawEventData for the full event detail
+// Correlation window: 24h following the suspicious sign-in — feed AccountUpn/UserId
+// and SignInTime from entra-device-code-auth-flow.kql,
+// entra-aitm-session-anomalies.kql, or entra-impossible-travel.kql
+// Ref: docs/scenarios/06-credential-compromise/investigation.md
+
+let lookback = 7d;
+let persistence_window = 24h;
+let SuspiciousSignIns = EntraIdSignInEvents
+| where Timestamp > ago(lookback)
+| where AuthenticationProtocol == "deviceCode" or RiskLevelDuringSignIn != "none"
+| project AccountUpn, SignInTime = Timestamp;
+CloudAppEvents
+| where Timestamp > ago(lookback)
+| where ActionType in (
+    "Add strong authentication method.",   // new MFA method
+    "Add service principal.", "Add application.",  // new app / SP
+    "Add member to role.",                 // role assignment
+    "Invite external user.")               // guest invite
+| join kind=inner SuspiciousSignIns on $left.AccountId == $right.AccountUpn
+| where Timestamp between (SignInTime .. (SignInTime + persistence_window))
+| project Timestamp, AccountId, ActionType, Application,
+    RawEventData, IPAddress, SignInTime
+| order by Timestamp desc
+
+// ─────────────────────────────────────────────────────────────
+// INVESTIGATION NOTES — copy paste into ticket / incident report
+// ─────────────────────────────────────────────────────────────
+//
+// entra-post-compromise-persistence.kql — [date run: YYYY-MM-DD] — Analyst: [initials]
+//
+// Result: [ ] No results — no new MFA methods, service principals, guest invitations, or role assignments detected within 24h of the suspicious sign-in
+//         [ ] Results found — see findings below
+//
+// Findings:
+//   Account(s):
+//   Persistence mechanism(s) found:
+//   Timeframe:
+//   Notes:
+//
+// Conclusion:
+//   [ ] No suspicious activity identified — no persistence mechanisms identified for this account in the post-sign-in window
+//   [ ] Suspicious activity identified — escalating
+//   [ ] False positive — reason:
+//
+// ─────────────────────────────────────────────────────────────

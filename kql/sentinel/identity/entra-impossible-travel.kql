@@ -1,0 +1,44 @@
+// Platform: Microsoft Sentinel
+// Identity — Entra ID impossible travel detection (SigninLogs)
+// Flags accounts signing in from two different countries within a short window
+// Indicates credential compromise and use from a foreign location
+// Adjust the window based on your environment
+// Ref: docs/scenarios/06-credential-compromise/investigation.md
+
+let lookback = 7d;
+let window = 1h;
+SigninLogs
+| where TimeGenerated > ago(lookback)
+| where ResultType == "0"  // successful sign-ins only
+| summarize
+    Locations = make_set(Location),
+    SignInCount = count(),
+    IPAddresses = make_set(IPAddress)
+    by UserPrincipalName, bin(TimeGenerated, window)
+| where array_length(Locations) > 1
+| project TimeGenerated, UserPrincipalName, Locations,
+    SignInCount, IPAddresses
+| order by TimeGenerated desc
+
+// ─────────────────────────────────────────────────────────────
+// INVESTIGATION NOTES — copy paste into ticket / incident report
+// ─────────────────────────────────────────────────────────────
+//
+// entra-impossible-travel.kql — [date run: YYYY-MM-DD] — Analyst: [initials]
+//
+// Result: [ ] No results — no impossible travel detected — sign-in locations consistent with expected user behaviour
+//         [ ] Results found — see findings below
+//
+// Findings:
+//   Account(s):
+//   IP address(es):
+//   Location(s):
+//   Timeframe:
+//   Notes:
+//
+// Conclusion:
+//   [ ] No suspicious activity identified — sign-in location pattern for this account appears clean, no impossible travel identified
+//   [ ] Suspicious activity identified — escalating
+//   [ ] False positive — reason:
+//
+// ─────────────────────────────────────────────────────────────

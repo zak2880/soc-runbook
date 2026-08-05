@@ -1,0 +1,15 @@
+// Platform: Microsoft Defender XDR Advanced Hunting
+// Email — phishing delivery detection
+// Flags mail that was actually delivered to the mailbox despite being flagged
+// Phish or Malware — the highest-priority subset of email threat telemetry, since
+// DeliveryLocation tells you exactly where to go clean it up
+// Ref: docs/scenarios/12-phishing-email/investigation.md
+
+let lookback = 24h;
+EmailEvents
+| where Timestamp > ago(lookback)
+| where DeliveryAction == "Delivered"
+| where ThreatTypes has_any ("Phish", "Malware")
+| project Timestamp, SenderFromAddress, RecipientEmailAddress, Subject,
+    DeliveryAction, DeliveryLocation, NetworkMessageId, ThreatTypes, DetectionMethods
+| order by Timestamp desc

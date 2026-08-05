@@ -1,0 +1,35 @@
+// Platform: Microsoft Sentinel
+// Network — outbound connections on non-standard C2 ports
+// Covers commonly used C2 and reverse shell ports not typical in business traffic
+// Excludes known legitimate uses where possible — tune the process exclusion list
+// for your environment
+// Ref: docs/scenarios/03-suspicious-network-activity/investigation.md, docs/scenarios/08-c2-beaconing/investigation.md
+
+DeviceNetworkEvents
+| where TimeGenerated > ago(24h)
+| where RemoteIPType != "Private"
+| where RemotePort in (
+    4444,   // Metasploit default
+    4445,   // Metasploit alternate
+    1337,   // common C2 / reverse shell
+    8080,   // alternate HTTP C2
+    8443,   // alternate HTTPS C2
+    8888,   // common C2
+    9001,   // Tor / C2
+    9090,   // common C2
+    50050,  // Cobalt Strike team server default
+    31337,  // classic backdoor port (Back Orifice)
+    6666,   // IRC / C2
+    6667,   // IRC C2
+    1234,   // generic reverse shell
+    2222,   // alternate SSH / C2
+    5555,   // Android ADB / C2
+    7777    // common C2
+)
+| where InitiatingProcessFileName !in~ (
+    "chrome.exe", "msedge.exe", "firefox.exe",
+    "teams.exe", "slack.exe", "zoom.exe")
+| project TimeGenerated, DeviceName, AccountName,
+    RemoteIP, RemotePort, RemoteUrl,
+    InitiatingProcessFileName, InitiatingProcessCommandLine
+| order by TimeGenerated desc

@@ -1,0 +1,12 @@
+// Platform: Microsoft Sentinel
+// Persistence — new Windows services installed
+// Malware can install itself as a service for persistence and SYSTEM-level execution
+// Look for: unusual binary paths, non-standard service names, creation by unexpected processes
+// Ref: docs/scenarios/04-persistence-detected/investigation.md
+
+let target_device = "HOSTNAME";   // replace before running
+DeviceEvents
+| where DeviceName == target_device
+| where ActionType == "ServiceInstalled"
+| where TimeGenerated > ago(7d)
+| project TimeGenerated, FileName, FolderPath, AdditionalFields

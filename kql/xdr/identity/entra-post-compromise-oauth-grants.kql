@@ -1,0 +1,57 @@
+// Platform: Microsoft Defender XDR Advanced Hunting
+// Identity — suspicious OAuth app consent grants following a compromised sign-in (CloudAppEvents)
+// Attackers who've phished a session (device code, AiTM) often register or consent to
+// a malicious OAuth app instead of setting up mailbox rules — it survives a password
+// reset and doesn't need repeated interactive sign-in
+// Covers: mail.read, files.readwrite, offline_access scope grants, and any admin
+// consent (ConsentType == AllPrincipals) performed by an account that isn't an admin
+// Requires the Cloud App Security "App governance" add-on enabled for OAuth consent
+// event visibility
+// Correlation window: consent granted within 1 hour of a suspicious sign-in for the
+// same account — feed AccountUpn/UserId and SignInTime from
+// entra-device-code-auth-flow.kql, entra-aitm-session-anomalies.kql, or
+// entra-impossible-travel.kql
+// Ref: docs/scenarios/06-credential-compromise/investigation.md, docs/scenarios/12-phishing-email/investigation.md
+
+let lookback = 7d;
+let correlation_window = 1h;
+let SuspiciousSignIns = EntraIdSignInEvents
+| where Timestamp > ago(lookback)
+| where AuthenticationProtocol == "deviceCode" or RiskLevelDuringSignIn != "none"
+| project AccountUpn, SignInTime = Timestamp;
+CloudAppEvents
+| where Timestamp > ago(lookback)
+| where ActionType in ("Consent to application.", "Add OAuth2PermissionGrant.")
+| extend RawData = parse_json(RawEventData)
+| extend Scopes = tostring(RawData.ModifiedProperties), ConsentType = tostring(RawData.ConsentType)
+| where Scopes has_any ("Mail.Read", "Files.ReadWrite", "offline_access")
+    or ConsentType == "AllPrincipals"
+| join kind=inner SuspiciousSignIns on $left.AccountId == $right.AccountUpn
+| where Timestamp between (SignInTime .. (SignInTime + correlation_window))
+| where ConsentType != "AllPrincipals" or IsAdminOperation == false
+| project Timestamp, AccountId, Application, ActionType,
+    Scopes, ConsentType, IsAdminOperation, IPAddress, SignInTime
+| order by Timestamp desc
+
+// ─────────────────────────────────────────────────────────────
+// INVESTIGATION NOTES — copy paste into ticket / incident report
+// ─────────────────────────────────────────────────────────────
+//
+// entra-post-compromise-oauth-grants.kql — [date run: YYYY-MM-DD] — Analyst: [initials]
+//
+// Result: [ ] No results — no suspicious OAuth consent grants (mail.read, files.readwrite, offline_access, or non-admin admin consent) detected within 1h of the suspicious sign-in
+//         [ ] Results found — see findings below
+//
+// Findings:
+//   Account(s):
+//   Application:
+//   Scopes granted:
+//   Timeframe:
+//   Notes:
+//
+// Conclusion:
+//   [ ] No suspicious activity identified — OAuth consent activity for this account in the post-sign-in window appears clean
+//   [ ] Suspicious activity identified — escalating
+//   [ ] False positive — reason:
+//
+// ─────────────────────────────────────────────────────────────

@@ -1,0 +1,18 @@
+// Platform: Microsoft Sentinel
+// Note: UrlClickEvents is a Defender XDR Advanced Hunting-only table — NOT exposed
+// as a queryable Sentinel Log Analytics table, even with the Microsoft Defender XDR
+// connector configured (see docs/reference/sentinel-vs-advanced-hunting.md, Section
+// 2/3). This file is kept for structural parity with kql/xdr/email/ and will error
+// with "table not found" in a real Sentinel workspace today.
+// Email — Safe Links click-through detection
+// A user who clicks through a Safe Links warning has been told the URL is
+// suspicious/malicious and proceeded anyway — high-priority for follow-up regardless
+// of what happened next on the device
+// Ref: docs/scenarios/12-phishing-email/investigation.md
+
+let lookback = 24h;
+UrlClickEvents
+| where TimeGenerated > ago(lookback)
+| where IsClickedThrough == true
+| project TimeGenerated, AccountUpn, Url, ActionType, IPAddress
+| order by TimeGenerated desc

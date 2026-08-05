@@ -1,0 +1,18 @@
+// Platform: Microsoft Defender XDR Advanced Hunting
+// Email — mass recipient campaign detection
+// Same sender delivering to many distinct recipients in a short window — a phishing
+// or spam campaign indicator rather than routine one-to-one business email
+// Ref: docs/scenarios/12-phishing-email/investigation.md
+
+let lookback = 24h;
+let window = 1h;
+let recipient_threshold = 20;
+EmailEvents
+| where Timestamp > ago(lookback)
+| summarize
+    RecipientCount = dcount(RecipientEmailAddress),
+    Recipients = make_set(RecipientEmailAddress, 10),
+    Subjects = make_set(Subject, 5)
+    by SenderFromAddress, bin(Timestamp, window)
+| where RecipientCount >= recipient_threshold
+| order by RecipientCount desc

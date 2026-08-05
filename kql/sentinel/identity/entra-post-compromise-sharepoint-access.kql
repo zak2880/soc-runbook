@@ -1,0 +1,70 @@
+// Platform: Microsoft Sentinel
+// Identity — bulk SharePoint/OneDrive file access or download post-compromise (OfficeActivity)
+// Once an attacker has a live session, SharePoint/OneDrive is the next-easiest place
+// to stage data for exfiltration — no malware needed, just a browser or Graph calls
+// Flags accounts that in the last 24h:
+//   - accessed 3x+ more files than their own 30-day daily baseline
+//   - accessed files outside their normal working hours (07:00-19:00 UTC baseline —
+//     adjust for your customer timezone)
+//   - shared a file externally (anonymous link or specific external recipient)
+// Baseline is per-account, not estate-wide — a power user with a naturally high
+// file-access volume won't false-positive against a low estate-wide threshold
+// Requires SharePoint Online audit logging enabled at the tenant level (on by
+// default in modern tenants, check older ones)
+// Ref: docs/scenarios/06-credential-compromise/investigation.md
+
+let lookback = 24h;
+let baseline_lookback = 37d;
+let baseline_gap = 7d;
+let business_hours_start = 7;
+let business_hours_end = 19;
+let baseline_multiplier = 3;
+let Baseline = OfficeActivity
+| where TimeGenerated between (ago(baseline_lookback) .. ago(baseline_gap))
+| where RecordType == "SharePointFileOperation"
+| where Operation in ("FileAccessed", "FileDownloaded", "FilePreviewed")
+| summarize DailyAvg = count() / 30.0 by UserId;
+let ExternalShares = OfficeActivity
+| where TimeGenerated > ago(lookback)
+| where RecordType == "SharePointSharingOperation"
+| where Operation in ("AnonymousLinkCreated", "SharingInvitationCreated", "SharingSet")
+| summarize ExternalShareCount = count() by UserId;
+OfficeActivity
+| where TimeGenerated > ago(lookback)
+| where RecordType == "SharePointFileOperation"
+| where Operation in ("FileAccessed", "FileDownloaded", "FilePreviewed")
+| extend HourUTC = hourofday(TimeGenerated)
+| summarize
+    AccessCount = count(),
+    OutOfHoursCount = countif(HourUTC !between (business_hours_start .. business_hours_end))
+    by UserId
+| join kind=leftouter Baseline on UserId
+| join kind=leftouter ExternalShares on UserId
+| extend DailyAvg = coalesce(DailyAvg, 1.0), ExternalShareCount = coalesce(ExternalShareCount, 0)
+| extend AboveBaseline = AccessCount > (DailyAvg * baseline_multiplier)
+| where AboveBaseline or OutOfHoursCount > 0 or ExternalShareCount > 0
+| project UserId, AccessCount, DailyAvg, OutOfHoursCount, ExternalShareCount
+| order by AccessCount desc
+
+// ─────────────────────────────────────────────────────────────
+// INVESTIGATION NOTES — copy paste into ticket / incident report
+// ─────────────────────────────────────────────────────────────
+//
+// entra-post-compromise-sharepoint-access.kql — [date run: YYYY-MM-DD] — Analyst: [initials]
+//
+// Result: [ ] No results — no file access above the account's 30-day baseline, off-hours access, or external file sharing detected
+//         [ ] Results found — see findings below
+//
+// Findings:
+//   Account(s):
+//   Access count vs baseline:
+//   External shares:
+//   Timeframe:
+//   Notes:
+//
+// Conclusion:
+//   [ ] No suspicious activity identified — SharePoint/OneDrive access volume and sharing activity for this account appear normal against baseline
+//   [ ] Suspicious activity identified — escalating
+//   [ ] False positive — reason:
+//
+// ─────────────────────────────────────────────────────────────

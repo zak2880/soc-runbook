@@ -1,0 +1,37 @@
+// Platform: Microsoft Defender XDR Advanced Hunting
+// Identity — new local user accounts created on a device
+// Malware may create backdoor local admin accounts to maintain access after cleanup
+// Also check for accounts added to the local Administrators group
+// Ref: docs/scenarios/06-credential-compromise/investigation.md
+
+let target_device = "HOSTNAME";   // replace before running
+let lookback = 7d;
+DeviceEvents
+| where DeviceName == target_device
+| where ActionType == "UserAccountCreated"
+| where Timestamp > ago(lookback)
+| project Timestamp, AccountName, InitiatingProcessFileName,
+    InitiatingProcessCommandLine
+
+// ─────────────────────────────────────────────────────────────
+// INVESTIGATION NOTES — copy paste into ticket / incident report
+// ─────────────────────────────────────────────────────────────
+//
+// new-local-accounts-created.kql — [date run: YYYY-MM-DD] — Analyst: [initials]
+//
+// Result: [ ] No results — no new local user accounts created on this device in the review window
+//         [ ] Results found — see findings below
+//
+// Findings:
+//   Device(s):
+//   Account(s):
+//   Initiating process:
+//   Timeframe:
+//   Notes:
+//
+// Conclusion:
+//   [ ] No suspicious activity identified — local account creation history for this device appears clean, no backdoor accounts identified
+//   [ ] Suspicious activity identified — escalating
+//   [ ] False positive — reason:
+//
+// ─────────────────────────────────────────────────────────────

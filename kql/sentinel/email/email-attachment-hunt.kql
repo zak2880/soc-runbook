@@ -1,0 +1,25 @@
+// Platform: Microsoft Sentinel
+// Note: EmailEvents / EmailAttachmentInfo are Defender XDR Advanced Hunting-only
+// tables — NOT exposed as queryable Sentinel Log Analytics tables, even with the
+// Microsoft Defender XDR connector configured (see
+// docs/reference/sentinel-vs-advanced-hunting.md, Section 2/3). This file is kept
+// for structural parity with kql/xdr/email/ and will error with "table not found"
+// in a real Sentinel workspace today.
+// Email — suspicious attachment hunt
+// Finds emails with attachments matching a suspicious file type, or a specific
+// known-bad SHA256 if you have one from an alert/VirusTotal
+// Ref: docs/scenarios/12-phishing-email/investigation.md, docs/scenarios/05-malicious-file/investigation.md
+
+let lookback = 7d;
+let known_bad_sha256 = "PASTE_HASH_HERE";   // replace with a known-bad SHA256, or leave as-is to hunt by file type only
+let suspicious_file_types = dynamic(["exe", "dll", "js", "vbs", "hta", "iso", "lnk", "ps1"]);
+EmailAttachmentInfo
+| where TimeGenerated > ago(lookback)
+| where FileType in (suspicious_file_types) or SHA256 == known_bad_sha256
+| join kind=inner (
+    EmailEvents
+    | where TimeGenerated > ago(lookback)
+) on NetworkMessageId
+| project TimeGenerated, NetworkMessageId, SenderFromAddress, RecipientEmailAddress,
+    FileName, FileType, SHA256, MalwareFamily, DetectionMethods
+| order by TimeGenerated desc

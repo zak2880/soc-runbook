@@ -1,0 +1,61 @@
+// Platform: Microsoft Defender XDR Advanced Hunting
+// Pivot — AiTM / device code phishing to persistence timeline
+// TUNING WARNING: this is a forward hunt, not a standalone trigger. It's meant to
+// run against a sign-in you've already triaged as suspicious via
+// entra-device-code-auth-flow.md or entra-aitm-session-anomalies.md —
+// RiskLevelDuringSignIn != "none" alone catches a lot of noise on its own
+// (impossible-travel-by-VPN, new device enrollment, first-time app use). This is
+// the least battle-tested query in the repo — the persistence window and the exact
+// ActionType values are the two things most likely to need adjustment once you've
+// run this against a real tenant; if Microsoft renames these Cloud App Security
+// event names (which has happened before), this produces no signal at all.
+// Once a token is stolen, the reflexive first remediation is to reset the account's
+// password — which does nothing against any of the four persistence mechanisms this
+// query hunts for. A new MFA method survives a password reset. An inbox rule
+// survives it. An OAuth grant survives it. A rogue service principal, being its own
+// identity with its own credential, was never tied to the user's password at all
+// Starts from a suspicious device code or AiTM-flagged sign-in, then hunts forward
+// for the persistence mechanisms an attacker plants once they have a live session
+// Chains: identity sign-in (EntraIdSignInEvents) -> MFA registration, inbox rules,
+// OAuth consent, and app registration (CloudAppEvents)
+// Uses CloudAppEvents as the single source table for the forward hunt (Defender
+// XDR Advanced Hunting, requires Defender for Cloud Apps). If your tenant is
+// Sentinel-only without MDCA, run kql/sentinel/pivots/aitm-phishing-to-persistence.kql
+// instead, which uses SigninLogs/OfficeActivity/AuditLogs
+// Persistence window: 24h post-sign-in — widen if the attacker was patient
+// Ref: docs/scenarios/06-credential-compromise/investigation.md, docs/scenarios/12-phishing-email/investigation.md
+
+let lookback = 7d;                // how far back to search for the initial sign-in
+let persistence_window = 24h;     // how far forward from the sign-in to hunt
+
+let CompromisedSignIns = EntraIdSignInEvents
+| where Timestamp > ago(lookback)
+| where AuthenticationProtocol == "deviceCode" or RiskLevelDuringSignIn != "none"
+| project AccountUpn, SignInTime = Timestamp, IPAddress, Country;
+let NewMfaMethods = CloudAppEvents
+| where ActionType in ("Add strong authentication method.", "Update user.")
+| join kind=inner CompromisedSignIns on $left.AccountId == $right.AccountUpn
+| where Timestamp between (SignInTime .. (SignInTime + persistence_window))
+| project Timestamp, AccountUpn = AccountId, ActionType, SignInTime;
+let NewInboxRules = CloudAppEvents
+| where ActionType in ("New-InboxRule", "Set-InboxRule")
+| join kind=inner CompromisedSignIns on $left.AccountId == $right.AccountUpn
+| where Timestamp between (SignInTime .. (SignInTime + persistence_window))
+| project Timestamp, AccountUpn = AccountId, ActionType, SignInTime;
+let NewOAuthGrants = CloudAppEvents
+| where ActionType in ("Consent to application.", "Add OAuth2PermissionGrant.")
+| join kind=inner CompromisedSignIns on $left.AccountId == $right.AccountUpn
+| where Timestamp between (SignInTime .. (SignInTime + persistence_window))
+| project Timestamp, AccountUpn = AccountId, ActionType, SignInTime;
+let NewServicePrincipals = CloudAppEvents
+| where ActionType in ("Add service principal.", "Add application.")
+| join kind=inner CompromisedSignIns on $left.AccountId == $right.AccountUpn
+| where Timestamp between (SignInTime .. (SignInTime + persistence_window))
+| project Timestamp, AccountUpn = AccountId, ActionType, SignInTime;
+union
+    (CompromisedSignIns | extend Stage = "0-SuspiciousSignIn", TimelineTime = SignInTime),
+    (NewMfaMethods | extend Stage = "1-NewMfaMethod", TimelineTime = Timestamp),
+    (NewInboxRules | extend Stage = "2-NewInboxRule", TimelineTime = Timestamp),
+    (NewOAuthGrants | extend Stage = "3-NewOAuthGrant", TimelineTime = Timestamp),
+    (NewServicePrincipals | extend Stage = "4-NewServicePrincipal", TimelineTime = Timestamp)
+| order by AccountUpn, TimelineTime asc

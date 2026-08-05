@@ -1,0 +1,32 @@
+// Platform: Microsoft Sentinel
+// Process — post-compromise discovery / reconnaissance command sweep
+// Covers the standard recon toolkit run right after initial access, before an
+// attacker decides where to move next: whoami, net user, net localgroup
+// administrators, nltest /domain_trusts, arp -a, ipconfig /all, nslookup,
+// systeminfo, tasklist
+// Any one of these alone is often benign (help desk, IT admin troubleshooting).
+// The signal is volume and speed: 4+ distinct discovery commands from the same
+// device within 10 minutes is consistent with an automated recon script or a
+// manual "living off the land" enumeration pass, not routine admin work
+// Ref: docs/scenarios/02-suspicious-process/investigation.md, docs/scenarios/10-initial-access/investigation.md, docs/scenarios/11-defence-evasion/investigation.md
+
+DeviceProcessEvents
+| where TimeGenerated > ago(24h)
+| where (FileName =~ "whoami.exe")
+    or (FileName =~ "net.exe" and ProcessCommandLine has_any ("net user", "net localgroup administrators"))
+    or (FileName =~ "nltest.exe" and ProcessCommandLine has "/domain_trusts")
+    or (FileName =~ "arp.exe" and ProcessCommandLine has "-a")
+    or (FileName =~ "ipconfig.exe" and ProcessCommandLine has "/all")
+    or (FileName =~ "nslookup.exe")
+    or (FileName =~ "systeminfo.exe")
+    or (FileName =~ "tasklist.exe")
+| project TimeGenerated, DeviceName, AccountName, FileName,
+    ProcessCommandLine, InitiatingProcessFileName
+| summarize
+    Commands = make_set(FileName),
+    CommandCount = dcount(FileName),
+    FirstSeen = min(TimeGenerated),
+    LastSeen = max(TimeGenerated)
+    by DeviceName, AccountName, bin(TimeGenerated, 10m)
+| where CommandCount >= 4
+| order by CommandCount desc

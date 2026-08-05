@@ -1,0 +1,18 @@
+// Platform: Microsoft Defender XDR Advanced Hunting
+// C2 beaconing detection — after-hours outbound connections
+// Beacons continue when the user is asleep; legitimate user-driven traffic does not
+// Window: 01:00–05:00 UTC — adjust for your customer timezone if needed
+// Ref: docs/scenarios/08-c2-beaconing/investigation.md
+
+DeviceNetworkEvents
+| where Timestamp > ago(7d)
+| where RemoteIPType != "Private"
+| extend HourUTC = hourofday(Timestamp)
+| where HourUTC between (1 .. 5)
+| summarize
+    NightConns = count(),
+    Destinations = make_set(RemoteIP, 5),
+    Processes = make_set(InitiatingProcessFileName, 3)
+    by DeviceName, bin(Timestamp, 1d)
+| where NightConns > 10
+| order by NightConns desc

@@ -1,0 +1,18 @@
+// Platform: Microsoft Sentinel
+// Office application spawning shell processes (phishing chain detector)
+// Covers: Word, Excel, PowerPoint, Outlook, OneNote spawning cmd/PowerShell/mshta/LOLBins
+// High-fidelity signal — legitimate Office apps should not spawn shells
+// Ref: docs/scenarios/02-suspicious-process/investigation.md
+
+DeviceProcessEvents
+| where TimeGenerated > ago(7d)
+| where InitiatingProcessFileName in~ (
+    "winword.exe", "excel.exe", "powerpnt.exe",
+    "outlook.exe", "onenote.exe", "msaccess.exe")
+| where FileName in~ (
+    "cmd.exe", "powershell.exe", "wscript.exe", "cscript.exe",
+    "mshta.exe", "regsvr32.exe", "rundll32.exe",
+    "certutil.exe", "bitsadmin.exe", "wmic.exe")
+| project TimeGenerated, DeviceName, AccountName,
+    InitiatingProcessFileName, FileName, ProcessCommandLine
+| order by TimeGenerated desc

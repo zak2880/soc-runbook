@@ -1,0 +1,48 @@
+// Platform: Microsoft Defender XDR Advanced Hunting
+// Function — beacon suspicion score for a single device/remote-IP pair
+// Computes connection count, mean interval, standard deviation, and a regularity-
+// based suspicion score for one device talking to one external IP — the per-pair
+// building block behind beacon-high-connection-count.kql, beacon-interval-
+// regularity.kql, and beacon-suspicion-score.kql, callable directly once you
+// already have a device/IP pair to check (e.g. from a triage alert)
+//
+// Parameters:
+//   deviceName : string   — device to scope the check to
+//   remoteIP   : string   — external IP to scope the check to
+//   lookback   : timespan — how far back to pull connections, e.g. 24h or 7d
+//
+// Returns: one row (if 2+ connections exist) with ConnectionCount, MeanIntervalSec,
+// StdDevSec, Regularity (0-100, higher = more mechanical/beacon-like), and
+// SuspicionScore (1-5)
+//
+// Example call:
+//   fn_beacon_score("HOSTNAME", "203.0.113.10", 24h)
+//
+// Ref: docs/scenarios/08-c2-beaconing/investigation.md
+
+let fn_beacon_score = (deviceName: string, remoteIP: string, lookback: timespan) {
+    DeviceNetworkEvents
+    | where DeviceName == deviceName
+    | where RemoteIP == remoteIP
+    | where Timestamp > ago(lookback)
+    | sort by Timestamp asc
+    | extend PrevTime = prev(Timestamp, 1)
+    | extend IntervalSec = datetime_diff('second', Timestamp, PrevTime)
+    | where isnotnull(PrevTime)
+    | where IntervalSec between (1 .. 3600)
+    | summarize
+        ConnectionCount = count() + 1,
+        MeanIntervalSec = round(avg(IntervalSec), 1),
+        StdDevSec = round(stdev(IntervalSec), 1)
+        by DeviceName, RemoteIP
+    | extend Regularity = iff(MeanIntervalSec > 0,
+        round((1 - (StdDevSec / MeanIntervalSec)) * 100, 1), 0.0)
+    | extend SuspicionScore = case(
+        ConnectionCount > 50 and Regularity > 90, 5,
+        ConnectionCount > 30 and Regularity > 80, 4,
+        ConnectionCount > 20 and Regularity > 70, 3,
+        ConnectionCount > 10, 2,
+        1)
+};
+// Example call — replace HOSTNAME and the IP before running
+fn_beacon_score("HOSTNAME", "203.0.113.10", 24h)

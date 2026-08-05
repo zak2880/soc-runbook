@@ -1,0 +1,26 @@
+// Platform: Microsoft Sentinel
+// Note: EmailAttachmentInfo is a Defender XDR Advanced Hunting-only table — NOT
+// exposed as a queryable Sentinel Log Analytics table, even with the Microsoft
+// Defender XDR connector configured (see docs/reference/sentinel-vs-advanced-hunting.md,
+// Section 2/3). DeviceFileEvents IS available in Sentinel via that connector, but
+// the join side from EmailAttachmentInfo is not — this file is kept for structural
+// parity with kql/xdr/email/ and will error with "table not found" in a real
+// Sentinel workspace today.
+// Email — attachment landed on device
+// Joins a received attachment's SHA256 against DeviceFileEvents to see which devices
+// actually received and stored the file — the file-artefact half of
+// kql/sentinel/pivots/phishing-to-device-compromise.kql, useful on its own when you
+// just need "who has this file" without the full execution timeline
+// Ref: docs/scenarios/12-phishing-email/investigation.md, docs/scenarios/05-malicious-file/investigation.md
+
+let lookback = 7d;
+EmailAttachmentInfo
+| where TimeGenerated > ago(lookback)
+| join kind=inner (
+    DeviceFileEvents
+    | where TimeGenerated > ago(lookback)
+    | where ActionType == "FileCreated"
+) on SHA256
+| project TimeGenerated, DeviceName, FileName, FolderPath, SHA256,
+    NetworkMessageId, InitiatingProcessFileName
+| order by TimeGenerated desc

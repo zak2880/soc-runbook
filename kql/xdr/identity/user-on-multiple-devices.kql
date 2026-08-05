@@ -1,0 +1,41 @@
+// Platform: Microsoft Defender XDR Advanced Hunting
+// Identity — compromised user account appearing on multiple devices
+// Indicates lateral movement using stolen credentials
+// Run after identifying a compromised account to check for spread
+// Replace USERNAME before running
+// Ref: docs/scenarios/06-credential-compromise/investigation.md, docs/scenarios/01-malware-alert/investigation.md
+
+let target_account = "USERNAME";   // replace before running
+let lookback = 24h;
+let device_threshold = 2;
+DeviceLogonEvents
+| where AccountName == target_account
+| where LogonType in ("Network", "RemoteInteractive")
+| where Timestamp > ago(lookback)
+| summarize
+    Devices = make_set(DeviceName),
+    LogonCount = count()
+    by AccountName
+| where array_length(Devices) > device_threshold
+
+// ─────────────────────────────────────────────────────────────
+// INVESTIGATION NOTES — copy paste into ticket / incident report
+// ─────────────────────────────────────────────────────────────
+//
+// user-on-multiple-devices.kql — [date run: YYYY-MM-DD] — Analyst: [initials]
+//
+// Result: [ ] No results — account not seen authenticating to multiple devices — no lateral movement indicators via logon events
+//         [ ] Results found — see findings below
+//
+// Findings:
+//   Account(s):
+//   Device(s):
+//   Timeframe:
+//   Notes:
+//
+// Conclusion:
+//   [ ] No suspicious activity identified — account logon spread appears normal, no lateral movement via logon events identified
+//   [ ] Suspicious activity identified — escalating
+//   [ ] False positive — reason:
+//
+// ─────────────────────────────────────────────────────────────

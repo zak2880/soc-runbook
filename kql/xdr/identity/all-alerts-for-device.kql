@@ -1,0 +1,39 @@
+// Platform: Microsoft Defender XDR Advanced Hunting
+// Note: DeviceAlertEvents may require the Microsoft Defender XDR connector in Sentinel.
+// (This table is native to Advanced Hunting; if you're pasting this into a Sentinel
+// workspace instead, see kql/sentinel/identity/all-alerts-for-device.kql, which
+// documents why that table isn't queryable there today.)
+// Identity / triage — all Defender alerts for a specific device
+// Use at the start of any investigation to get the full picture before drilling into logs
+// Replace HOSTNAME before running
+// Ref: docs/scenarios/01-malware-alert/investigation.md
+
+let target_device = "HOSTNAME";   // replace before running
+let lookback = 7d;
+DeviceAlertEvents
+| where DeviceName == target_device
+| where Timestamp > ago(lookback)
+| project Timestamp, AlertId, Title, Severity
+| order by Timestamp desc
+
+// ─────────────────────────────────────────────────────────────
+// INVESTIGATION NOTES — copy paste into ticket / incident report
+// ─────────────────────────────────────────────────────────────
+//
+// all-alerts-for-device.kql — [date run: YYYY-MM-DD] — Analyst: [initials]
+//
+// Result: [ ] No results — no Defender alerts found for this device in the review window
+//         [ ] Results found — see findings below
+//
+// Findings:
+//   Device(s):
+//   Alert(s):
+//   Timeframe:
+//   Notes:
+//
+// Conclusion:
+//   [ ] No suspicious activity identified — device alert history for the review window appears clean
+//   [ ] Suspicious activity identified — escalating
+//   [ ] False positive — reason:
+//
+// ─────────────────────────────────────────────────────────────

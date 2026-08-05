@@ -1,0 +1,39 @@
+// Platform: Microsoft Sentinel
+// Function — known LOLBin abuse pattern check
+// Returns true if a process filename (and, for PowerShell, its command line) matches
+// a known Living-Off-The-Land binary abuse pattern — the shared predicate behind
+// lolbin-sweep.kql, usable inline in any process query to filter or flag LOLBin hits
+// without repeating the has_any list every time
+//
+// Parameters:
+//   ProcessFileName    : string — e.g. FileName or InitiatingProcessFileName
+//   ProcessCommandLine : string — full command line; only PowerShell's check uses
+//                        this, but it's a required parameter since certutil/mshta/
+//                        regsvr32/rundll32/wmic/bitsadmin are flagged on filename
+//                        alone and PowerShell needs the extra context to avoid
+//                        flagging every legitimate PowerShell process
+//
+// Returns: bool
+//
+// Example call:
+//   DeviceProcessEvents
+//   | where fn_is_lolbin(FileName, ProcessCommandLine)
+//
+// Ref: docs/scenarios/07-lolbin-abuse/investigation.md
+
+let fn_is_lolbin = (ProcessFileName: string, ProcessCommandLine: string) {
+    ProcessFileName =~ "certutil.exe"
+    or ProcessFileName =~ "mshta.exe"
+    or ProcessFileName =~ "regsvr32.exe"
+    or ProcessFileName =~ "rundll32.exe"
+    or ProcessFileName =~ "wmic.exe"
+    or ProcessFileName =~ "bitsadmin.exe"
+    or (ProcessFileName =~ "powershell.exe" and ProcessCommandLine has_any (
+        "-enc", "-EncodedCommand", "-nop", "-NonInteractive",
+        "-w hidden", "-WindowStyle Hidden", "IEX", "DownloadString"))
+};
+// Example call
+DeviceProcessEvents
+| where TimeGenerated > ago(24h)
+| where fn_is_lolbin(FileName, ProcessCommandLine)
+| project TimeGenerated, DeviceName, AccountName, FileName, ProcessCommandLine

@@ -1,0 +1,102 @@
+// Platform: Microsoft Sentinel
+// Identity — Adversary-in-the-Middle (AiTM) phishing session anomalies (SigninLogs)
+// AiTM reverse-proxy kits (Evilginx, Modlishka, EvilProxy) sit between the user and
+// Entra ID, relay the real MFA challenge, then steal the resulting session token —
+// the attacker never needs the password or a second factor, just the cookie
+// Four independent indicators, unioned with a Reason column:
+//   1. IP change post-MFA — successful sign-in from an IP that differs from the IP
+//                            that completed the MFA challenge, within ip_change_window
+//   2. Impossible travel   — two Locations for the same account within travel_window
+//   3. Compliance drift    — DeviceDetail.isCompliant / isManaged differs across
+//                            sign-ins for the same account within the lookback period
+//   4. UserAgent mismatch  — UserAgent differs between two sign-ins for the same
+//                            account within ip_change_window
+// IMPORTANT — tuning warning: SigninLogs only contains INTERACTIVE sign-ins; token
+// replay via a non-interactive call (e.g. Graph/EWS using the stolen token directly)
+// lands in AADNonInteractiveUserSignInLogs instead and is invisible to this query.
+// This is a narrower check than the XDR version (EntraIdSignInEvents exposes
+// IsInteractive on a single table) — treat a clean result here as inconclusive, not
+// as confirmation the account wasn't hit by token replay
+// IsCompliant/IsManaged are pulled from the DeviceDetail dynamic column — they are
+// not top-level fields in SigninLogs
+// Any single hit warrants investigation; multiple hits for the same account in the
+// same window = high-confidence AiTM token theft
+// Ref: docs/scenarios/06-credential-compromise/investigation.md, docs/scenarios/12-phishing-email/investigation.md
+
+let lookback = 24h;
+let ip_change_window = 30m;
+let travel_window = 1h;
+
+let SuccessfulSignIns = SigninLogs
+| where TimeGenerated > ago(lookback)
+| where ResultType == "0"
+| extend IsCompliant = tobool(DeviceDetail.isCompliant), IsManaged = tobool(DeviceDetail.isManaged);
+
+let IpChangePostMfa = SuccessfulSignIns
+| where AuthenticationRequirement == "multiFactorAuthentication"
+| project UserPrincipalName, MfaTime = TimeGenerated, MfaIP = IPAddress, MfaLocation = Location
+| join kind=inner (
+    SuccessfulSignIns
+    | project UserPrincipalName, ActTime = TimeGenerated, ActIP = IPAddress, ActLocation = Location
+) on UserPrincipalName
+| where ActTime between (MfaTime .. (MfaTime + ip_change_window))
+| where ActIP != MfaIP
+| extend Reason = "IP changed within window following MFA-satisfied sign-in"
+| project TimeGenerated = ActTime, UserPrincipalName, Reason, MfaIP, ActIP, MfaLocation, ActLocation;
+
+let ImpossibleTravel = SuccessfulSignIns
+| summarize Locations = make_set(Location), IPs = make_set(IPAddress) by UserPrincipalName, bin(TimeGenerated, travel_window)
+| where array_length(Locations) > 1
+| extend Reason = "Impossible travel — two locations within travel_window"
+| project TimeGenerated, UserPrincipalName, Reason,
+    MfaIP = tostring(IPs[0]), ActIP = tostring(IPs[-1]),
+    MfaLocation = tostring(Locations[0]), ActLocation = tostring(Locations[-1]);
+
+let ComplianceDrift = SuccessfulSignIns
+| summarize
+    CompliantStates = make_set(IsCompliant),
+    ManagedStates = make_set(IsManaged),
+    LastSeen = max(TimeGenerated)
+    by UserPrincipalName
+| where array_length(CompliantStates) > 1 or array_length(ManagedStates) > 1
+| extend Reason = "IsCompliant/IsManaged differs across sign-ins in lookback window"
+| project TimeGenerated = LastSeen, UserPrincipalName, Reason,
+    MfaIP = "", ActIP = "", MfaLocation = "", ActLocation = "";
+
+let UserAgentMismatch = SuccessfulSignIns
+| project UserPrincipalName, T1 = TimeGenerated, UA1 = UserAgent, IP1 = IPAddress, Loc1 = Location
+| join kind=inner (
+    SuccessfulSignIns
+    | project UserPrincipalName, T2 = TimeGenerated, UA2 = UserAgent, IP2 = IPAddress, Loc2 = Location
+) on UserPrincipalName
+| where T2 between (T1 .. (T1 + ip_change_window)) and T2 > T1
+| where UA1 != UA2
+| extend Reason = "UserAgent changed between sign-ins within window"
+| project TimeGenerated = T2, UserPrincipalName, Reason,
+    MfaIP = IP1, ActIP = IP2, MfaLocation = Loc1, ActLocation = Loc2;
+
+union IpChangePostMfa, ImpossibleTravel, ComplianceDrift, UserAgentMismatch
+| order by TimeGenerated desc
+
+// ─────────────────────────────────────────────────────────────
+// INVESTIGATION NOTES — copy paste into ticket / incident report
+// ─────────────────────────────────────────────────────────────
+//
+// entra-aitm-session-anomalies.kql — [date run: YYYY-MM-DD] — Analyst: [initials]
+//
+// Result: [ ] No results — no AiTM session anomalies or IP/UserAgent/compliance drift indicators detected
+//         [ ] Results found — see findings below
+//
+// Findings:
+//   Account(s):
+//   IP address(es):
+//   Location(s):
+//   Timeframe:
+//   Notes:
+//
+// Conclusion:
+//   [ ] No suspicious activity identified — no IP change post-MFA, impossible travel, compliance drift, or UserAgent mismatch identified for this account
+//   [ ] Suspicious activity identified — escalating
+//   [ ] False positive — reason:
+//
+// ─────────────────────────────────────────────────────────────

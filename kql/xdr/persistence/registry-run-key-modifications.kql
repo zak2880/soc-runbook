@@ -1,0 +1,17 @@
+// Platform: Microsoft Defender XDR Advanced Hunting
+// Persistence — registry Run key modifications
+// Covers HKCU and HKLM Run, RunOnce, and Winlogon keys
+// Any modification around the time of a malware alert warrants investigation
+// Replace HOSTNAME or remove filter to hunt estate-wide
+// Ref: docs/scenarios/04-persistence-detected/investigation.md
+
+let target_device = "HOSTNAME";   // replace before running, or remove the filter below to hunt estate-wide
+DeviceRegistryEvents
+| where DeviceName == target_device
+| where RegistryKey has_any (
+    "CurrentVersion\\Run",
+    "CurrentVersion\\RunOnce",
+    "Winlogon")
+| where Timestamp > ago(7d)
+| project Timestamp, RegistryKey, RegistryValueName,
+    RegistryValueData, InitiatingProcessFileName

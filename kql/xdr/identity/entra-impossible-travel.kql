@@ -1,0 +1,44 @@
+// Platform: Microsoft Defender XDR Advanced Hunting
+// Identity — Entra ID impossible travel detection
+// Flags accounts signing in from two different countries within a short window
+// Indicates credential compromise and use from a foreign location
+// Adjust the window based on your environment
+// Ref: docs/scenarios/06-credential-compromise/investigation.md
+
+let lookback = 7d;
+let window = 1h;
+EntraIdSignInEvents
+| where Timestamp > ago(lookback)
+| where ErrorCode == 0  // successful sign-ins only
+| summarize
+    Countries = make_set(Country),
+    SignInCount = count(),
+    IPAddresses = make_set(IPAddress)
+    by AccountUpn, bin(Timestamp, window)
+| where array_length(Countries) > 1
+| project Timestamp, AccountUpn, Countries,
+    SignInCount, IPAddresses
+| order by Timestamp desc
+
+// ─────────────────────────────────────────────────────────────
+// INVESTIGATION NOTES — copy paste into ticket / incident report
+// ─────────────────────────────────────────────────────────────
+//
+// entra-impossible-travel.kql — [date run: YYYY-MM-DD] — Analyst: [initials]
+//
+// Result: [ ] No results — no impossible travel detected — sign-in locations consistent with expected user behaviour
+//         [ ] Results found — see findings below
+//
+// Findings:
+//   Account(s):
+//   IP address(es):
+//   Country/countries:
+//   Timeframe:
+//   Notes:
+//
+// Conclusion:
+//   [ ] No suspicious activity identified — sign-in location pattern for this account appears clean, no impossible travel identified
+//   [ ] Suspicious activity identified — escalating
+//   [ ] False positive — reason:
+//
+// ─────────────────────────────────────────────────────────────
