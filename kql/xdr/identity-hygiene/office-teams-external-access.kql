@@ -1,0 +1,50 @@
+// Platform: Microsoft Defender XDR Advanced Hunting
+// Identity hygiene — external users added to Teams channels (CloudAppEvents)
+// Teams external access (federation) and guest access let people outside the
+// tenant join channels and, depending on channel/tenant settings, see and download
+// shared files — an easy, low-friction data exposure path that doesn't require
+// anyone to explicitly "share a file" the way SharePoint/OneDrive sharing does
+// JUDGEMENT CALL — unverified against a live tenant: the added member's identity is
+// parsed from RawEventData.TargetUserOrGroupName as a best-effort guess at the MDCA
+// Teams payload shape — confirm against a real "MemberAdded" event
+// AccountId or the parsed target containing #EXT# identifies a guest account
+// involved in the event
+// Ref: docs/scenarios/06-credential-compromise/investigation.md
+
+let lookback = 24h;
+CloudAppEvents
+| where Timestamp > ago(lookback)
+| where Application == "Microsoft Teams"
+| where ActionType == "MemberAdded"
+| extend RawData = parse_json(RawEventData)
+| extend TargetMember = tostring(RawData.TargetUserOrGroupName)
+| where AccountId has "#EXT#" or TargetMember has "#EXT#"
+| summarize
+    EventCount = count(),
+    ExternalUsers = make_set(TargetMember),
+    Teams = make_set(ObjectId, 5)
+    by AccountId, ActionType, bin(Timestamp, 1h)
+| order by EventCount desc
+
+// ─────────────────────────────────────────────────────────────
+// INVESTIGATION NOTES — copy paste into ticket / incident report
+// ─────────────────────────────────────────────────────────────
+//
+// office-teams-external-access.kql — [date run: YYYY-MM-DD] — Analyst: [initials]
+//
+// Result: [ ] No external (#EXT#) users added to Teams channels detected in the review window
+//         [ ] Results found — see findings below
+//
+// Findings:
+//   Adding account:
+//   External user(s):
+//   Team/channel:
+//   Timeframe:
+//   Notes:
+//
+// Conclusion:
+//   [ ] No suspicious activity identified — external Teams access confirmed as legitimate external collaboration
+//   [ ] Suspicious activity identified — escalating
+//   [ ] False positive — reason:
+//
+// ─────────────────────────────────────────────────────────────

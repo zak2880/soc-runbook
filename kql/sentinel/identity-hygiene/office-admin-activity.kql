@@ -1,0 +1,46 @@
+// Platform: Microsoft Sentinel
+// Identity hygiene — elevated Exchange admin operations (OfficeActivity)
+// Every operation in this list changes a tenant-level security control rather than
+// a single mailbox or user setting — disabling anti-phishing rules, removing
+// malware filter policies, or changing the org-wide audit log configuration are all
+// things a legitimate admin does rarely and deliberately, and things an attacker
+// with admin access does specifically to reduce what gets logged or blocked before
+// their next move
+// No volume threshold or correlation here — any single occurrence of one of these
+// operations is worth review on its own; this is a short, high-signal list by
+// design, not a broad admin-activity feed
+// Ref: docs/scenarios/06-credential-compromise/investigation.md, docs/reference/escalation-triggers.md
+
+let lookback = 24h;
+OfficeActivity
+| where TimeGenerated > ago(lookback)
+| where OfficeWorkload == "Exchange"
+| where Operation in (
+    "Set-AdminAuditLogConfig", "New-ManagementRoleAssignment",
+    "Set-OrganizationConfig", "Set-MalwareFilterPolicy",
+    "Remove-MalwareFilterPolicy", "Disable-AntiPhishRule")
+| project TimeGenerated, UserId, Operation, Parameters, ClientIP
+| order by TimeGenerated desc
+
+// ─────────────────────────────────────────────────────────────
+// INVESTIGATION NOTES — copy paste into ticket / incident report
+// ─────────────────────────────────────────────────────────────
+//
+// office-admin-activity.kql — [date run: YYYY-MM-DD] — Analyst: [initials]
+//
+// Result: [ ] No elevated Exchange admin operations (audit log config, malware filter, anti-phish rule, org config) detected in the review window
+//         [ ] Results found — see findings below
+//
+// Findings:
+//   Admin account:
+//   Operation:
+//   Parameters/setting changed:
+//   Timeframe:
+//   Notes:
+//
+// Conclusion:
+//   [ ] No suspicious activity identified — admin operation confirmed as an approved change (e.g. change ticket, planned maintenance)
+//   [ ] Suspicious activity identified — escalating
+//   [ ] False positive — reason:
+//
+// ─────────────────────────────────────────────────────────────

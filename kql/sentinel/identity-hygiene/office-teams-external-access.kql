@@ -1,0 +1,46 @@
+// Platform: Microsoft Sentinel
+// Identity hygiene — external users added to Teams channels (OfficeActivity)
+// Teams external access (federation) and guest access let people outside the
+// tenant join channels and, depending on channel/tenant settings, see and download
+// shared files — an easy, low-friction data exposure path that doesn't require
+// anyone to explicitly "share a file" the way SharePoint/OneDrive sharing does
+// UserId or TargetUserOrGroupName containing #EXT# identifies a guest account
+// involved in the event; a TeamsSessionStarted event covers meeting/session-level
+// access even without formal channel membership
+// Ref: docs/scenarios/06-credential-compromise/investigation.md
+
+let lookback = 24h;
+OfficeActivity
+| where TimeGenerated > ago(lookback)
+| where OfficeWorkload == "MicrosoftTeams"
+| where Operation in ("MemberAdded", "TeamsSessionStarted")
+| where UserId has "#EXT#" or TargetUserOrGroupName has "#EXT#"
+| summarize
+    EventCount = count(),
+    ExternalUsers = make_set(TargetUserOrGroupName),
+    Teams = make_set(ObjectId, 5)
+    by UserId, Operation, bin(TimeGenerated, 1h)
+| order by EventCount desc
+
+// ─────────────────────────────────────────────────────────────
+// INVESTIGATION NOTES — copy paste into ticket / incident report
+// ─────────────────────────────────────────────────────────────
+//
+// office-teams-external-access.kql — [date run: YYYY-MM-DD] — Analyst: [initials]
+//
+// Result: [ ] No external (#EXT#) users added to Teams channels or sessions detected in the review window
+//         [ ] Results found — see findings below
+//
+// Findings:
+//   Adding account:
+//   External user(s):
+//   Team/channel:
+//   Timeframe:
+//   Notes:
+//
+// Conclusion:
+//   [ ] No suspicious activity identified — external Teams access confirmed as legitimate external collaboration
+//   [ ] Suspicious activity identified — escalating
+//   [ ] False positive — reason:
+//
+// ─────────────────────────────────────────────────────────────

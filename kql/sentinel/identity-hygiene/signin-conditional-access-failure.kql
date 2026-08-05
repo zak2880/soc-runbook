@@ -1,0 +1,55 @@
+// Platform: Microsoft Sentinel
+// Identity hygiene — Conditional Access failures and non-applied policies (SigninLogs)
+// ConditionalAccessStatus == "failure" means a CA policy explicitly blocked the
+// sign-in (e.g. a required grant control wasn't satisfied); "notApplied" means no CA
+// policy matched the sign-in's conditions at all — which is its own signal, since a
+// sign-in nobody's CA policy was designed to evaluate is a coverage gap, not a
+// control working as intended
+// Combined with ResultType != 0 to focus on sign-ins that didn't ultimately succeed
+// ConditionalAccessPolicies is a dynamic array of {id, displayName,
+// enforcedGrantControls, enforcedSessionControls, result} objects — mv-expand it to
+// see which specific policy(ies) evaluated and what result each one returned
+// Repeated failures for the same account/IP/app in a short window is the priority
+// signal: someone testing which CA policy blocks them, and from where, is probing
+// for a gap to get through, not just mistyping a password
+// Ref: docs/scenarios/06-credential-compromise/investigation.md, docs/reference/escalation-triggers.md
+
+let lookback = 24h;
+let probe_window = 1h;
+let probe_threshold = 5;
+SigninLogs
+| where TimeGenerated > ago(lookback)
+| where ConditionalAccessStatus in ("failure", "notApplied")
+| where ResultType != "0"
+| mv-expand CAPolicy = ConditionalAccessPolicies
+| extend PolicyName = tostring(CAPolicy.displayName), PolicyResult = tostring(CAPolicy.result)
+| summarize
+    FailureCount = count(),
+    Policies = make_set(PolicyName)
+    by UserPrincipalName, IPAddress, AppDisplayName, ConditionalAccessStatus, bin(TimeGenerated, probe_window)
+| extend RepeatedProbing = FailureCount >= probe_threshold
+| order by FailureCount desc
+
+// ─────────────────────────────────────────────────────────────
+// INVESTIGATION NOTES — copy paste into ticket / incident report
+// ─────────────────────────────────────────────────────────────
+//
+// signin-conditional-access-failure.kql — [date run: YYYY-MM-DD] — Analyst: [initials]
+//
+// Result: [ ] No Conditional Access failures or notApplied sign-ins detected in the review window
+//         [ ] Results found — see findings below
+//
+// Findings:
+//   Account(s):
+//   Policy(ies) triggered:
+//   App(s):
+//   IP address(es):
+//   Timeframe:
+//   Notes:
+//
+// Conclusion:
+//   [ ] No suspicious activity identified — CA failures consistent with normal access attempts, no probing pattern identified
+//   [ ] Suspicious activity identified — escalating
+//   [ ] False positive — reason:
+//
+// ─────────────────────────────────────────────────────────────

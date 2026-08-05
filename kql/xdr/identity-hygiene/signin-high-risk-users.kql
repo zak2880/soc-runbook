@@ -1,0 +1,48 @@
+// Platform: Microsoft Defender XDR Advanced Hunting
+// Identity hygiene — high/medium risk sign-ins per Entra ID Protection (EntraIdSignInEvents)
+// RiskLevelDuringSignIn reflects Identity Protection's real-time risk assessment of
+// this specific sign-in (impossible travel, anonymous IP, leaked-credential match,
+// unfamiliar sign-in properties); RiskLevelAggregated reflects the account's overall
+// carried-forward risk state. A sign-in can look low-risk in isolation while
+// belonging to an account Identity Protection has already flagged aggregate-high —
+// checking both fields catches both cases
+// Requires Microsoft Entra ID P2 — without it, RiskLevelDuringSignIn and
+// RiskLevelAggregated exist as columns but stay "none"/empty for every row, so this
+// query will silently return nothing rather than erroring; confirm licensing before
+// trusting a clean result
+// Ref: docs/scenarios/06-credential-compromise/investigation.md
+
+let lookback = 24h;
+EntraIdSignInEvents
+| where Timestamp > ago(lookback)
+| where RiskLevelDuringSignIn in ("high", "medium") or RiskLevelAggregated in ("high", "medium")
+| summarize
+    SignInCount = count(),
+    FirstSeen = min(Timestamp),
+    LastSeen = max(Timestamp)
+    by AccountUpn, RiskLevelDuringSignIn, RiskLevelAggregated, RiskState, IPAddress
+| order by SignInCount desc
+
+// ─────────────────────────────────────────────────────────────
+// INVESTIGATION NOTES — copy paste into ticket / incident report
+// ─────────────────────────────────────────────────────────────
+//
+// signin-high-risk-users.kql — [date run: YYYY-MM-DD] — Analyst: [initials]
+//
+// Result: [ ] No high or medium risk sign-ins detected in the review window — no accounts flagged by Identity Protection
+//         [ ] Results found — see findings below
+//
+// Findings:
+//   Account(s):
+//   Risk level (during sign-in / aggregated):
+//   Risk state:
+//   IP address(es):
+//   Timeframe:
+//   Notes:
+//
+// Conclusion:
+//   [ ] No suspicious activity identified — risk levels for these sign-ins do not warrant escalation (e.g. already remediated, confirmed by user)
+//   [ ] Suspicious activity identified — escalating
+//   [ ] False positive — reason:
+//
+// ─────────────────────────────────────────────────────────────

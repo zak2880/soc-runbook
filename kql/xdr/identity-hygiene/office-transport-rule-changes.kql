@@ -1,0 +1,56 @@
+// Platform: Microsoft Defender XDR Advanced Hunting
+// Identity hygiene — Exchange transport rule creation and modification (CloudAppEvents)
+// Transport rules operate at the mail-flow level, below anything a user sees in
+// their own inbox rules — an attacker (or a BEC operator) who gets Exchange admin
+// access can plant a tenant-wide rule that silently blind-copies or redirects
+// specific mail externally, and it survives every individual mailbox's own
+// forwarding/rule review because it isn't a mailbox-level setting at all
+// New-TransportRule/Set-TransportRule/Enable-TransportRule use the same
+// no-trailing-period Exchange cmdlet style as New-InboxRule elsewhere in this repo;
+// Params is parsed out of RawEventData the same way
+// Parameters carries the rule's conditions and actions — RedirectMessageTo,
+// BlindCopyTo, and ForwardTo are the three actions that actually exfiltrate mail;
+// any of them pointing at a domain outside internal_domains is the core signal this
+// query exists to catch, flagged regardless of who created the rule
+// Ref: docs/scenarios/06-credential-compromise/investigation.md, docs/scenarios/12-phishing-email/investigation.md
+
+let lookback = 24h;
+let internal_domains = dynamic(["example.com"]);   // replace with the customer's actual accepted domain(s)
+CloudAppEvents
+| where Timestamp > ago(lookback)
+| where ActionType in ("New-TransportRule", "Set-TransportRule", "Enable-TransportRule")
+| extend Params = parse_json(RawEventData).Parameters
+| extend
+    RedirectTo = tostring(Params.RedirectMessageTo),
+    BlindCopyTo = tostring(Params.BlindCopyTo),
+    ForwardTo = tostring(Params.ForwardTo)
+| extend ExternalRedirect =
+    (isnotempty(RedirectTo) and not(RedirectTo has_any (internal_domains)))
+    or (isnotempty(BlindCopyTo) and not(BlindCopyTo has_any (internal_domains)))
+    or (isnotempty(ForwardTo) and not(ForwardTo has_any (internal_domains)))
+| where ExternalRedirect
+| project Timestamp, AccountId, ActionType, RedirectTo, BlindCopyTo, ForwardTo, IPAddress
+| order by Timestamp desc
+
+// ─────────────────────────────────────────────────────────────
+// INVESTIGATION NOTES — copy paste into ticket / incident report
+// ─────────────────────────────────────────────────────────────
+//
+// office-transport-rule-changes.kql — [date run: YYYY-MM-DD] — Analyst: [initials]
+//
+// Result: [ ] No transport rule creation or modification detected — no evidence of silent external mail forwarding established at tenant level
+//         [ ] Results found — see findings below
+//
+// Findings:
+//   Initiating account:
+//   Rule name / operation:
+//   External redirect target(s):
+//   Timeframe:
+//   Notes:
+//
+// Conclusion:
+//   [ ] No suspicious activity identified — transport rule change confirmed as an approved change (e.g. change ticket, planned mail-flow work)
+//   [ ] Suspicious activity identified — escalating
+//   [ ] False positive — reason:
+//
+// ─────────────────────────────────────────────────────────────

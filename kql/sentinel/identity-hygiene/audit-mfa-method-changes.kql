@@ -1,0 +1,63 @@
+// Platform: Microsoft Sentinel
+// Identity hygiene — MFA method registration and removal (AuditLogs)
+// Covers both directions because they carry different risk: a REMOVAL is higher
+// risk than an addition — an attacker who's compromised an account often removes
+// the legitimate owner's MFA method so a password-only path back in stays open, or
+// so the real owner's push notifications stop interrupting the attacker's session.
+// An addition is how an attacker plants their own persistence (see
+// entra-post-compromise-persistence.kql) but a removal is how they cut the
+// legitimate user out
+// Admin-initiated changes (Admin registered/deleted security info) carry more
+// weight than self-service ones — a compromised admin account modifying MFA on
+// OTHER accounts is a stronger signal than a user managing their own methods
+// Flags: removals, admin-initiated changes, changes to accounts holding privileged
+// roles (cross-reference TargetUpn against your role-assignment records), bulk
+// changes in a short window
+// Ref: docs/scenarios/06-credential-compromise/investigation.md
+
+let lookback = 24h;
+let bulk_window = 1h;
+let bulk_threshold = 3;
+let mfa_change_ops = dynamic([
+    "User registered security info", "User deleted security info",
+    "Admin registered security info", "Admin deleted security info",
+    "Update user", "User changed default security info"]);
+AuditLogs
+| where TimeGenerated > ago(lookback)
+| where OperationName in (mfa_change_ops)
+| extend InitiatedByUpn = tostring(InitiatedBy.user.userPrincipalName)
+| mv-expand Target = TargetResources
+| extend TargetUpn = tostring(Target.userPrincipalName)
+| extend IsRemoval = OperationName has "deleted"
+| extend IsAdminInitiated = OperationName startswith "Admin"
+| summarize
+    ChangeCount = count(),
+    Operations = make_set(OperationName),
+    AnyRemoval = max(IsRemoval),
+    AnyAdminInitiated = max(IsAdminInitiated)
+    by TargetUpn, InitiatedByUpn, bin(TimeGenerated, bulk_window)
+| extend BulkChange = ChangeCount >= bulk_threshold
+| order by ChangeCount desc
+
+// ─────────────────────────────────────────────────────────────
+// INVESTIGATION NOTES — copy paste into ticket / incident report
+// ─────────────────────────────────────────────────────────────
+//
+// audit-mfa-method-changes.kql — [date run: YYYY-MM-DD] — Analyst: [initials]
+//
+// Result: [ ] No MFA method registration or removal activity detected outside expected self-service patterns
+//         [ ] Results found — see findings below
+//
+// Findings:
+//   Target account:
+//   Initiating account:
+//   Addition or removal:
+//   Timeframe:
+//   Notes:
+//
+// Conclusion:
+//   [ ] No suspicious activity identified — MFA method change confirmed as legitimate (e.g. new device, lost phone, self-service)
+//   [ ] Suspicious activity identified — escalating
+//   [ ] False positive — reason:
+//
+// ─────────────────────────────────────────────────────────────

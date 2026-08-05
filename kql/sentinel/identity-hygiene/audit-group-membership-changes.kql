@@ -1,0 +1,58 @@
+// Platform: Microsoft Sentinel
+// Identity hygiene — security group and distribution list membership changes (AuditLogs)
+// Group membership is often the actual access-control mechanism, even when the
+// directory role model looks locked down — a group that's granted admin rights
+// over an application, or that controls access to a sensitive SharePoint site or
+// distribution list, is just as valuable a target as a directly-assigned role, and
+// is watched less closely by most tenants
+// privileged_group_names is a placeholder — populate it with the customer's actual
+// group names for their Global Admins/Security Admins/Domain Admins equivalents
+// (cloud-only tenants won't have "Domain Admins" but may have an equivalent synced
+// or cloud-native group)
+// Flags: additions to privileged_group_names, bulk additions (5+ members added to
+// the same group in an hour), additions to distribution lists you've marked
+// sensitive (finance, legal, executive) — extend privileged_group_names to cover
+// those too if the customer has named ones
+// Ref: docs/scenarios/06-credential-compromise/investigation.md
+
+let lookback = 24h;
+let bulk_window = 1h;
+let bulk_threshold = 5;
+let privileged_group_names = dynamic(["Global Admins", "Security Admins", "Domain Admins"]);   // replace with the customer's actual group names
+AuditLogs
+| where TimeGenerated > ago(lookback)
+| where OperationName in ("Add member to group", "Remove member from group", "Add owner to group")
+| extend InitiatedByUpn = tostring(InitiatedBy.user.userPrincipalName)
+| mv-expand Target = TargetResources
+| extend GroupName = tostring(Target.displayName), MemberAdded = tostring(Target.userPrincipalName)
+| extend IsPrivilegedGroup = GroupName in (privileged_group_names)
+| summarize
+    ChangeCount = count(),
+    Members = make_set(MemberAdded),
+    AnyPrivilegedGroup = max(IsPrivilegedGroup)
+    by InitiatedByUpn, GroupName, OperationName, bin(TimeGenerated, bulk_window)
+| extend BulkChange = ChangeCount >= bulk_threshold
+| order by ChangeCount desc
+
+// ─────────────────────────────────────────────────────────────
+// INVESTIGATION NOTES — copy paste into ticket / incident report
+// ─────────────────────────────────────────────────────────────
+//
+// audit-group-membership-changes.kql — [date run: YYYY-MM-DD] — Analyst: [initials]
+//
+// Result: [ ] No membership changes to privileged groups or bulk group changes detected in the review window
+//         [ ] Results found — see findings below
+//
+// Findings:
+//   Initiating account:
+//   Group name:
+//   Member(s) added/removed:
+//   Timeframe:
+//   Notes:
+//
+// Conclusion:
+//   [ ] No suspicious activity identified — group membership change confirmed as an approved change (e.g. onboarding, role change)
+//   [ ] Suspicious activity identified — escalating
+//   [ ] False positive — reason:
+//
+// ─────────────────────────────────────────────────────────────

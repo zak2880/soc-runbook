@@ -1,0 +1,56 @@
+// Platform: Microsoft Defender XDR Advanced Hunting
+// Identity hygiene — guest account invitations (CloudAppEvents)
+// Every guest invitation creates a new external identity with a foothold in the
+// tenant. Most are legitimate (a real partner, vendor, or contractor being brought
+// in for a project) — the risk is in the outliers: an invitation to a domain nobody
+// on the security team recognises, a burst of invitations from one account, or an
+// invitation sent by an account that has no business inviting anyone
+// ActionType "Invite external user." matches the string already used in this
+// repo's aitm-phishing-to-persistence.kql and entra-post-compromise-persistence.kql
+// known_partner_domains is a placeholder — populate it with the customer's actual
+// approved partner/vendor domain list before relying on the NonStandardDomain flag
+// Flags: invitations to domains outside known_partner_domains, bulk invitations
+// from one initiator, invitations sent by accounts that don't normally invite
+// guests
+// Ref: docs/scenarios/06-credential-compromise/investigation.md
+
+let lookback = 24h;
+let known_partner_domains = dynamic(["partner1.com", "partner2.com"]);   // replace with the customer's actual approved domains
+let bulk_window = 1h;
+let bulk_threshold = 5;
+CloudAppEvents
+| where Timestamp > ago(lookback)
+| where ActionType == "Invite external user."
+| extend RawData = parse_json(RawEventData)
+| extend InvitedEmail = tostring(RawData.Target[0].ID)
+| extend InvitedDomain = tostring(split(InvitedEmail, "@")[-1])
+| extend NonStandardDomain = InvitedDomain !in (known_partner_domains)
+| summarize
+    InviteCount = count(),
+    InvitedEmails = make_set(InvitedEmail),
+    Domains = make_set(InvitedDomain)
+    by AccountId, bin(Timestamp, bulk_window)
+| extend BulkInvitations = InviteCount >= bulk_threshold
+| order by InviteCount desc
+
+// ─────────────────────────────────────────────────────────────
+// INVESTIGATION NOTES — copy paste into ticket / incident report
+// ─────────────────────────────────────────────────────────────
+//
+// audit-guest-invitations.kql — [date run: YYYY-MM-DD] — Analyst: [initials]
+//
+// Result: [ ] No guest invitations to non-standard domains or bulk invitations detected in the review window
+//         [ ] Results found — see findings below
+//
+// Findings:
+//   Inviting account:
+//   Invited email(s) / domain(s):
+//   Timeframe:
+//   Notes:
+//
+// Conclusion:
+//   [ ] No suspicious activity identified — guest invitation(s) confirmed as legitimate business need
+//   [ ] Suspicious activity identified — escalating
+//   [ ] False positive — reason:
+//
+// ─────────────────────────────────────────────────────────────

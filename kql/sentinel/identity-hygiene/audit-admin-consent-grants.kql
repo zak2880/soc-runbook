@@ -1,0 +1,52 @@
+// Platform: Microsoft Sentinel
+// Identity hygiene — admin consent granted to applications (AuditLogs)
+// Admin consent is a single action that can grant an app access to EVERY user's
+// data in the tenant at once, without each user individually approving anything —
+// which makes it one of the highest-leverage single events in this whole folder. An
+// attacker who tricks or coerces an admin into granting consent to a malicious app
+// (illicit consent grant / consent phishing) gets tenant-wide access in one click
+// high_privilege_scopes lists the permission scopes worth flagging on sight —
+// mail.read/mail.readwrite (full mailbox read), files.readwrite.all (every file in
+// every OneDrive/SharePoint site), directory.readwrite.all (can modify the
+// directory itself, including other apps' permissions), user.read.all (read every
+// user profile in the tenant)
+// Ref: docs/scenarios/06-credential-compromise/investigation.md, docs/scenarios/12-phishing-email/investigation.md
+
+let lookback = 24h;
+let high_privilege_scopes = dynamic([
+    "Mail.Read", "Mail.ReadWrite", "Files.ReadWrite.All",
+    "Directory.ReadWrite.All", "User.Read.All"]);
+AuditLogs
+| where TimeGenerated > ago(lookback)
+| where OperationName in ("Consent to application", "Add delegated permission grant", "Add app role assignment to service principal")
+| extend InitiatedByUpn = tostring(InitiatedBy.user.userPrincipalName)
+| mv-expand Target = TargetResources
+| extend AppName = tostring(Target.displayName)
+| mv-expand ModifiedProperty = Target.modifiedProperties
+| extend PropName = tostring(ModifiedProperty.displayName), PropNewValue = tostring(ModifiedProperty.newValue)
+| where PropNewValue has_any (high_privilege_scopes)
+| project TimeGenerated, InitiatedByUpn, AppName, OperationName, PropName, PropNewValue, AdditionalDetails
+| order by TimeGenerated desc
+
+// ─────────────────────────────────────────────────────────────
+// INVESTIGATION NOTES — copy paste into ticket / incident report
+// ─────────────────────────────────────────────────────────────
+//
+// audit-admin-consent-grants.kql — [date run: YYYY-MM-DD] — Analyst: [initials]
+//
+// Result: [ ] No admin consent grants for high-privilege scopes detected in the review window
+//         [ ] Results found — see findings below
+//
+// Findings:
+//   Initiating (admin) account:
+//   Application:
+//   Scope(s) granted:
+//   Timeframe:
+//   Notes:
+//
+// Conclusion:
+//   [ ] No suspicious activity identified — admin consent grant confirmed as an approved integration
+//   [ ] Suspicious activity identified — escalating
+//   [ ] False positive — reason:
+//
+// ─────────────────────────────────────────────────────────────

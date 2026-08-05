@@ -1,0 +1,63 @@
+// Platform: Microsoft Sentinel
+// Identity hygiene — service principal sign-in anomalies (SigninLogs)
+// Service principals shouldn't have "unusual" sign-in behaviour the way a human
+// does — they run on a schedule, from known infrastructure (a build agent, an Azure
+// Function, an on-prem sync server), with no legitimate reason to suddenly appear
+// from a new IP or run outside their normal hours. When one does, that's a strong
+// signal its credential (client secret or certificate) has leaked and is being used
+// from outside your infrastructure
+// This tenant may also have a dedicated ServicePrincipalSignInLogs table if the
+// Azure AD connector is configured to ingest it separately — if so, prefer that
+// table (native SP-specific schema); this query instead filters the general-purpose
+// SigninLogs table down to service-principal rows, which is the safer default since
+// ServicePrincipalSignInLogs ingestion is an opt-in connector setting many tenants
+// don't have enabled
+// A service principal sign-in in SigninLogs has no interactive user: UserType ==
+// "ServicePrincipal", or AppId is populated while UserPrincipalName is empty
+// Baseline: IPs seen for this service principal (by AppId) in the prior 30 days;
+// anything outside that set in the last 24h is flagged, same for hours outside its
+// normal operating window
+// Ref: docs/scenarios/06-credential-compromise/investigation.md
+
+let lookback = 24h;
+let baseline_window = 30d;
+let business_hours_start = 0;   // service principals often run round-the-clock — adjust to the SP's real schedule
+let business_hours_end = 23;
+let ServicePrincipalSignIns = SigninLogs
+| where TimeGenerated > ago(lookback)
+| where UserType == "ServicePrincipal" or (isnotempty(AppId) and isempty(UserPrincipalName));
+let KnownIPs = SigninLogs
+| where TimeGenerated between (ago(baseline_window + lookback) .. ago(lookback))
+| where UserType == "ServicePrincipal" or (isnotempty(AppId) and isempty(UserPrincipalName))
+| summarize by AppId, IPAddress;
+ServicePrincipalSignIns
+| join kind=leftouter KnownIPs on AppId, IPAddress
+| extend NewIP = isnull(IPAddress1)
+| extend HourUTC = hourofday(TimeGenerated)
+| extend OutsideNormalHours = HourUTC !between (business_hours_start .. business_hours_end)
+| where NewIP or OutsideNormalHours
+| project TimeGenerated, AppId, AppDisplayName, IPAddress, NewIP, OutsideNormalHours, ResultType
+| order by TimeGenerated desc
+
+// ─────────────────────────────────────────────────────────────
+// INVESTIGATION NOTES — copy paste into ticket / incident report
+// ─────────────────────────────────────────────────────────────
+//
+// signin-service-principal-anomalies.kql — [date run: YYYY-MM-DD] — Analyst: [initials]
+//
+// Result: [ ] No service principal sign-ins from new IPs or outside normal hours detected in the review window
+//         [ ] Results found — see findings below
+//
+// Findings:
+//   Service principal (AppId / AppDisplayName):
+//   IP address(es):
+//   New IP / outside normal hours:
+//   Timeframe:
+//   Notes:
+//
+// Conclusion:
+//   [ ] No suspicious activity identified — service principal sign-in pattern confirmed as legitimate (e.g. new build agent, infrastructure change)
+//   [ ] Suspicious activity identified — escalating
+//   [ ] False positive — reason:
+//
+// ─────────────────────────────────────────────────────────────

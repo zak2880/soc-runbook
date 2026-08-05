@@ -1,0 +1,52 @@
+// Platform: Microsoft Sentinel
+// Identity hygiene — legacy authentication protocol sign-ins (SigninLogs)
+// Legacy auth protocols (IMAP4, POP3, SMTP Auth, older Exchange/ActiveSync clients)
+// authenticate with just a username and password — they cannot present an MFA
+// challenge at all, so any successful sign-in over one of these protocols bypassed
+// MFA entirely, regardless of what Conditional Access policy is configured for
+// interactive sign-in
+// Any success here is high priority: it means either legacy auth hasn't been fully
+// blocked by Conditional Access / Security Defaults yet, or an attacker has found a
+// protocol path around the block
+// Failed legacy auth is noise — brute forcers hammer these protocols constantly
+// because there's no MFA to trip; only successful sign-ins are worth surfacing
+// Ref: docs/scenarios/06-credential-compromise/investigation.md
+
+let lookback = 24h;
+let legacy_auth_clients = dynamic([
+    "IMAP4", "POP3", "SMTP Auth", "Exchange ActiveSync",
+    "Exchange Online PowerShell", "Exchange Web Services",
+    "Autodiscover", "Other clients"]);
+SigninLogs
+| where TimeGenerated > ago(lookback)
+| where ClientAppUsed in (legacy_auth_clients)
+| where ResultType == "0"   // successful sign-ins only — failed legacy auth is noise
+| summarize
+    SignInCount = count(),
+    FirstSeen = min(TimeGenerated),
+    LastSeen = max(TimeGenerated)
+    by UserPrincipalName, ClientAppUsed, IPAddress, ResultType
+| order by SignInCount desc
+
+// ─────────────────────────────────────────────────────────────
+// INVESTIGATION NOTES — copy paste into ticket / incident report
+// ─────────────────────────────────────────────────────────────
+//
+// signin-legacy-auth.kql — [date run: YYYY-MM-DD] — Analyst: [initials]
+//
+// Result: [ ] No legacy authentication sign-ins detected in the review window — MFA bypass via legacy protocols not observed
+//         [ ] Results found — see findings below
+//
+// Findings:
+//   Account(s):
+//   Legacy protocol(s) used:
+//   IP address(es):
+//   Timeframe:
+//   Notes:
+//
+// Conclusion:
+//   [ ] No suspicious activity identified — no legacy auth sign-ins bypassing MFA identified for this account/tenant
+//   [ ] Suspicious activity identified — escalating
+//   [ ] False positive — reason:
+//
+// ─────────────────────────────────────────────────────────────

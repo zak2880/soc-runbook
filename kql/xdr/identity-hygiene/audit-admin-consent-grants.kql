@@ -1,0 +1,55 @@
+// Platform: Microsoft Defender XDR Advanced Hunting
+// Identity hygiene — admin consent granted to applications (CloudAppEvents)
+// Admin consent is a single action that can grant an app access to EVERY user's
+// data in the tenant at once, without each user individually approving anything —
+// which makes it one of the highest-leverage single events in this whole folder. An
+// attacker who tricks or coerces an admin into granting consent to a malicious app
+// (illicit consent grant / consent phishing) gets tenant-wide access in one click
+// high_privilege_scopes lists the permission scopes worth flagging on sight —
+// mail.read/mail.readwrite (full mailbox read), files.readwrite.all (every file in
+// every OneDrive/SharePoint site), directory.readwrite.all (can modify the
+// directory itself, including other apps' permissions), user.read.all (read every
+// user profile in the tenant)
+// "Consent to application." matches the string already used in
+// entra-post-compromise-oauth-grants.kql and aitm-phishing-to-persistence.kql —
+// "Add delegated permission grant." and "Add app role assignment to service
+// principal." use the same trailing-period convention but are unverified against a
+// live tenant
+// Ref: docs/scenarios/06-credential-compromise/investigation.md, docs/scenarios/12-phishing-email/investigation.md
+
+let lookback = 24h;
+let high_privilege_scopes = dynamic([
+    "Mail.Read", "Mail.ReadWrite", "Files.ReadWrite.All",
+    "Directory.ReadWrite.All", "User.Read.All"]);
+CloudAppEvents
+| where Timestamp > ago(lookback)
+| where ActionType in ("Consent to application.", "Add delegated permission grant.", "Add app role assignment to service principal.")
+| extend RawData = parse_json(RawEventData)
+| extend AppName = tostring(RawData.Target[0].ID)
+| extend Scopes = tostring(RawData.ModifiedProperties)
+| where Scopes has_any (high_privilege_scopes)
+| project Timestamp, AccountId, AppName, ActionType, Scopes, RawEventData
+| order by Timestamp desc
+
+// ─────────────────────────────────────────────────────────────
+// INVESTIGATION NOTES — copy paste into ticket / incident report
+// ─────────────────────────────────────────────────────────────
+//
+// audit-admin-consent-grants.kql — [date run: YYYY-MM-DD] — Analyst: [initials]
+//
+// Result: [ ] No admin consent grants for high-privilege scopes detected in the review window
+//         [ ] Results found — see findings below
+//
+// Findings:
+//   Initiating (admin) account:
+//   Application:
+//   Scope(s) granted:
+//   Timeframe:
+//   Notes:
+//
+// Conclusion:
+//   [ ] No suspicious activity identified — admin consent grant confirmed as an approved integration
+//   [ ] Suspicious activity identified — escalating
+//   [ ] False positive — reason:
+//
+// ─────────────────────────────────────────────────────────────

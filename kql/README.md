@@ -84,6 +84,37 @@ Replace `HOSTNAME`, `USERNAME`, `PASTE_HASH_HERE`, and datetime placeholders bef
 | [new-local-accounts-created.kql](sentinel/identity/new-local-accounts-created.kql) | New local user accounts created on a device | T1136.001 |
 | [all-alerts-for-device.kql](sentinel/identity/all-alerts-for-device.kql) | All Defender alerts for a specific device — ⚠️ `DeviceAlertEvents` is not actually queryable in Sentinel, kept for structural parity, see file header | — |
 
+## identity-hygiene/
+
+Sign-in, directory-audit, and Office activity legitimacy checks — day-to-day hygiene hunting rather than post-compromise investigation. Several `ActionType`/`OperationName` values in the `AuditLogs`/`OfficeActivity` queries below are unverified against a live tenant; see each file's header comment for specifics.
+
+| File | What it detects | MITRE |
+|------|----------------|-------|
+| [signin-legacy-auth.kql](sentinel/identity-hygiene/signin-legacy-auth.kql) | Successful sign-ins over legacy auth protocols (IMAP4, POP3, SMTP Auth, etc.) that bypass MFA entirely | T1078, T1550.001 |
+| [signin-high-risk-users.kql](sentinel/identity-hygiene/signin-high-risk-users.kql) | Sign-ins flagged high/medium risk by Entra ID Protection (requires P2) | T1078 |
+| [signin-guest-account-activity.kql](sentinel/identity-hygiene/signin-guest-account-activity.kql) | Guest account sign-ins, flagged for off-hours, new country, or high volume | T1078.004 |
+| [signin-new-country-first-seen.kql](sentinel/identity-hygiene/signin-new-country-first-seen.kql) | Account signing in from a country it has never used before (90-day baseline) | T1078 |
+| [signin-conditional-access-failure.kql](sentinel/identity-hygiene/signin-conditional-access-failure.kql) | Conditional Access failures/notApplied sign-ins, flagged for repeated probing | T1562.001 |
+| [signin-outside-business-hours.kql](sentinel/identity-hygiene/signin-outside-business-hours.kql) | Successful overnight sign-ins for accounts with no overnight baseline | T1078 |
+| [signin-password-spray.kql](sentinel/identity-hygiene/signin-password-spray.kql) | Many failed sign-ins across many distinct accounts from one IP, or a shared UserAgent across accounts | T1110.003 |
+| [signin-brute-force-single-account.kql](sentinel/identity-hygiene/signin-brute-force-single-account.kql) | Many failed sign-ins against one account followed by a success in the same window | T1110.001 |
+| [signin-service-principal-anomalies.kql](sentinel/identity-hygiene/signin-service-principal-anomalies.kql) | Service principal sign-ins from a new IP or outside normal operating hours | T1078.004 |
+| [signin-named-location-violations.kql](sentinel/identity-hygiene/signin-named-location-violations.kql) | Successful sign-ins with no named-location match — CA coverage gap indicator | T1562.001 |
+| [audit-password-resets.kql](sentinel/identity-hygiene/audit-password-resets.kql) | Password reset volume anomalies, admin-initiated resets, off-hours resets | T1098 |
+| [audit-mfa-method-changes.kql](sentinel/identity-hygiene/audit-mfa-method-changes.kql) | MFA method registration/removal, flagged for removals and admin-initiated changes | T1098.005 |
+| [audit-guest-invitations.kql](sentinel/identity-hygiene/audit-guest-invitations.kql) | Guest invitations to non-standard domains or in bulk | T1136.003 |
+| [audit-role-assignments.kql](sentinel/identity-hygiene/audit-role-assignments.kql) | Assignment of Global Admin and other high-value directory roles | T1098.003 |
+| [audit-conditional-access-changes.kql](sentinel/identity-hygiene/audit-conditional-access-changes.kql) | Conditional Access policy add/update/delete, flagged for deletions | T1562.001 |
+| [audit-app-registrations.kql](sentinel/identity-hygiene/audit-app-registrations.kql) | New app/service principal registrations with a fast-follow credential or owner change | T1550.001 |
+| [audit-group-membership-changes.kql](sentinel/identity-hygiene/audit-group-membership-changes.kql) | Additions to privileged security groups, bulk membership changes | T1098 |
+| [audit-admin-consent-grants.kql](sentinel/identity-hygiene/audit-admin-consent-grants.kql) | Admin consent grants for high-privilege Graph scopes | T1528 |
+| [office-external-sharing.kql](sentinel/identity-hygiene/office-external-sharing.kql) | SharePoint/OneDrive files shared to non-standard domains or in bulk | T1567 |
+| [office-anonymous-link-creation.kql](sentinel/identity-hygiene/office-anonymous-link-creation.kql) | Anonymous ("anyone with the link") sharing link creation | T1567 |
+| [office-mailbox-delegation.kql](sentinel/identity-hygiene/office-mailbox-delegation.kql) | Mailbox FullAccess/SendAs/SendOnBehalf grants, flagged for VIP mailboxes and off-hours | T1098 |
+| [office-transport-rule-changes.kql](sentinel/identity-hygiene/office-transport-rule-changes.kql) | Transport rules that redirect, blind-copy, or forward mail externally | T1114.003 |
+| [office-teams-external-access.kql](sentinel/identity-hygiene/office-teams-external-access.kql) | External (#EXT#) users added to Teams channels | T1078.004 |
+| [office-admin-activity.kql](sentinel/identity-hygiene/office-admin-activity.kql) | Elevated Exchange admin operations — audit config, malware filter, anti-phish rule changes | T1562.001 |
+
 ## ransomware/
 
 | File | What it detects | MITRE |
@@ -196,6 +227,37 @@ Reusable `let` function definitions — call these from other queries instead of
 | [user-on-multiple-devices.kql](xdr/identity/user-on-multiple-devices.kql) | Account appearing on 3+ devices via network or RDP logon | T1021 |
 | [new-local-accounts-created.kql](xdr/identity/new-local-accounts-created.kql) | New local user accounts created on a device | T1136.001 |
 | [all-alerts-for-device.kql](xdr/identity/all-alerts-for-device.kql) | All Defender alerts for a specific device in the last 7 days | — |
+
+## identity-hygiene/
+
+Sign-in, directory-audit, and Office activity legitimacy checks — day-to-day hygiene hunting rather than post-compromise investigation. Several `ActionType` values in the `CloudAppEvents` queries below are unverified against a live tenant; see each file's header comment for specifics.
+
+| File | What it detects | MITRE |
+|------|----------------|-------|
+| [signin-legacy-auth.kql](xdr/identity-hygiene/signin-legacy-auth.kql) | Successful sign-ins over legacy auth protocols (POP3, IMAP4, SMTP, etc.) that bypass MFA entirely | T1078, T1550.001 |
+| [signin-high-risk-users.kql](xdr/identity-hygiene/signin-high-risk-users.kql) | Sign-ins flagged high/medium risk by Entra ID Protection (requires P2) | T1078 |
+| [signin-guest-account-activity.kql](xdr/identity-hygiene/signin-guest-account-activity.kql) | Guest account sign-ins, flagged for off-hours, new country, or high volume | T1078.004 |
+| [signin-new-country-first-seen.kql](xdr/identity-hygiene/signin-new-country-first-seen.kql) | Account signing in from a country it has never used before (90-day baseline) | T1078 |
+| [signin-conditional-access-failure.kql](xdr/identity-hygiene/signin-conditional-access-failure.kql) | Conditional Access failures/notApplied sign-ins, flagged for repeated probing | T1562.001 |
+| [signin-outside-business-hours.kql](xdr/identity-hygiene/signin-outside-business-hours.kql) | Successful overnight sign-ins for accounts with no overnight baseline | T1078 |
+| [signin-password-spray.kql](xdr/identity-hygiene/signin-password-spray.kql) | Many failed sign-ins across many distinct accounts from one IP, or a shared UserAgent across accounts | T1110.003 |
+| [signin-brute-force-single-account.kql](xdr/identity-hygiene/signin-brute-force-single-account.kql) | Many failed sign-ins against one account followed by a success in the same window | T1110.001 |
+| [signin-service-principal-anomalies.kql](xdr/identity-hygiene/signin-service-principal-anomalies.kql) | Service principal sign-ins from a new IP or outside normal operating hours | T1078.004 |
+| [signin-named-location-violations.kql](xdr/identity-hygiene/signin-named-location-violations.kql) | Successful sign-ins with no named-location match — CA coverage gap indicator | T1562.001 |
+| [audit-password-resets.kql](xdr/identity-hygiene/audit-password-resets.kql) | Password reset volume anomalies, admin-initiated resets, off-hours resets | T1098 |
+| [audit-mfa-method-changes.kql](xdr/identity-hygiene/audit-mfa-method-changes.kql) | MFA method registration/removal, flagged for removals and admin-initiated changes | T1098.005 |
+| [audit-guest-invitations.kql](xdr/identity-hygiene/audit-guest-invitations.kql) | Guest invitations to non-standard domains or in bulk | T1136.003 |
+| [audit-role-assignments.kql](xdr/identity-hygiene/audit-role-assignments.kql) | Assignment of Global Admin and other high-value directory roles | T1098.003 |
+| [audit-conditional-access-changes.kql](xdr/identity-hygiene/audit-conditional-access-changes.kql) | Conditional Access policy add/update/delete, flagged for deletions | T1562.001 |
+| [audit-app-registrations.kql](xdr/identity-hygiene/audit-app-registrations.kql) | New app/service principal registrations with a fast-follow credential or owner change | T1550.001 |
+| [audit-group-membership-changes.kql](xdr/identity-hygiene/audit-group-membership-changes.kql) | Additions to privileged security groups, bulk membership changes | T1098 |
+| [audit-admin-consent-grants.kql](xdr/identity-hygiene/audit-admin-consent-grants.kql) | Admin consent grants for high-privilege Graph scopes | T1528 |
+| [office-external-sharing.kql](xdr/identity-hygiene/office-external-sharing.kql) | SharePoint/OneDrive files shared to non-standard domains or in bulk | T1567 |
+| [office-anonymous-link-creation.kql](xdr/identity-hygiene/office-anonymous-link-creation.kql) | Anonymous ("anyone with the link") sharing link creation | T1567 |
+| [office-mailbox-delegation.kql](xdr/identity-hygiene/office-mailbox-delegation.kql) | Mailbox FullAccess/SendAs/SendOnBehalf grants, flagged for VIP mailboxes and off-hours | T1098 |
+| [office-transport-rule-changes.kql](xdr/identity-hygiene/office-transport-rule-changes.kql) | Transport rules that redirect, blind-copy, or forward mail externally | T1114.003 |
+| [office-teams-external-access.kql](xdr/identity-hygiene/office-teams-external-access.kql) | External (#EXT#) users added to Teams channels | T1078.004 |
+| [office-admin-activity.kql](xdr/identity-hygiene/office-admin-activity.kql) | Elevated Exchange admin operations — audit config, malware filter, anti-phish rule changes | T1562.001 |
 
 ## ransomware/
 

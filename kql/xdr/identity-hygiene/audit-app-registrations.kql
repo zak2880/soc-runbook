@@ -1,0 +1,60 @@
+// Platform: Microsoft Defender XDR Advanced Hunting
+// Identity hygiene — new app registrations and service principal creation (CloudAppEvents)
+// A rogue OAuth app is a durable, quiet foothold — unlike a compromised user
+// session, an app registration with its own client secret or certificate keeps
+// working through a password reset and doesn't need repeated interactive sign-in.
+// This query watches the creation side (the app being set up), which complements
+// entra-post-compromise-oauth-grants.kql, which watches the consent side (a user or
+// admin approving an app's access)
+// JUDGEMENT CALL — unverified against a live tenant: ActionType values use the
+// trailing-period form established elsewhere in this repo's CloudAppEvents queries
+// (compare "Add service principal." in entra-post-compromise-persistence.kql); the
+// app name parsed from RawEventData.Target[0].ID is a best-effort guess — confirm
+// both against a real event
+// Flags: apps that get a credential/owner change in the SAME short window as
+// creation — legitimate app development usually has a gap between registering an
+// app and configuring its first credential
+// Ref: docs/scenarios/06-credential-compromise/investigation.md
+
+let lookback = 24h;
+let creation_followup_window = 10m;
+let AppCreations = CloudAppEvents
+| where Timestamp > ago(lookback)
+| where ActionType in ("Add application.", "Add service principal.")
+| extend RawData = parse_json(RawEventData)
+| extend AppName = tostring(RawData.Target[0].ID)
+| project CreatedTime = Timestamp, AccountId, AppName, ActionType;
+let AppUpdates = CloudAppEvents
+| where Timestamp > ago(lookback)
+| where ActionType in ("Update application.", "Add owner to application.")
+| extend RawData = parse_json(RawEventData)
+| extend AppName = tostring(RawData.Target[0].ID)
+| project UpdateTime = Timestamp, UpdateOperation = ActionType, AppName;
+AppCreations
+| join kind=leftouter (AppUpdates) on AppName
+| extend FastFollowUp = isnotempty(UpdateTime) and (UpdateTime - CreatedTime) <= creation_followup_window
+| project CreatedTime, AccountId, AppName, ActionType, UpdateOperation, FastFollowUp, UpdateTime
+| order by CreatedTime desc
+
+// ─────────────────────────────────────────────────────────────
+// INVESTIGATION NOTES — copy paste into ticket / incident report
+// ─────────────────────────────────────────────────────────────
+//
+// audit-app-registrations.kql — [date run: YYYY-MM-DD] — Analyst: [initials]
+//
+// Result: [ ] No new app registrations or service principal creation with a fast-follow credential/owner change detected
+//         [ ] Results found — see findings below
+//
+// Findings:
+//   Initiating account:
+//   App name:
+//   Follow-up change (credential/owner) and gap:
+//   Timeframe:
+//   Notes:
+//
+// Conclusion:
+//   [ ] No suspicious activity identified — app registration confirmed as legitimate development/integration work
+//   [ ] Suspicious activity identified — escalating
+//   [ ] False positive — reason:
+//
+// ─────────────────────────────────────────────────────────────

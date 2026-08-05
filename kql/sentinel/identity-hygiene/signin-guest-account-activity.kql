@@ -1,0 +1,63 @@
+// Platform: Microsoft Sentinel
+// Identity hygiene — guest account sign-in activity (SigninLogs)
+// Guest accounts (UserType == "Guest", UPN containing #EXT#) are external identities
+// with a foothold in the tenant — they don't show up in normal employee account
+// reviews and are a common target for review because their access is easy to grant
+// and easy to forget about
+// Three prioritisation flags on the full guest sign-in result set, not filters —
+// guest activity is already a narrow enough signal to warrant reviewing all of it,
+// not just the flagged rows:
+//   - OutsideBusinessHours — sign-in outside 07:00-19:00 UTC (adjust for timezone)
+//   - NewCountry           — first sign-in from this account from this country in
+//                            the prior 30 days
+//   - HighVolume           — 20+ sign-ins from the same guest account in the window
+// Ref: docs/scenarios/06-credential-compromise/investigation.md
+
+let lookback = 24h;
+let baseline_lookback = 30d;
+let business_hours_start = 7;
+let business_hours_end = 19;
+let high_volume_threshold = 20;
+let KnownCountries = SigninLogs
+| where TimeGenerated between (ago(baseline_lookback + lookback) .. ago(lookback))
+| where UserType == "Guest" or UserPrincipalName has "#EXT#"
+| summarize by UserPrincipalName, Location;
+SigninLogs
+| where TimeGenerated > ago(lookback)
+| where UserType == "Guest" or UserPrincipalName has "#EXT#"
+| extend HourUTC = hourofday(TimeGenerated)
+| extend OutsideBusinessHours = HourUTC !between (business_hours_start .. business_hours_end)
+| join kind=leftouter KnownCountries on UserPrincipalName, Location
+| extend NewCountry = isnull(Location1)
+| summarize
+    SignInCount = count(),
+    Apps = make_set(AppDisplayName),
+    AnyOutsideBusinessHours = max(OutsideBusinessHours),
+    AnyNewCountry = max(NewCountry)
+    by UserPrincipalName, IPAddress, Location, AppDisplayName
+| extend HighVolume = SignInCount >= high_volume_threshold
+| order by SignInCount desc
+
+// ─────────────────────────────────────────────────────────────
+// INVESTIGATION NOTES — copy paste into ticket / incident report
+// ─────────────────────────────────────────────────────────────
+//
+// signin-guest-account-activity.kql — [date run: YYYY-MM-DD] — Analyst: [initials]
+//
+// Result: [ ] No guest account sign-in activity detected in the review window
+//         [ ] Results found — see findings below
+//
+// Findings:
+//   Guest account(s):
+//   App(s) accessed:
+//   IP address(es) / Location(s):
+//   Flags (outside hours / new country / high volume):
+//   Timeframe:
+//   Notes:
+//
+// Conclusion:
+//   [ ] No suspicious activity identified — guest account activity for the review window appears consistent with expected external-collaborator use
+//   [ ] Suspicious activity identified — escalating
+//   [ ] False positive — reason:
+//
+// ─────────────────────────────────────────────────────────────

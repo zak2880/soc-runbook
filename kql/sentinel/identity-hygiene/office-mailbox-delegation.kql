@@ -1,0 +1,53 @@
+// Platform: Microsoft Sentinel
+// Identity hygiene — mailbox permission grants (OfficeActivity)
+// FullAccess lets the grantee open and read the entire mailbox as if it were their
+// own; SendAs lets them send mail that appears to come directly from the target
+// account with no visible indication it wasn't the real owner; SendOnBehalf sends
+// as "X on behalf of Y", leaving a visible trail. All three are legitimate
+// administrative/EA tools used constantly — the risk is in WHO gets granted access
+// to WHICH mailbox, not the existence of delegation itself
+// Parameters is a nested JSON field carrying AccessRights and the target mailbox
+// identity for the Add-MailboxPermission/Add-RecipientPermission cmdlets
+// Flags: FullAccess grants to accounts outside the tenant (cross-reference the
+// grantee against your directory), grants targeting executive/VIP mailboxes (use
+// executive_mailboxes below), grants made outside business hours
+// Ref: docs/scenarios/06-credential-compromise/investigation.md
+
+let lookback = 24h;
+let business_hours_start = 7;
+let business_hours_end = 19;
+let executive_mailboxes = dynamic(["ceo@example.com", "cfo@example.com"]);   // replace with the customer's actual VIP mailbox list
+OfficeActivity
+| where TimeGenerated > ago(lookback)
+| where OfficeWorkload == "Exchange"
+| where Operation in ("Add-MailboxPermission", "Add-RecipientPermission")
+| extend Params = parse_json(Parameters)
+| extend AccessRights = tostring(Params.AccessRights), TargetMailbox = tostring(Params.Identity)
+| extend HourUTC = hourofday(TimeGenerated)
+| extend OutsideBusinessHours = HourUTC !between (business_hours_start .. business_hours_end)
+| extend IsExecutiveMailbox = TargetMailbox in (executive_mailboxes)
+| project TimeGenerated, UserId, Operation, AccessRights, TargetMailbox, ClientIP, OutsideBusinessHours, IsExecutiveMailbox
+| order by TimeGenerated desc
+
+// ─────────────────────────────────────────────────────────────
+// INVESTIGATION NOTES — copy paste into ticket / incident report
+// ─────────────────────────────────────────────────────────────
+//
+// office-mailbox-delegation.kql — [date run: YYYY-MM-DD] — Analyst: [initials]
+//
+// Result: [ ] No mailbox permission grants detected in the review window
+//         [ ] Results found — see findings below
+//
+// Findings:
+//   Granting account:
+//   Target mailbox:
+//   Access rights granted:
+//   Timeframe:
+//   Notes:
+//
+// Conclusion:
+//   [ ] No suspicious activity identified — mailbox delegation confirmed as an approved change (e.g. EA/EA-to-exec, shared mailbox setup)
+//   [ ] Suspicious activity identified — escalating
+//   [ ] False positive — reason:
+//
+// ─────────────────────────────────────────────────────────────

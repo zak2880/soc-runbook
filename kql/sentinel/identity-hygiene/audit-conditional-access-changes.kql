@@ -1,0 +1,63 @@
+// Platform: Microsoft Sentinel
+// Identity hygiene — Conditional Access policy changes (AuditLogs)
+// Every CA policy change is worth an audit trail entry regardless of who made it,
+// but the three operations here carry very different risk:
+//   - Delete conditional access policy — highest risk: removing a control outright,
+//     e.g. deleting the policy that requires MFA for admin roles
+//   - Update conditional access policy — could be anything from a routine scope
+//     change to quietly disabling a policy (state: disabled) or excluding an
+//     account from its scope — parse the modified properties to see which
+//   - Add conditional access policy — new policies are generally lower risk, but
+//     still worth tracking for change-management visibility
+// Flags: deletions, updates that set the policy state to disabled or add an
+// exclusion, changes made outside business hours or by an account that doesn't
+// hold a CA-admin-capable role (Conditional Access Administrator, Security
+// Administrator, Global Administrator)
+// Ref: docs/scenarios/06-credential-compromise/investigation.md, docs/reference/escalation-triggers.md
+
+let lookback = 24h;
+let business_hours_start = 7;
+let business_hours_end = 19;
+AuditLogs
+| where TimeGenerated > ago(lookback)
+| where OperationName in ("Add conditional access policy", "Update conditional access policy", "Delete conditional access policy")
+| extend InitiatedByUpn = tostring(InitiatedBy.user.userPrincipalName)
+| mv-expand Target = TargetResources
+| extend PolicyName = tostring(Target.displayName)
+| mv-expand ModifiedProperty = Target.modifiedProperties
+| extend PropName = tostring(ModifiedProperty.displayName), PropNewValue = tostring(ModifiedProperty.newValue)
+| extend HourUTC = hourofday(TimeGenerated)
+| extend OutsideBusinessHours = HourUTC !between (business_hours_start .. business_hours_end)
+| extend IsDeletion = OperationName == "Delete conditional access policy"
+| extend DisablesPolicy = PropName == "State" and PropNewValue has "disabled"
+| summarize
+    ChangeCount = count(),
+    ModifiedSettings = make_set(PropName),
+    AnyDeletion = max(IsDeletion),
+    AnyDisabled = max(DisablesPolicy),
+    AnyOutsideBusinessHours = max(OutsideBusinessHours)
+    by InitiatedByUpn, PolicyName, OperationName
+| order by ChangeCount desc
+
+// ─────────────────────────────────────────────────────────────
+// INVESTIGATION NOTES — copy paste into ticket / incident report
+// ─────────────────────────────────────────────────────────────
+//
+// audit-conditional-access-changes.kql — [date run: YYYY-MM-DD] — Analyst: [initials]
+//
+// Result: [ ] No Conditional Access policy creation, modification, or deletion detected in the review window
+//         [ ] Results found — see findings below
+//
+// Findings:
+//   Initiating account:
+//   Policy name:
+//   Change type (add / update / delete):
+//   Timeframe:
+//   Notes:
+//
+// Conclusion:
+//   [ ] No suspicious activity identified — CA policy change confirmed as an approved change (e.g. change ticket, planned rollout)
+//   [ ] Suspicious activity identified — escalating
+//   [ ] False positive — reason:
+//
+// ─────────────────────────────────────────────────────────────

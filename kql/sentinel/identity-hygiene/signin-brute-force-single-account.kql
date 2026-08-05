@@ -1,0 +1,49 @@
+// Platform: Microsoft Sentinel
+// Identity hygiene — targeted brute force against a single account (SigninLogs)
+// The classic pattern: many failed sign-ins against one account, then a success.
+// The failures alone might just be a user who forgot their password; the success
+// AFTER a high failure count in the same short window is what turns this from
+// "someone fat-fingered their password" into "someone got in on attempt 11+"
+// Threshold: 10+ failures and at least one success in the same 10-minute window —
+// tune down for tenants with aggressive lockout policies (accounts may never
+// accumulate 10 failures before locking) and tune up for noisy shared/service
+// accounts with routine failures
+// Ref: docs/scenarios/06-credential-compromise/investigation.md, docs/reference/escalation-triggers.md
+
+let lookback = 24h;
+let window = 10m;
+let failure_threshold = 10;
+SigninLogs
+| where TimeGenerated > ago(lookback)
+| summarize
+    FailedAttempts = countif(ResultType != "0"),
+    SuccessfulSignIns = countif(ResultType == "0"),
+    IPAddresses = make_set(IPAddress),
+    FirstAttempt = min(TimeGenerated),
+    LastAttempt = max(TimeGenerated)
+    by UserPrincipalName, bin(TimeGenerated, window)
+| where FailedAttempts > failure_threshold and SuccessfulSignIns > 0
+| order by FailedAttempts desc
+
+// ─────────────────────────────────────────────────────────────
+// INVESTIGATION NOTES — copy paste into ticket / incident report
+// ─────────────────────────────────────────────────────────────
+//
+// signin-brute-force-single-account.kql — [date run: YYYY-MM-DD] — Analyst: [initials]
+//
+// Result: [ ] No targeted brute force pattern detected — no account showed a high failure count followed by a success in the same window
+//         [ ] Results found — see findings below
+//
+// Findings:
+//   Account(s):
+//   Failed attempts / successful sign-ins:
+//   IP address(es):
+//   Timeframe:
+//   Notes:
+//
+// Conclusion:
+//   [ ] No suspicious activity identified — failure-then-success pattern for this account confirmed as legitimate (e.g. forgotten password, typo)
+//   [ ] Suspicious activity identified — escalating
+//   [ ] False positive — reason:
+//
+// ─────────────────────────────────────────────────────────────

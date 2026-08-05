@@ -1,0 +1,54 @@
+// Platform: Microsoft Defender XDR Advanced Hunting
+// Identity hygiene — legacy authentication protocol sign-ins (EntraIdSignInEvents)
+// Legacy auth protocols (POP3, IMAP4, SMTP, older Exchange/ActiveSync clients)
+// authenticate with just a username and password — they cannot present an MFA
+// challenge at all, so any successful sign-in over one of these protocols bypassed
+// MFA entirely, regardless of what Conditional Access policy is configured for
+// interactive sign-in
+// Any success here is high priority: it means either legacy auth hasn't been fully
+// blocked by Conditional Access / Security Defaults yet, or an attacker has found a
+// protocol path around the block
+// Failed legacy auth is noise — brute forcers hammer these protocols constantly
+// because there's no MFA to trip; only successful sign-ins are worth surfacing
+// AuthenticationProtocol values here are lowerCamelCase, unlike the ClientAppUsed
+// display strings the Sentinel version filters on for the same underlying flows —
+// see kql/sentinel/identity-hygiene/signin-legacy-auth.kql
+// Ref: docs/scenarios/06-credential-compromise/investigation.md
+
+let lookback = 24h;
+let legacy_auth_protocols = dynamic([
+    "pop3", "imap4", "smtp", "exchangeActiveSync",
+    "exchange", "autodiscover", "other"]);
+EntraIdSignInEvents
+| where Timestamp > ago(lookback)
+| where AuthenticationProtocol in (legacy_auth_protocols)
+| where ErrorCode == 0   // successful sign-ins only — failed legacy auth is noise
+| summarize
+    SignInCount = count(),
+    FirstSeen = min(Timestamp),
+    LastSeen = max(Timestamp)
+    by AccountUpn, AuthenticationProtocol, IPAddress, Country, ErrorCode
+| order by SignInCount desc
+
+// ─────────────────────────────────────────────────────────────
+// INVESTIGATION NOTES — copy paste into ticket / incident report
+// ─────────────────────────────────────────────────────────────
+//
+// signin-legacy-auth.kql — [date run: YYYY-MM-DD] — Analyst: [initials]
+//
+// Result: [ ] No legacy authentication sign-ins detected in the review window — MFA bypass via legacy protocols not observed
+//         [ ] Results found — see findings below
+//
+// Findings:
+//   Account(s):
+//   Legacy protocol(s) used:
+//   IP address(es):
+//   Timeframe:
+//   Notes:
+//
+// Conclusion:
+//   [ ] No suspicious activity identified — no legacy auth sign-ins bypassing MFA identified for this account/tenant
+//   [ ] Suspicious activity identified — escalating
+//   [ ] False positive — reason:
+//
+// ─────────────────────────────────────────────────────────────

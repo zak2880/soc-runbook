@@ -1,0 +1,60 @@
+// Platform: Microsoft Sentinel
+// Identity hygiene — external file/folder sharing (OfficeActivity)
+// Covers both SharePoint and OneDrive workloads, since the sharing mechanics and
+// audit operations are identical across both — a file shared from a user's OneDrive
+// is functionally the same exposure as one shared from a SharePoint site
+// SharingInvitationCreated fires when a specific external email is invited to a
+// file/folder; AddedToSecureLink covers link-based sharing where access is granted
+// to whoever holds the link rather than a named individual — see
+// office-anonymous-link-creation.kql for links that don't even require a specific
+// recipient at all, which is the higher-risk variant of this same pattern
+// known_domains is a placeholder — populate it with the customer's actual approved
+// external-sharing domain list (partners, clients) before relying on the
+// NonStandardDomain flag
+// Flags: sharing to domains outside known_domains, bulk sharing from one account
+// (10+ shares in an hour) — extend with a static list or a Sentinel watchlist of
+// sensitive SiteUrl values if you need to flag sharing from specific site
+// collections
+// Ref: docs/scenarios/06-credential-compromise/investigation.md
+
+let lookback = 24h;
+let known_domains = dynamic(["partner1.com", "partner2.com"]);   // replace with the customer's actual approved sharing domains
+let bulk_window = 1h;
+let bulk_threshold = 10;
+OfficeActivity
+| where TimeGenerated > ago(lookback)
+| where OfficeWorkload in ("SharePoint", "OneDrive")
+| where Operation in ("SharingInvitationCreated", "AddedToSecureLink", "SecureLinkUsed")
+| extend TargetDomain = tostring(split(TargetUserOrGroupName, "@")[-1])
+| extend NonStandardDomain = TargetDomain !in (known_domains)
+| summarize
+    ShareCount = count(),
+    Targets = make_set(TargetUserOrGroupName),
+    Files = make_set(ObjectId, 10),
+    AnyNonStandardDomain = max(NonStandardDomain)
+    by UserId, TargetDomain, Operation, bin(TimeGenerated, bulk_window)
+| extend BulkSharing = ShareCount >= bulk_threshold
+| order by ShareCount desc
+
+// ─────────────────────────────────────────────────────────────
+// INVESTIGATION NOTES — copy paste into ticket / incident report
+// ─────────────────────────────────────────────────────────────
+//
+// office-external-sharing.kql — [date run: YYYY-MM-DD] — Analyst: [initials]
+//
+// Result: [ ] No external sharing to non-standard domains or bulk sharing activity detected in the review window
+//         [ ] Results found — see findings below
+//
+// Findings:
+//   Sharing account:
+//   Target domain / recipient(s):
+//   File(s)/folder(s):
+//   Timeframe:
+//   Notes:
+//
+// Conclusion:
+//   [ ] No suspicious activity identified — external sharing confirmed as legitimate business need
+//   [ ] Suspicious activity identified — escalating
+//   [ ] False positive — reason:
+//
+// ─────────────────────────────────────────────────────────────

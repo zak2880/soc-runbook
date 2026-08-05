@@ -1,0 +1,64 @@
+// Platform: Microsoft Defender XDR Advanced Hunting
+// Identity hygiene — MFA method registration and removal (CloudAppEvents)
+// Covers both directions because they carry different risk: a REMOVAL is higher
+// risk than an addition — an attacker who's compromised an account often removes
+// the legitimate owner's MFA method so a password-only path back in stays open, or
+// so the real owner's push notifications stop interrupting the attacker's session.
+// An addition is how an attacker plants their own persistence (see
+// entra-post-compromise-persistence.kql, which uses "Add strong authentication
+// method." for the same underlying event) but a removal is how they cut the
+// legitimate user out
+// JUDGEMENT CALL — unverified against a live tenant: ActionType values use the
+// trailing-period form established elsewhere in this repo's CloudAppEvents queries;
+// confirm against a real "User registered/deleted security info" event before
+// relying on these exact strings
+// Flags: removals, admin-initiated changes, changes to accounts holding privileged
+// roles (cross-reference TargetUpn against your role-assignment records), bulk
+// changes in a short window
+// Ref: docs/scenarios/06-credential-compromise/investigation.md
+
+let lookback = 24h;
+let bulk_window = 1h;
+let bulk_threshold = 3;
+let mfa_change_ops = dynamic([
+    "User registered security info.", "User deleted security info.",
+    "Admin registered security info.", "Admin deleted security info.",
+    "Update user.", "User changed default security info."]);
+CloudAppEvents
+| where Timestamp > ago(lookback)
+| where ActionType in (mfa_change_ops)
+| extend RawData = parse_json(RawEventData)
+| extend TargetUpn = tostring(RawData.Target[0].ID)
+| extend IsRemoval = ActionType has "deleted"
+| extend IsAdminInitiated = ActionType startswith "Admin"
+| summarize
+    ChangeCount = count(),
+    Operations = make_set(ActionType),
+    AnyRemoval = max(IsRemoval),
+    AnyAdminInitiated = max(IsAdminInitiated)
+    by TargetUpn, AccountId, bin(Timestamp, bulk_window)
+| extend BulkChange = ChangeCount >= bulk_threshold
+| order by ChangeCount desc
+
+// ─────────────────────────────────────────────────────────────
+// INVESTIGATION NOTES — copy paste into ticket / incident report
+// ─────────────────────────────────────────────────────────────
+//
+// audit-mfa-method-changes.kql — [date run: YYYY-MM-DD] — Analyst: [initials]
+//
+// Result: [ ] No MFA method registration or removal activity detected outside expected self-service patterns
+//         [ ] Results found — see findings below
+//
+// Findings:
+//   Target account:
+//   Initiating account:
+//   Addition or removal:
+//   Timeframe:
+//   Notes:
+//
+// Conclusion:
+//   [ ] No suspicious activity identified — MFA method change confirmed as legitimate (e.g. new device, lost phone, self-service)
+//   [ ] Suspicious activity identified — escalating
+//   [ ] False positive — reason:
+//
+// ─────────────────────────────────────────────────────────────

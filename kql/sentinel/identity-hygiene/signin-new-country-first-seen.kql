@@ -1,0 +1,52 @@
+// Platform: Microsoft Sentinel
+// Identity hygiene — first-ever sign-in from a new country (SigninLogs)
+// Different from impossible travel: impossible travel flags two sign-ins that are
+// PHYSICALLY impossible within the observed time gap between them; this flags an
+// account using a country it has simply never used before, regardless of whether
+// the timing between sign-ins is physically plausible. A slow, patient account
+// takeover — sign in once from a new country, then nothing else unusual for days —
+// never trips impossible travel, but trips this on the very first sign-in
+// Baseline: successful sign-ins over the prior 90 days per account, collapsed to a
+// set of known countries with make_set; a country appearing in the last 24h that
+// isn't in that set is "new". arg_min pulls the earliest new-country sign-in per
+// account in the flagged window, so repeated hits for the same account collapse to
+// one row showing when the pattern started
+// Ref: docs/scenarios/06-credential-compromise/investigation.md
+
+let lookback = 24h;
+let baseline_window = 90d;
+let Baseline = SigninLogs
+| where TimeGenerated between (ago(baseline_window + lookback) .. ago(lookback))
+| where ResultType == "0"
+| summarize KnownCountries = make_set(Location) by UserPrincipalName;
+SigninLogs
+| where TimeGenerated > ago(lookback)
+| where ResultType == "0"
+| join kind=inner Baseline on UserPrincipalName
+| where Location !in (KnownCountries)
+| summarize arg_min(TimeGenerated, IPAddress, Location), SignInCount = count() by UserPrincipalName, KnownCountries
+| order by TimeGenerated asc
+
+// ─────────────────────────────────────────────────────────────
+// INVESTIGATION NOTES — copy paste into ticket / incident report
+// ─────────────────────────────────────────────────────────────
+//
+// signin-new-country-first-seen.kql — [date run: YYYY-MM-DD] — Analyst: [initials]
+//
+// Result: [ ] No sign-ins from a previously-unseen country detected in the review window
+//         [ ] Results found — see findings below
+//
+// Findings:
+//   Account(s):
+//   New country:
+//   Previously known countries:
+//   IP address(es):
+//   Timeframe:
+//   Notes:
+//
+// Conclusion:
+//   [ ] No suspicious activity identified — new-country sign-in confirmed as legitimate (e.g. travel, new office, VPN change)
+//   [ ] Suspicious activity identified — escalating
+//   [ ] False positive — reason:
+//
+// ─────────────────────────────────────────────────────────────

@@ -1,0 +1,47 @@
+// Platform: Microsoft Sentinel
+// Identity hygiene — anonymous ("anyone with the link") sharing link creation (OfficeActivity)
+// Anonymous links have no recipient restriction at all — anyone who obtains the URL
+// (forwarded, pasted somewhere public, guessed) gets access, with no sign-in and no
+// audit trail of WHO actually used it beyond the original creation event. That's a
+// meaningfully different risk profile from a named-recipient share, which is why
+// this query flags every occurrence rather than applying a volume or domain filter
+// like office-external-sharing.kql does
+// This should ideally be prevented, not just detected — if the customer's
+// SharePoint/OneDrive sharing policy still permits "Anyone" links tenant-wide,
+// that's a policy gap worth raising independently of any specific event this query
+// surfaces; detection here is a backstop for exceptions, not a substitute for the
+// control itself
+// Ref: docs/scenarios/06-credential-compromise/investigation.md
+
+let lookback = 24h;
+OfficeActivity
+| where TimeGenerated > ago(lookback)
+| where Operation in ("AnonymousLinkCreated", "AnonymousLinkUpdated")
+| summarize
+    LinkCount = count(),
+    Files = make_set(ObjectId, 10)
+    by UserId, ObjectId, ClientIP
+| order by LinkCount desc
+
+// ─────────────────────────────────────────────────────────────
+// INVESTIGATION NOTES — copy paste into ticket / incident report
+// ─────────────────────────────────────────────────────────────
+//
+// office-anonymous-link-creation.kql — [date run: YYYY-MM-DD] — Analyst: [initials]
+//
+// Result: [ ] No anonymous ("anyone with the link") sharing links created in the review window
+//         [ ] Results found — see findings below
+//
+// Findings:
+//   Account:
+//   File(s)/folder(s):
+//   IP address:
+//   Timeframe:
+//   Notes:
+//
+// Conclusion:
+//   [ ] No suspicious activity identified — anonymous link creation confirmed as an approved use case; consider whether policy should block this going forward
+//   [ ] Suspicious activity identified — escalating
+//   [ ] False positive — reason:
+//
+// ─────────────────────────────────────────────────────────────

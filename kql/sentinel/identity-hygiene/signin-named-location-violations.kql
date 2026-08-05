@@ -1,0 +1,54 @@
+// Platform: Microsoft Sentinel
+// Identity hygiene — successful sign-ins outside expected named locations (SigninLogs)
+// Conditional Access "named locations" (trusted IP ranges, countries) are meant to
+// restrict where certain access is allowed from — but a misconfigured or
+// incompletely-scoped policy can let a sign-in through successfully even from an
+// untrusted location, e.g. if the policy targets one app but not another, or a
+// location range was never actually attached to the relevant CA policy
+// NetworkLocationDetails is where Entra ID surfaces which named location(s), if any,
+// matched the sign-in; an empty value on a successful sign-in means no named
+// location was recognised for that request at all — worth checking whether that's
+// expected for this app/account or a coverage gap
+// This query is most effective paired with a Sentinel watchlist of your trusted IP
+// ranges: create a watchlist (e.g. "TrustedIPRanges") with a CIDR column under
+// Sentinel > Configuration > Watchlists, then reference it here with
+// _GetWatchlist('TrustedIPRanges') and join/filter IPAddress against it (e.g. with
+// ipv4_is_match()) to flag sign-ins outside every range you expect, not just ones
+// missing a named-location tag
+// Ref: docs/scenarios/06-credential-compromise/investigation.md
+
+let lookback = 24h;
+SigninLogs
+| where TimeGenerated > ago(lookback)
+| where ResultType == "0"
+| where isempty(NetworkLocationDetails) or NetworkLocationDetails == "[]"
+| project TimeGenerated, UserPrincipalName, IPAddress, Location, AppDisplayName,
+    NetworkLocationDetails, ConditionalAccessStatus
+| order by TimeGenerated desc
+
+// To extend this with a trusted-IP watchlist once one exists, add before the project:
+//   let TrustedRanges = toscalar(_GetWatchlist('TrustedIPRanges') | summarize make_list(CIDR));
+//   | where not(ipv4_is_in_any_range(IPAddress, TrustedRanges))
+
+// ─────────────────────────────────────────────────────────────
+// INVESTIGATION NOTES — copy paste into ticket / incident report
+// ─────────────────────────────────────────────────────────────
+//
+// signin-named-location-violations.kql — [date run: YYYY-MM-DD] — Analyst: [initials]
+//
+// Result: [ ] No successful sign-ins with missing/empty named location data detected in the review window
+//         [ ] Results found — see findings below
+//
+// Findings:
+//   Account(s):
+//   IP address(es) / Location(s):
+//   App(s):
+//   Timeframe:
+//   Notes:
+//
+// Conclusion:
+//   [ ] No suspicious activity identified — sign-in confirmed from an expected location despite missing named-location tag (coverage gap, not compromise)
+//   [ ] Suspicious activity identified — escalating
+//   [ ] False positive — reason:
+//
+// ─────────────────────────────────────────────────────────────

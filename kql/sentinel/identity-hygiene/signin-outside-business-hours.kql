@@ -1,0 +1,55 @@
+// Platform: Microsoft Sentinel
+// Identity hygiene — successful sign-ins overnight with no established baseline (SigninLogs)
+// Not every overnight sign-in is suspicious — shift workers, follow-the-sun teams,
+// and the occasional late-night email check are all real. What's suspicious is an
+// account that has NEVER signed in overnight suddenly doing so — that's a behaviour
+// change, not routine variation, and a stronger signal than a fixed time-of-day
+// filter applied estate-wide
+// Baseline: 30 days of prior successful sign-ins; any account with at least one
+// sign-in inside the overnight window during that period is treated as having an
+// established overnight pattern and excluded from results
+// business_hours_start/business_hours_end define the OVERNIGHT window being checked
+// here (00:00-06:00 UTC by default), not business hours — named to match this
+// folder's other business-hours let bindings; adjust both for the customer's real
+// timezone, since UTC midnight may land in the middle of someone's actual work day
+// Ref: docs/scenarios/06-credential-compromise/investigation.md
+
+let lookback = 24h;
+let baseline_window = 30d;
+let business_hours_start = 0;   // overnight window start, UTC — adjust for customer timezone
+let business_hours_end = 6;     // overnight window end, UTC — adjust for customer timezone
+let OvernightBaseline = SigninLogs
+| where TimeGenerated between (ago(baseline_window + lookback) .. ago(lookback))
+| where ResultType == "0"
+| where hourofday(TimeGenerated) between (business_hours_start .. business_hours_end)
+| summarize by UserPrincipalName;
+SigninLogs
+| where TimeGenerated > ago(lookback)
+| where ResultType == "0"
+| where hourofday(TimeGenerated) between (business_hours_start .. business_hours_end)
+| join kind=leftanti OvernightBaseline on UserPrincipalName
+| project TimeGenerated, UserPrincipalName, IPAddress, Location, AppDisplayName
+| order by TimeGenerated desc
+
+// ─────────────────────────────────────────────────────────────
+// INVESTIGATION NOTES — copy paste into ticket / incident report
+// ─────────────────────────────────────────────────────────────
+//
+// signin-outside-business-hours.kql — [date run: YYYY-MM-DD] — Analyst: [initials]
+//
+// Result: [ ] No overnight sign-ins detected for accounts without an established overnight baseline
+//         [ ] Results found — see findings below
+//
+// Findings:
+//   Account(s):
+//   IP address(es) / Location(s):
+//   App(s):
+//   Timeframe:
+//   Notes:
+//
+// Conclusion:
+//   [ ] No suspicious activity identified — overnight sign-in confirmed as legitimate (e.g. shift change, travel, on-call work)
+//   [ ] Suspicious activity identified — escalating
+//   [ ] False positive — reason:
+//
+// ─────────────────────────────────────────────────────────────

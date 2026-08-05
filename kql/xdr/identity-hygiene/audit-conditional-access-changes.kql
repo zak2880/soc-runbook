@@ -1,0 +1,57 @@
+// Platform: Microsoft Defender XDR Advanced Hunting
+// Identity hygiene — Conditional Access policy changes (CloudAppEvents)
+// Every CA policy change is worth an audit trail entry regardless of who made it,
+// but the three operations here carry very different risk:
+//   - Delete conditional access policy — highest risk: removing a control outright,
+//     e.g. deleting the policy that requires MFA for admin roles
+//   - Update conditional access policy — could be anything from a routine scope
+//     change to quietly disabling a policy or excluding an account from its scope
+//   - Add conditional access policy — new policies are generally lower risk, but
+//     still worth tracking for change-management visibility
+// JUDGEMENT CALL — unverified against a live tenant: ActionType values use the
+// trailing-period form established elsewhere in this repo's CloudAppEvents
+// queries; the policy name parsed from RawEventData.Target[0].ID is a best-effort
+// guess at the MDCA payload shape — confirm both against a real event
+// Flags: deletions, changes made outside business hours
+// Ref: docs/scenarios/06-credential-compromise/investigation.md, docs/reference/escalation-triggers.md
+
+let lookback = 24h;
+let business_hours_start = 7;
+let business_hours_end = 19;
+CloudAppEvents
+| where Timestamp > ago(lookback)
+| where ActionType in ("Add conditional access policy.", "Update conditional access policy.", "Delete conditional access policy.")
+| extend RawData = parse_json(RawEventData)
+| extend PolicyName = tostring(RawData.Target[0].ID)
+| extend HourUTC = hourofday(Timestamp)
+| extend OutsideBusinessHours = HourUTC !between (business_hours_start .. business_hours_end)
+| extend IsDeletion = ActionType == "Delete conditional access policy."
+| summarize
+    ChangeCount = count(),
+    AnyDeletion = max(IsDeletion),
+    AnyOutsideBusinessHours = max(OutsideBusinessHours)
+    by AccountId, PolicyName, ActionType
+| order by ChangeCount desc
+
+// ─────────────────────────────────────────────────────────────
+// INVESTIGATION NOTES — copy paste into ticket / incident report
+// ─────────────────────────────────────────────────────────────
+//
+// audit-conditional-access-changes.kql — [date run: YYYY-MM-DD] — Analyst: [initials]
+//
+// Result: [ ] No Conditional Access policy creation, modification, or deletion detected in the review window
+//         [ ] Results found — see findings below
+//
+// Findings:
+//   Initiating account:
+//   Policy name:
+//   Change type (add / update / delete):
+//   Timeframe:
+//   Notes:
+//
+// Conclusion:
+//   [ ] No suspicious activity identified — CA policy change confirmed as an approved change (e.g. change ticket, planned rollout)
+//   [ ] Suspicious activity identified — escalating
+//   [ ] False positive — reason:
+//
+// ─────────────────────────────────────────────────────────────

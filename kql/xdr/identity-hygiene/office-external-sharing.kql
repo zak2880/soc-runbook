@@ -1,0 +1,65 @@
+// Platform: Microsoft Defender XDR Advanced Hunting
+// Identity hygiene — external file/folder sharing (CloudAppEvents)
+// Covers both SharePoint and OneDrive workloads via the Application field, since the
+// sharing mechanics and ActionTypes are identical across both — a file shared from
+// a user's OneDrive is functionally the same exposure as one shared from a
+// SharePoint site
+// SharingInvitationCreated and AddedToSecureLink match the exact ActionType strings
+// this repo already uses in entra-post-compromise-sharepoint-access.kql (no
+// trailing period — these are SharePoint/OneDrive workload event names, not Entra
+// directory-audit operations)
+// JUDGEMENT CALL — unverified against a live tenant: CloudAppEvents doesn't expose
+// a clean top-level "who was this shared with" column the way Sentinel's
+// OfficeActivity.TargetUserOrGroupName does — the target email here is parsed out
+// of RawEventData.TargetUserOrGroupName as a best-effort guess at the MDCA payload
+// shape; verify against a real event and fall back to reviewing RawEventData
+// directly if the parse comes back empty
+// known_domains is a placeholder — populate it with the customer's actual approved
+// external-sharing domain list before relying on the NonStandardDomain flag
+// Flags: sharing to domains outside known_domains, bulk sharing from one account
+// (10+ shares in an hour)
+// Ref: docs/scenarios/06-credential-compromise/investigation.md
+
+let lookback = 24h;
+let known_domains = dynamic(["partner1.com", "partner2.com"]);   // replace with the customer's actual approved sharing domains
+let bulk_window = 1h;
+let bulk_threshold = 10;
+CloudAppEvents
+| where Timestamp > ago(lookback)
+| where Application in ("Microsoft SharePoint Online", "Microsoft OneDrive for Business")
+| where ActionType in ("SharingInvitationCreated", "AddedToSecureLink")
+| extend RawData = parse_json(RawEventData)
+| extend TargetEmail = tostring(RawData.TargetUserOrGroupName)
+| extend TargetDomain = tostring(split(TargetEmail, "@")[-1])
+| extend NonStandardDomain = isnotempty(TargetDomain) and TargetDomain !in (known_domains)
+| summarize
+    ShareCount = count(),
+    Targets = make_set(TargetEmail),
+    Files = make_set(ObjectId, 10),
+    AnyNonStandardDomain = max(NonStandardDomain)
+    by AccountId, TargetDomain, ActionType, bin(Timestamp, bulk_window)
+| extend BulkSharing = ShareCount >= bulk_threshold
+| order by ShareCount desc
+
+// ─────────────────────────────────────────────────────────────
+// INVESTIGATION NOTES — copy paste into ticket / incident report
+// ─────────────────────────────────────────────────────────────
+//
+// office-external-sharing.kql — [date run: YYYY-MM-DD] — Analyst: [initials]
+//
+// Result: [ ] No external sharing to non-standard domains or bulk sharing activity detected in the review window
+//         [ ] Results found — see findings below
+//
+// Findings:
+//   Sharing account:
+//   Target domain / recipient(s):
+//   File(s)/folder(s):
+//   Timeframe:
+//   Notes:
+//
+// Conclusion:
+//   [ ] No suspicious activity identified — external sharing confirmed as legitimate business need
+//   [ ] Suspicious activity identified — escalating
+//   [ ] False positive — reason:
+//
+// ─────────────────────────────────────────────────────────────

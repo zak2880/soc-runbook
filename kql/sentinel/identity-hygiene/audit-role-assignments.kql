@@ -1,0 +1,55 @@
+// Platform: Microsoft Sentinel
+// Identity hygiene — privileged directory role assignments (AuditLogs)
+// Covers both permanent ("Add member to role") and PIM-eligible ("Add eligible
+// member to role") assignments — an eligible assignment doesn't grant standing
+// access, but it's still a change worth tracking, since an attacker who can make an
+// account role-eligible has set up a much quieter path to activate later
+// Any assignment to one of the high-value roles below is worth a look regardless of
+// who did it — Global Administrator and Privileged Role Administrator can both
+// grant further access to anything else in the tenant, and Exchange/SharePoint/
+// Security Administrator each control a large, sensitive blast radius on their own
+// Ref: docs/scenarios/06-credential-compromise/investigation.md
+
+let lookback = 24h;
+let high_value_roles = dynamic([
+    "Global Administrator", "Privileged Role Administrator",
+    "Exchange Administrator", "SharePoint Administrator",
+    "Security Administrator"]);
+AuditLogs
+| where TimeGenerated > ago(lookback)
+| where OperationName in ("Add member to role", "Add eligible member to role")
+| extend InitiatedByUpn = tostring(InitiatedBy.user.userPrincipalName)
+| mv-expand Target = TargetResources
+| extend TargetUpn = tostring(Target.userPrincipalName)
+| mv-expand ModifiedProperty = Target.modifiedProperties
+| extend RoleName = tostring(ModifiedProperty.newValue)
+| where RoleName has_any (high_value_roles)
+| summarize
+    AssignmentCount = count(),
+    FirstAssigned = min(TimeGenerated),
+    LastAssigned = max(TimeGenerated)
+    by InitiatedByUpn, TargetUpn, RoleName, OperationName
+| order by LastAssigned desc
+
+// ─────────────────────────────────────────────────────────────
+// INVESTIGATION NOTES — copy paste into ticket / incident report
+// ─────────────────────────────────────────────────────────────
+//
+// audit-role-assignments.kql — [date run: YYYY-MM-DD] — Analyst: [initials]
+//
+// Result: [ ] No high-value directory role assignments detected in the review window
+//         [ ] Results found — see findings below
+//
+// Findings:
+//   Initiating account:
+//   Target account:
+//   Role assigned:
+//   Timeframe:
+//   Notes:
+//
+// Conclusion:
+//   [ ] No suspicious activity identified — role assignment confirmed as an approved change (e.g. change ticket, promotion, onboarding)
+//   [ ] Suspicious activity identified — escalating
+//   [ ] False positive — reason:
+//
+// ─────────────────────────────────────────────────────────────

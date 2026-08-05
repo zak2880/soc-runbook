@@ -1,0 +1,59 @@
+// Platform: Microsoft Sentinel
+// Identity hygiene — new app registrations and service principal creation (AuditLogs)
+// A rogue OAuth app is a durable, quiet foothold — unlike a compromised user
+// session, an app registration with its own client secret or certificate keeps
+// working through a password reset and doesn't need repeated interactive sign-in.
+// This query watches the creation side (the app being set up), which complements
+// entra-post-compromise-oauth-grants.kql, which watches the consent side (a user or
+// admin approving an app's access)
+// Flags: apps that get a credential (certificate/secret) or an owner added in the
+// SAME short window as creation — legitimate app development usually has a gap
+// between registering an app and configuring its first credential, since the
+// credential is typically added once the developer is ready to actually use it;
+// apps created by accounts that aren't known developers/admins (cross-reference
+// InitiatedByUpn against your dev team list)
+// Ref: docs/scenarios/06-credential-compromise/investigation.md
+
+let lookback = 24h;
+let creation_followup_window = 10m;
+let AppCreations = AuditLogs
+| where TimeGenerated > ago(lookback)
+| where OperationName in ("Add application", "Add service principal")
+| extend InitiatedByUpn = tostring(InitiatedBy.user.userPrincipalName)
+| mv-expand Target = TargetResources
+| extend AppName = tostring(Target.displayName), AppId = tostring(Target.id)
+| project CreatedTime = TimeGenerated, InitiatedByUpn, AppName, AppId, OperationName;
+let AppUpdates = AuditLogs
+| where TimeGenerated > ago(lookback)
+| where OperationName in ("Update application", "Add owner to application")
+| mv-expand Target = TargetResources
+| extend AppId = tostring(Target.id)
+| project UpdateTime = TimeGenerated, UpdateOperation = OperationName, AppId;
+AppCreations
+| join kind=leftouter (AppUpdates) on AppId
+| extend FastFollowUp = isnotempty(UpdateTime) and (UpdateTime - CreatedTime) <= creation_followup_window
+| project CreatedTime, InitiatedByUpn, AppName, AppId, OperationName, UpdateOperation, FastFollowUp, UpdateTime
+| order by CreatedTime desc
+
+// ─────────────────────────────────────────────────────────────
+// INVESTIGATION NOTES — copy paste into ticket / incident report
+// ─────────────────────────────────────────────────────────────
+//
+// audit-app-registrations.kql — [date run: YYYY-MM-DD] — Analyst: [initials]
+//
+// Result: [ ] No new app registrations or service principal creation with a fast-follow credential/owner change detected
+//         [ ] Results found — see findings below
+//
+// Findings:
+//   Initiating account:
+//   App name / AppId:
+//   Follow-up change (credential/owner) and gap:
+//   Timeframe:
+//   Notes:
+//
+// Conclusion:
+//   [ ] No suspicious activity identified — app registration confirmed as legitimate development/integration work
+//   [ ] Suspicious activity identified — escalating
+//   [ ] False positive — reason:
+//
+// ─────────────────────────────────────────────────────────────
