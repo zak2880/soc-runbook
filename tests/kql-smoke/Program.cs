@@ -6,12 +6,18 @@
 // (HOSTNAME, USERNAME, PASTE_HASH_HERE) are expected and intentionally
 // filtered out. This tool validates grammar only.
 //
+// Also scans every .md file in the repo for ```kql fenced code blocks and
+// syntax-checks each one the same way — .md files are the canonical home
+// for documented queries, so their embedded KQL needs the same guardrail
+// as standalone .kql files.
+//
 // See docs/kql-validation.md for details.
 
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using Kusto.Language;
 using Kusto.Language.Editor;
 
@@ -40,27 +46,33 @@ internal static class Program
             return 2;
         }
 
-        var files = Directory
+        var kqlFiles = Directory
             .EnumerateFiles(repoRoot, "*.kql", SearchOption.AllDirectories)
             .Where(IsIncluded)
             .OrderBy(f => f, StringComparer.Ordinal)
             .ToList();
 
-        if (files.Count == 0)
+        var mdFiles = Directory
+            .EnumerateFiles(repoRoot, "*.md", SearchOption.AllDirectories)
+            .Where(IsIncluded)
+            .OrderBy(f => f, StringComparer.Ordinal)
+            .ToList();
+
+        if (kqlFiles.Count == 0 && mdFiles.Count == 0)
         {
-            Console.Error.WriteLine($"No .kql files found under {repoRoot}");
+            Console.Error.WriteLine($"No .kql or .md files found under {repoRoot}");
             return 2;
         }
 
         Console.WriteLine($"soc-runbook — KQL syntax check");
         Console.WriteLine($"Root : {repoRoot}");
-        Console.WriteLine($"Files: {files.Count} (scratchpad/ excluded)");
+        Console.WriteLine($"Files: {kqlFiles.Count} .kql, {mdFiles.Count} .md (scratchpad/ excluded)");
         Console.WriteLine(new string('-', 72));
 
-        int passCount = 0;
-        int failCount = 0;
+        int kqlPassCount = 0;
+        int kqlFailCount = 0;
 
-        foreach (var file in files)
+        foreach (var file in kqlFiles)
         {
             string relPath = Path.GetRelativePath(repoRoot, file).Replace('\\', '/');
             string text;
@@ -72,7 +84,7 @@ internal static class Program
             {
                 Console.WriteLine($"FAIL  {relPath}");
                 Console.WriteLine($"      read error: {ex.Message}");
-                failCount++;
+                kqlFailCount++;
                 continue;
             }
 
@@ -80,7 +92,7 @@ internal static class Program
             if (errors.Count == 0)
             {
                 Console.WriteLine($"PASS  {relPath}");
-                passCount++;
+                kqlPassCount++;
             }
             else
             {
@@ -90,13 +102,89 @@ internal static class Program
                     var (line, col) = LineColumnFromOffset(text, d.Start);
                     Console.WriteLine($"      line {line}, col {col}: {d.Message}");
                 }
-                failCount++;
+                kqlFailCount++;
+            }
+        }
+
+        int mdPassCount = 0;
+        int mdFailCount = 0;
+
+        foreach (var file in mdFiles)
+        {
+            string relPath = Path.GetRelativePath(repoRoot, file).Replace('\\', '/');
+            string mdText;
+            try
+            {
+                mdText = File.ReadAllText(file);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"FAIL  {relPath} (block 1)");
+                Console.WriteLine($"      read error: {ex.Message}");
+                mdFailCount++;
+                continue;
+            }
+
+            var blocks = ExtractKqlBlocks(mdText);
+            foreach (var block in blocks)
+            {
+                string label = $"{relPath} (block {block.BlockIndex}, line {block.StartLine})";
+                var errors = GetSyntaxErrors(block.Code);
+                if (errors.Count == 0)
+                {
+                    Console.WriteLine($"PASS  {label}");
+                    mdPassCount++;
+                }
+                else
+                {
+                    Console.WriteLine($"FAIL  {label}");
+                    foreach (var d in errors)
+                    {
+                        var (relLine, col) = LineColumnFromOffset(block.Code, d.Start);
+                        int absLine = block.StartLine + relLine - 1;
+                        Console.WriteLine($"      line {absLine}, col {col}: {d.Message}");
+                    }
+                    mdFailCount++;
+                }
             }
         }
 
         Console.WriteLine(new string('-', 72));
-        Console.WriteLine($"Total: {files.Count}   Pass: {passCount}   Fail: {failCount}");
-        return failCount == 0 ? 0 : 1;
+        Console.WriteLine($"KQL files: {kqlFiles.Count}   Pass: {kqlPassCount}   Fail: {kqlFailCount}   |   MD blocks: {mdPassCount + mdFailCount}   Pass: {mdPassCount}   Fail: {mdFailCount}");
+        return (kqlFailCount == 0 && mdFailCount == 0) ? 0 : 1;
+    }
+
+    private static List<(int BlockIndex, int StartLine, string Code)> ExtractKqlBlocks(string text)
+    {
+        var blocks = new List<(int, int, string)>();
+        var lines = text.Replace("\r\n", "\n").Split('\n');
+        int blockIndex = 0;
+        int i = 0;
+
+        while (i < lines.Length)
+        {
+            if (lines[i].Trim() == "```kql")
+            {
+                blockIndex++;
+                int startLine = i + 2; // 1-based line number of the first line of code inside the fence
+                var sb = new StringBuilder();
+                int j = i + 1;
+                while (j < lines.Length && lines[j].Trim() != "```")
+                {
+                    sb.Append(lines[j]);
+                    sb.Append('\n');
+                    j++;
+                }
+                blocks.Add((blockIndex, startLine, sb.ToString()));
+                i = j + 1;
+            }
+            else
+            {
+                i++;
+            }
+        }
+
+        return blocks;
     }
 
     private static List<Diagnostic> GetSyntaxErrors(string text)

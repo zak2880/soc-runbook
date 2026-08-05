@@ -14,9 +14,9 @@ Replace `HOSTNAME`, `USERNAME`, `PASTE_HASH_HERE`, and datetime placeholders bef
 |------|----------------|-------|
 | [suspicious-powershell.kql](process/suspicious-powershell.kql) | Encoded commands, download cradles, fileless execution, evasion flags | T1059.001 |
 | [office-spawning-shells.kql](process/office-spawning-shells.kql) | Office applications spawning cmd, PowerShell, mshta, or LOLBins | T1566.001, T1204.002 |
-| [lolbin-sweep.kql](process/lolbin-sweep.kql) | All LOLBin abuse in one query — certutil, mshta, regsvr32, rundll32, wmic, bitsadmin | T1218 |
+| [lolbin-sweep.md](process/lolbin-sweep.md) | All LOLBin abuse in one query — certutil, mshta, regsvr32, rundll32, wmic, bitsadmin | T1218 |
 | [processes-in-time-window.kql](process/processes-in-time-window.kql) | All process events on a device within a specific time window | T1059 |
-| [credential-access-sweep.kql](process/credential-access-sweep.kql) | Mimikatz, DCSync, Kerberoasting, AS-REP roasting, token manipulation | T1003, T1558 |
+| [credential-access-sweep.md](process/credential-access-sweep.md) | Mimikatz, DCSync, Kerberoasting, AS-REP roasting, token manipulation | T1003, T1558 |
 | [post-compromise-discovery-commands.kql](process/post-compromise-discovery-commands.kql) | 4+ distinct recon commands (whoami, net user, nltest, arp, systeminfo, etc.) from one device in 10 minutes | T1033, T1087.001, T1087.002, T1482, T1018, T1016, T1082, T1057 |
 
 ---
@@ -26,10 +26,10 @@ Replace `HOSTNAME`, `USERNAME`, `PASTE_HASH_HERE`, and datetime placeholders bef
 | File | What it detects | MITRE |
 |------|----------------|-------|
 | [beacon-high-connection-count.kql](network/beacon-high-connection-count.kql) | Devices hitting the same external IP 30+ times per day | T1071.001 |
-| [beacon-interval-regularity.kql](network/beacon-interval-regularity.kql) | Low standard deviation of connection intervals — catches jittered beacons | T1071.001 |
+| [beacon-interval-regularity.md](network/beacon-interval-regularity.md) | Low standard deviation of connection intervals — catches jittered beacons | T1071.001 |
 | [beacon-after-hours.kql](network/beacon-after-hours.kql) | Outbound connections continuing at 01:00–05:00 UTC | T1071.001 |
-| [beacon-suspicion-score.kql](network/beacon-suspicion-score.kql) | Combined score across count, after-hours activity, and port consistency | T1071.001 |
-| [dns-tunnelling.kql](network/dns-tunnelling.kql) | Base64-encoded subdomains indicating DNS-based C2 or exfiltration | T1071.004 |
+| [beacon-suspicion-score.md](network/beacon-suspicion-score.md) | Combined score across count, after-hours activity, and port consistency | T1071.001 |
+| [dns-tunnelling.md](network/dns-tunnelling.md) | Base64-encoded subdomains indicating DNS-based C2 or exfiltration | T1071.004 |
 | [lateral-movement-scanning.kql](network/lateral-movement-scanning.kql) | Device probing internal IPs on SMB, RDP, WinRM, and WMI ports | T1021 |
 | [unusual-outbound-ports.kql](network/unusual-outbound-ports.kql) | Connections on known C2 and reverse shell ports (4444, 50050, 1337, etc.) | T1571 |
 | [lots-suspicious-process-to-cloud.kql](network/lots-suspicious-process-to-cloud.kql) | Non-browser process connecting to Discord CDN, Telegram, Pastebin, paste sites | T1102 |
@@ -65,14 +65,14 @@ Replace `HOSTNAME`, `USERNAME`, `PASTE_HASH_HERE`, and datetime placeholders bef
 
 | File | What it detects | MITRE |
 |------|----------------|-------|
-| [lsass-access-credential-dump.kql](identity/lsass-access-credential-dump.kql) | Non-Windows process opening lsass.exe | T1003.001 |
+| [lsass-access-credential-dump.md](identity/lsass-access-credential-dump.md) | Non-Windows process opening lsass.exe | T1003.001 |
 | [user-on-multiple-devices.kql](identity/user-on-multiple-devices.kql) | Account appearing on 3+ devices via network or RDP logon | T1021 |
 | [new-local-accounts-created.kql](identity/new-local-accounts-created.kql) | New local user accounts created on a device | T1136.001 |
 | [all-alerts-for-device.kql](identity/all-alerts-for-device.kql) | All Defender alerts for a specific device in the last 7 days | — |
 | [entra-impossible-travel.kql](identity/entra-impossible-travel.kql) | Account signing in from two different countries within 1 hour | T1078 |
 | [entra-mfa-fatigue.kql](identity/entra-mfa-fatigue.kql) | 5+ failed MFA prompts in 10 minutes against a single account | T1621 |
-| [entra-device-code-auth-flow.kql](identity/entra-device-code-auth-flow.kql) | Device code sign-ins, flagged for new locations or outside business hours | T1556.006 |
-| [entra-aitm-session-anomalies.kql](identity/entra-aitm-session-anomalies.kql) | Token replay, impossible travel post-MFA, compliance-state drop, UserAgent mismatch — AiTM phishing indicators | T1539 |
+| [entra-device-code-auth-flow.md](identity/entra-device-code-auth-flow.md) | Device code sign-ins, flagged for new locations or outside business hours | T1556.006 |
+| [entra-aitm-session-anomalies.md](identity/entra-aitm-session-anomalies.md) | Token replay, impossible travel post-MFA, compliance-state drop, UserAgent mismatch — AiTM phishing indicators | T1539 |
 | [entra-post-compromise-oauth-grants.kql](identity/entra-post-compromise-oauth-grants.kql) | Suspicious OAuth consent grants within 1h of a suspicious sign-in (mail.read, files.readwrite, offline_access, non-admin admin-consent) | T1528 |
 | [entra-post-compromise-mailbox-rules.kql](identity/entra-post-compromise-mailbox-rules.kql) | Inbox rules created post-compromise that forward externally, delete by keyword, or mark as read | T1114.003 |
 | [entra-post-compromise-email-exfil.kql](identity/entra-post-compromise-email-exfil.kql) | Mass mailbox access, external forwarding, eDiscovery, mail export, and attachment/URL exfil signals post-compromise | T1114, T1213 |
@@ -111,8 +111,8 @@ Cross-investigation queries that chain two or more log sources together to follo
 
 | File | What it detects | MITRE (chained) |
 |------|----------------|-------|
-| [phishing-to-device-compromise.kql](pivots/phishing-to-device-compromise.kql) | Email received -> attachment landed on disk -> process executed, in one timeline | T1566.001, T1204.002, T1105 |
-| [device-compromise-to-lateral-movement.kql](pivots/device-compromise-to-lateral-movement.kql) | Accounts used, internal IPs touched, remote-exec tools seen, and account reuse on a different device following compromise | T1078, T1021.002, T1021.006 |
-| [aitm-phishing-to-persistence.kql](pivots/aitm-phishing-to-persistence.kql) | Suspicious device code/AiTM sign-in -> new MFA method, inbox rule, OAuth grant, or service principal within 24h | T1556.006, T1098.001, T1114.003, T1528 |
+| [phishing-to-device-compromise.md](pivots/phishing-to-device-compromise.md) | Email received -> attachment landed on disk -> process executed, in one timeline | T1566.001, T1204.002, T1105 |
+| [device-compromise-to-lateral-movement.md](pivots/device-compromise-to-lateral-movement.md) | Accounts used, internal IPs touched, remote-exec tools seen, and account reuse on a different device following compromise | T1078, T1021.002, T1021.006 |
+| [aitm-phishing-to-persistence.md](pivots/aitm-phishing-to-persistence.md) | Suspicious device code/AiTM sign-in -> new MFA method, inbox rule, OAuth grant, or service principal within 24h | T1556.006, T1098.001, T1114.003, T1528 |
 | [credential-dump-to-spread.kql](pivots/credential-dump-to-spread.kql) | lsass access -> corroborating credential-dump artefact -> account reuse on another device within 2h | T1003.001, T1078 |
 | [email-click-to-execution.kql](pivots/email-click-to-execution.kql) | Safe Links click-through -> device that connected -> process executed within 10 minutes | T1566.002, T1204.001 |

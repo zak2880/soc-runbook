@@ -66,7 +66,7 @@ Low global prevalence + no legitimate signer + phishing delivery = strong malici
 DeviceFileEvents
 | where DeviceName == "HOSTNAME"
 | where ActionType == "FileCreated"
-| where FileName endswith_any (".exe", ".dll", ".ps1", ".vbs", ".bat", ".hta")
+| where FileName has_any (".exe", ".dll", ".ps1", ".vbs", ".bat", ".hta")
 | where FolderPath has_any ("AppData", "Temp", "ProgramData", "Public")
 | where TimeGenerated > ago(24h)
 | project TimeGenerated, FileName, FolderPath, SHA256, InitiatingProcessFileName

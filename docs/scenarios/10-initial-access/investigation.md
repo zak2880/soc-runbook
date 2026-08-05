@@ -45,7 +45,7 @@ DeviceFileEvents
 | where InitiatingProcessFileName in~ (
     "chrome.exe", "msedge.exe", "firefox.exe", "iexplore.exe")
 | where ActionType == "FileCreated"
-| where FileName endswith_any (
+| where FileName has_any (
     ".exe", ".dll", ".zip", ".iso", ".img",
     ".doc", ".docx", ".xls", ".xlsm",
     ".pdf", ".lnk", ".js", ".vbs", ".hta", ".ps1")
