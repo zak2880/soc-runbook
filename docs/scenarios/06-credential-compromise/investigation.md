@@ -6,6 +6,10 @@ If malware has credentials, a single infected device becomes a full breach. This
 
 ---
 
+> **Before escalating:** check [common false positives — Credential access](../../reference/common-false-positives.md#credential-access) — confirm this isn't one of the known benign patterns before treating it as a true positive.
+
+---
+
 ## Credential dumping
 
 ### lsass.exe access

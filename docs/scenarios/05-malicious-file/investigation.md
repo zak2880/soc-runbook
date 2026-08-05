@@ -6,6 +6,10 @@ Files written, moved, or executed around the infection window tell you how the m
 
 ---
 
+> **Before escalating:** check [common false positives — Ransomware-pattern](../../reference/common-false-positives.md#ransomware-pattern) — confirm this isn't one of the known benign patterns before treating it as a true positive.
+
+---
+
 ## Executables in suspicious locations
 
 Legitimate software installs to `Program Files`. Be suspicious of executables in:

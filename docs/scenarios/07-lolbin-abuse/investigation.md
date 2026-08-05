@@ -8,6 +8,10 @@ Living Off the Land Binaries — legitimate Windows tools abused by attackers to
 
 ---
 
+> **Before escalating:** check [common false positives — Scripting / Admin tooling](../../reference/common-false-positives.md#scripting--admin-tooling) — confirm this isn't one of the known benign patterns before treating it as a true positive.
+
+---
+
 ## powershell.exe
 
 **Malicious patterns:**

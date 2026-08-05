@@ -1,5 +1,9 @@
 # Phishing email — investigation
 
+> **Before escalating:** check [common false positives](../../reference/common-false-positives.md) — confirm this isn't one of the known benign patterns before treating it as a true positive.
+
+---
+
 ## Tools you'll use
 
 | Tool | Where | Used for |

@@ -6,6 +6,10 @@ Initial access is how the attacker got in. Before you can fully understand an in
 
 ---
 
+> **Before escalating:** check [common false positives](../../reference/common-false-positives.md) — confirm this isn't one of the known benign patterns before treating it as a true positive.
+
+---
+
 ## Common vectors
 
 | Vector | What it looks like | MITRE |

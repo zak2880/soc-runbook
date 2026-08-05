@@ -8,6 +8,10 @@ Living Off Trusted Sites — attackers use legitimate cloud infrastructure for C
 
 ---
 
+> **Before escalating:** check [common false positives — C2 / Network](../../reference/common-false-positives.md#c2--network) — confirm this isn't one of the known benign patterns before treating it as a true positive.
+
+---
+
 ## Services commonly abused
 
 | Service | How it's used |

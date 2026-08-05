@@ -6,6 +6,10 @@ Malware needs to phone home, download tools, or exfiltrate data. All of that lea
 
 ---
 
+> **Before escalating:** check [common false positives — C2 / Network](../../reference/common-false-positives.md#c2--network) — confirm this isn't one of the known benign patterns before treating it as a true positive.
+
+---
+
 ## C2 beaconing signals
 
 Full detail → [../08-c2-beaconing/investigation.md](../08-c2-beaconing/investigation.md)

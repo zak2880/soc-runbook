@@ -6,6 +6,10 @@ If you remediate without finding and removing persistence, the malware comes bac
 
 ---
 
+> **Before escalating:** check [common false positives — Persistence](../../reference/common-false-positives.md#persistence) — confirm this isn't one of the known benign patterns before treating it as a true positive.
+
+---
+
 ## Registry run keys
 
 Most common persistence method. Malware adds an entry to execute on every login.

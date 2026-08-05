@@ -6,6 +6,10 @@ Malware almost always needs to run a process. The question is: what spawned it, 
 
 ---
 
+> **Before escalating:** check [common false positives — Scripting / Admin tooling](../../reference/common-false-positives.md#scripting--admin-tooling) — confirm this isn't one of the known benign patterns before treating it as a true positive.
+
+---
+
 ## Suspicious parent-child chains
 
 | Parent | Spawning | Verdict |

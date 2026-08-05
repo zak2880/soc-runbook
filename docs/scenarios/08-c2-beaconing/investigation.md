@@ -6,6 +6,10 @@ Malware phones home on a regular schedule — checking in for instructions or wa
 
 ---
 
+> **Before escalating:** check [common false positives — C2 / Network](../../reference/common-false-positives.md#c2--network) — confirm this isn't one of the known benign patterns before treating it as a true positive.
+
+---
+
 ## The five signals
 
 | Signal | Why it matters |

@@ -6,6 +6,10 @@ Techniques attackers use to avoid detection — disabling security tools, hiding
 
 ---
 
+> **Before escalating:** check [common false positives — Defence evasion](../../reference/common-false-positives.md#defence-evasion) — confirm this isn't one of the known benign patterns before treating it as a true positive.
+
+---
+
 ## AMSI bypass
 
 AMSI allows security tools to inspect scripts before execution. Attackers patch it in memory so it returns "clean" for everything.
