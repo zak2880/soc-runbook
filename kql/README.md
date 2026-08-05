@@ -41,7 +41,7 @@ Replace `HOSTNAME`, `USERNAME`, `PASTE_HASH_HERE`, and datetime placeholders bef
 | [beacon-interval-regularity.md](sentinel/network/beacon-interval-regularity.md) | Low standard deviation of connection intervals — catches jittered beacons | T1071.001 |
 | [beacon-after-hours.kql](sentinel/network/beacon-after-hours.kql) | Outbound connections continuing at 01:00–05:00 UTC | T1071.001 |
 | [beacon-suspicion-score.md](sentinel/network/beacon-suspicion-score.md) | Combined score across count, after-hours activity, and port consistency | T1071.001 |
-| [dns-tunnelling.kql](sentinel/network/dns-tunnelling.kql) | Base64-encoded subdomains indicating DNS-based C2 or exfiltration | T1071.004 |
+| [dns-tunnelling.md](sentinel/network/dns-tunnelling.md) | Base64-encoded subdomains indicating DNS-based C2 or exfiltration | T1071.004 |
 | [lateral-movement-scanning.kql](sentinel/network/lateral-movement-scanning.kql) | Device probing internal IPs on SMB, RDP, WinRM, and WMI ports | T1021 |
 | [unusual-outbound-ports.kql](sentinel/network/unusual-outbound-ports.kql) | Connections on known C2 and reverse shell ports (4444, 50050, 1337, etc.) | T1571 |
 | [lots-suspicious-process-to-cloud.kql](sentinel/network/lots-suspicious-process-to-cloud.kql) | Non-browser process connecting to Discord CDN, Telegram, Pastebin, paste sites | T1102 |
@@ -79,7 +79,7 @@ Replace `HOSTNAME`, `USERNAME`, `PASTE_HASH_HERE`, and datetime placeholders bef
 | [entra-post-compromise-email-exfil.kql](sentinel/identity/entra-post-compromise-email-exfil.kql) | Mass mailbox access, external forwarding, eDiscovery, mail export (OfficeActivity) post-compromise | T1114, T1213 |
 | [entra-post-compromise-sharepoint-access.kql](sentinel/identity/entra-post-compromise-sharepoint-access.kql) | Bulk SharePoint/OneDrive access above baseline, off-hours access, or external sharing (OfficeActivity) | T1213 |
 | [entra-post-compromise-persistence.kql](sentinel/identity/entra-post-compromise-persistence.kql) | New auth methods, service principals, role assignments, guest invites (AuditLogs) post-compromise | T1098.001, T1098.003 |
-| [lsass-access-credential-dump.kql](sentinel/identity/lsass-access-credential-dump.kql) | Non-Windows process opening lsass.exe | T1003.001 |
+| [lsass-access-credential-dump.md](sentinel/identity/lsass-access-credential-dump.md) | Non-Windows process opening lsass.exe | T1003.001 |
 | [user-on-multiple-devices.kql](sentinel/identity/user-on-multiple-devices.kql) | Account appearing on 3+ devices via network or RDP logon | T1021 |
 | [new-local-accounts-created.kql](sentinel/identity/new-local-accounts-created.kql) | New local user accounts created on a device | T1136.001 |
 | [all-alerts-for-device.kql](sentinel/identity/all-alerts-for-device.kql) | All Defender alerts for a specific device — ⚠️ `DeviceAlertEvents` is not actually queryable in Sentinel, kept for structural parity, see file header | — |
@@ -111,9 +111,9 @@ Cross-investigation queries that chain two or more log sources together to follo
 
 | File | What it detects | MITRE (chained) |
 |------|----------------|-------|
-| [phishing-to-device-compromise.kql](sentinel/pivots/phishing-to-device-compromise.kql) | Email received → attachment landed on disk → process executed — ⚠️ EmailEvents/EmailAttachmentInfo stages not queryable in Sentinel, kept for structural parity | T1566.001, T1204.002, T1105 |
-| [device-compromise-to-lateral-movement.kql](sentinel/pivots/device-compromise-to-lateral-movement.kql) | Accounts used, internal IPs touched, remote-exec tools seen, and account reuse on a different device | T1078, T1021.002, T1021.006 |
-| [aitm-phishing-to-persistence.kql](sentinel/pivots/aitm-phishing-to-persistence.kql) | Suspicious sign-in (SigninLogs) → inbox rule (OfficeActivity) → OAuth grant/service principal (AuditLogs) within 24h | T1556.006, T1098.001, T1114.003, T1528 |
+| [phishing-to-device-compromise.md](sentinel/pivots/phishing-to-device-compromise.md) | Email received → attachment landed on disk → process executed — ⚠️ EmailEvents/EmailAttachmentInfo stages not queryable in Sentinel, kept for structural parity | T1566.001, T1204.002, T1105 |
+| [device-compromise-to-lateral-movement.md](sentinel/pivots/device-compromise-to-lateral-movement.md) | Accounts used, internal IPs touched, remote-exec tools seen, and account reuse on a different device | T1078, T1021.002, T1021.006 |
+| [aitm-phishing-to-persistence.md](sentinel/pivots/aitm-phishing-to-persistence.md) | Suspicious sign-in (SigninLogs) → inbox rule (OfficeActivity) → OAuth grant/service principal (AuditLogs) within 24h | T1556.006, T1098.001, T1114.003, T1528 |
 | [credential-dump-to-spread.kql](sentinel/pivots/credential-dump-to-spread.kql) | lsass access → corroborating credential-dump artefact → account reuse on another device within 2h | T1003.001, T1078 |
 | [email-click-to-execution.kql](sentinel/pivots/email-click-to-execution.kql) | Safe Links click-through → device that connected → process executed — ⚠️ UrlClickEvents stage not queryable in Sentinel, kept for structural parity | T1566.002, T1204.001 |
 | [post-compromise-lateral-movement-timeline.kql](sentinel/pivots/post-compromise-lateral-movement-timeline.kql) | Correlated logon/network/process timeline of lateral movement after device compromise | T1021.002, T1021.006, T1078 |
@@ -154,7 +154,7 @@ Reusable `let` function definitions — call these from other queries instead of
 | [beacon-interval-regularity.md](xdr/network/beacon-interval-regularity.md) | Low standard deviation of connection intervals — catches jittered beacons | T1071.001 |
 | [beacon-after-hours.kql](xdr/network/beacon-after-hours.kql) | Outbound connections continuing at 01:00–05:00 UTC | T1071.001 |
 | [beacon-suspicion-score.md](xdr/network/beacon-suspicion-score.md) | Combined score across count, after-hours activity, and port consistency | T1071.001 |
-| [dns-tunnelling.kql](xdr/network/dns-tunnelling.kql) | Base64-encoded subdomains indicating DNS-based C2 or exfiltration | T1071.004 |
+| [dns-tunnelling.md](xdr/network/dns-tunnelling.md) | Base64-encoded subdomains indicating DNS-based C2 or exfiltration | T1071.004 |
 | [lateral-movement-scanning.kql](xdr/network/lateral-movement-scanning.kql) | Device probing internal IPs on SMB, RDP, WinRM, and WMI ports | T1021 |
 | [unusual-outbound-ports.kql](xdr/network/unusual-outbound-ports.kql) | Connections on known C2 and reverse shell ports (4444, 50050, 1337, etc.) | T1571 |
 | [lots-suspicious-process-to-cloud.kql](xdr/network/lots-suspicious-process-to-cloud.kql) | Non-browser process connecting to Discord CDN, Telegram, Pastebin, paste sites | T1102 |
@@ -192,7 +192,7 @@ Reusable `let` function definitions — call these from other queries instead of
 | [entra-post-compromise-email-exfil.kql](xdr/identity/entra-post-compromise-email-exfil.kql) | Mass mailbox access/export (CloudAppEvents) + external forwarding of sent mail (EmailEvents) post-compromise | T1114, T1213 |
 | [entra-post-compromise-sharepoint-access.kql](xdr/identity/entra-post-compromise-sharepoint-access.kql) | Bulk SharePoint/OneDrive access above baseline, off-hours access, or external sharing (CloudAppEvents) | T1213 |
 | [entra-post-compromise-persistence.kql](xdr/identity/entra-post-compromise-persistence.kql) | New MFA methods, service principals, role assignments, guest invites (CloudAppEvents) post-compromise | T1098.001, T1098.003 |
-| [lsass-access-credential-dump.kql](xdr/identity/lsass-access-credential-dump.kql) | Non-Windows process opening lsass.exe | T1003.001 |
+| [lsass-access-credential-dump.md](xdr/identity/lsass-access-credential-dump.md) | Non-Windows process opening lsass.exe | T1003.001 |
 | [user-on-multiple-devices.kql](xdr/identity/user-on-multiple-devices.kql) | Account appearing on 3+ devices via network or RDP logon | T1021 |
 | [new-local-accounts-created.kql](xdr/identity/new-local-accounts-created.kql) | New local user accounts created on a device | T1136.001 |
 | [all-alerts-for-device.kql](xdr/identity/all-alerts-for-device.kql) | All Defender alerts for a specific device in the last 7 days | — |
@@ -222,9 +222,9 @@ Cross-investigation queries that chain two or more log sources together to follo
 
 | File | What it detects | MITRE (chained) |
 |------|----------------|-------|
-| [phishing-to-device-compromise.kql](xdr/pivots/phishing-to-device-compromise.kql) | Email received → attachment landed on disk → process executed, in one timeline | T1566.001, T1204.002, T1105 |
-| [device-compromise-to-lateral-movement.kql](xdr/pivots/device-compromise-to-lateral-movement.kql) | Accounts used, internal IPs touched, remote-exec tools seen, and account reuse on a different device | T1078, T1021.002, T1021.006 |
-| [aitm-phishing-to-persistence.kql](xdr/pivots/aitm-phishing-to-persistence.kql) | Suspicious device code/AiTM sign-in → new MFA method, inbox rule, OAuth grant, or service principal within 24h | T1556.006, T1098.001, T1114.003, T1528 |
+| [phishing-to-device-compromise.md](xdr/pivots/phishing-to-device-compromise.md) | Email received → attachment landed on disk → process executed, in one timeline | T1566.001, T1204.002, T1105 |
+| [device-compromise-to-lateral-movement.md](xdr/pivots/device-compromise-to-lateral-movement.md) | Accounts used, internal IPs touched, remote-exec tools seen, and account reuse on a different device | T1078, T1021.002, T1021.006 |
+| [aitm-phishing-to-persistence.md](xdr/pivots/aitm-phishing-to-persistence.md) | Suspicious device code/AiTM sign-in → new MFA method, inbox rule, OAuth grant, or service principal within 24h | T1556.006, T1098.001, T1114.003, T1528 |
 | [credential-dump-to-spread.kql](xdr/pivots/credential-dump-to-spread.kql) | lsass access → corroborating credential-dump artefact → account reuse on another device within 2h | T1003.001, T1078 |
 | [email-click-to-execution.kql](xdr/pivots/email-click-to-execution.kql) | Safe Links click-through → device that connected → process executed within 10 minutes | T1566.002, T1204.001 |
 | [post-compromise-lateral-movement-timeline.kql](xdr/pivots/post-compromise-lateral-movement-timeline.kql) | Correlated logon/network/process timeline of lateral movement after device compromise | T1021.002, T1021.006, T1078 |

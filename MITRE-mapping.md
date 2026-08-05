@@ -102,7 +102,7 @@ Every technique below that has a KQL detection now has **both** a Sentinel (`kql
 
 | Technique | ID | Detection | Query |
 |-----------|-----|-----------|-----|
-| OS credential dumping — lsass | T1003.001 | lsass.exe accessed by non-Windows process | [Sentinel](kql/sentinel/identity/lsass-access-credential-dump.kql) · [XDR](kql/xdr/identity/lsass-access-credential-dump.kql) |
+| OS credential dumping — lsass | T1003.001 | lsass.exe accessed by non-Windows process | [Sentinel](kql/sentinel/identity/lsass-access-credential-dump.md) · [XDR](kql/xdr/identity/lsass-access-credential-dump.md) |
 | OS credential dumping — SAM | T1003.002 | SAM hive read by non-system process | [Sentinel](kql/sentinel/process/credential-access-sweep.md) · [XDR](kql/xdr/process/credential-access-sweep.md) |
 | OS credential dumping — NTDS | T1003.003 | NTDS.dit accessed by non-system process | [Sentinel](kql/sentinel/process/credential-access-sweep.md) · [XDR](kql/xdr/process/credential-access-sweep.md) |
 | Kerberoasting | T1558.003 | GetUserSPNs, Invoke-Kerberoast in command lines | [Sentinel](kql/sentinel/process/credential-access-sweep.md) · [XDR](kql/xdr/process/credential-access-sweep.md) |
@@ -156,7 +156,7 @@ Every technique below that has a KQL detection now has **both** a Sentinel (`kql
 | Technique | ID | Detection | Query |
 |-----------|-----|-----------|-----|
 | Application layer protocol — web | T1071.001 | Regular beaconing over HTTP/S | [Sentinel](kql/sentinel/network/beacon-suspicion-score.md) · [XDR](kql/xdr/network/beacon-suspicion-score.md) |
-| Application layer protocol — DNS | T1071.004 | DNS tunnelling via encoded subdomains | [Sentinel](kql/sentinel/network/dns-tunnelling.kql) · [XDR](kql/xdr/network/dns-tunnelling.kql) |
+| Application layer protocol — DNS | T1071.004 | DNS tunnelling via encoded subdomains | [Sentinel](kql/sentinel/network/dns-tunnelling.md) · [XDR](kql/xdr/network/dns-tunnelling.md) |
 | Non-application layer protocol | T1095 | Raw socket connections, unusual protocol usage | [Sentinel](kql/sentinel/network/unusual-outbound-ports.kql) · [XDR](kql/xdr/network/unusual-outbound-ports.kql) |
 | Web service — LOTS | T1102 | Scripting engine connecting to Discord, Telegram, Pastebin | [Sentinel](kql/sentinel/network/lots-suspicious-process-to-cloud.kql) · [XDR](kql/xdr/network/lots-suspicious-process-to-cloud.kql) |
 | Web service — dead drop | T1102.001 | Paste service GET followed by raw IP connection | [Sentinel](kql/sentinel/network/lots-dead-drop-resolver.kql) · [XDR](kql/xdr/network/lots-dead-drop-resolver.kql) |
