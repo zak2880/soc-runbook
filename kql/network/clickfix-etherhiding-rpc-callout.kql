@@ -1,0 +1,20 @@
+// ClickFix — EtherHiding variant detection: payload staged via a smart contract eth_call
+// instead of a traditional C2 domain. The C2 indicator here is an RPC endpoint host (and,
+// once identified, a contract address) — not a domain, so it won't appear in domain
+// blocklists or the tenant-wide hunt in clickfix-tenant-wide-ioc-hunt.kql
+// Flags a non-browser process (LOLBin, script host) connecting to a known BSC/EVM RPC host
+// The RPC host list is illustrative, not exhaustive — attackers can use any public RPC
+// gateway (Infura, Alchemy, Ankr, publicnode, etc.); extend this list from TI as IOCs land
+// Ref: docs/scenarios/13-clickfix/investigation.md
+DeviceNetworkEvents
+| where Timestamp > ago(24h)
+| where RemoteUrl has_any (
+    "bsc-dataseed.binance.org", "bsc-dataseed1.binance.org", "bsc-dataseed2.binance.org",
+    "bsc-testnet.publicnode.com", "data-seed-prebsc-1-s1.binance.org",
+    "rpc.ankr.com", "eth-mainnet.g.alchemy.com", "mainnet.infura.io",
+    "polygon-rpc.com", "cloudflare-eth.com")
+| where InitiatingProcessFileName !in~ (
+    "chrome.exe", "msedge.exe", "firefox.exe", "brave.exe", "opera.exe")
+| project Timestamp, DeviceName, AccountName, RemoteUrl, RemoteIP, RemotePort,
+    InitiatingProcessFileName, InitiatingProcessCommandLine
+| order by Timestamp desc

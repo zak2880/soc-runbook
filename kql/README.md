@@ -17,6 +17,7 @@ Replace `HOSTNAME`, `USERNAME`, `PASTE_HASH_HERE`, and datetime placeholders bef
 | [lolbin-sweep.kql](process/lolbin-sweep.kql) | All LOLBin abuse in one query — certutil, mshta, regsvr32, rundll32, wmic, bitsadmin | T1218 |
 | [processes-in-time-window.kql](process/processes-in-time-window.kql) | All process events on a device within a specific time window | T1059 |
 | [credential-access-sweep.kql](process/credential-access-sweep.kql) | Mimikatz, DCSync, Kerberoasting, AS-REP roasting, token manipulation | T1003, T1558 |
+| [clickfix-lolbin-from-browser-explorer.kql](process/clickfix-lolbin-from-browser-explorer.kql) | LOLBin spawned from explorer.exe/browser with encoded/hidden command line, correlated to browser activity | T1204.004 |
 
 ---
 
@@ -35,6 +36,9 @@ Replace `HOSTNAME`, `USERNAME`, `PASTE_HASH_HERE`, and datetime placeholders bef
 | [lots-scripting-engine-to-cloud-storage.kql](network/lots-scripting-engine-to-cloud-storage.kql) | Scripting engines reaching OneDrive, SharePoint, GitHub, Google Drive | T1102 |
 | [lots-dead-drop-resolver.kql](network/lots-dead-drop-resolver.kql) | Scripting engine hits paste service then immediately connects to a raw IP | T1102.001 |
 | [lots-exfiltration-via-cloud.kql](network/lots-exfiltration-via-cloud.kql) | High-volume uploads to cloud storage from a non-browser process | T1567 |
+| [clickfix-callout-correlation.kql](network/clickfix-callout-correlation.kql) | Confirms a ClickFix LOLBin reached its staging/C2 domain | T1071.001 |
+| [clickfix-tenant-wide-ioc-hunt.kql](network/clickfix-tenant-wide-ioc-hunt.kql) | Union hunt for a known ClickFix domain across process, network, URL-click, and email-URL telemetry | T1071.001 |
+| [clickfix-etherhiding-rpc-callout.kql](network/clickfix-etherhiding-rpc-callout.kql) | Non-browser process connecting to a BSC/EVM RPC host — EtherHiding smart-contract C2 | T1102 |
 
 ---
 

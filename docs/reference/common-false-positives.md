@@ -90,8 +90,11 @@
 | `certutil.exe -decode` or `-urlcache` | Certificate management, some installers use certutil to fetch packages | Arguments are `-addstore`, `-store`, or `-decode` targeting a known local file — not a remote URL; parent is a signed installer or admin script |
 | `wmic.exe` process or query execution | SCCM hardware inventory, IT admin scripts, monitoring tools | Query is read-only (`SELECT` statements); parent is a known management agent; no file write or remote execution follows |
 | `mshta.exe` execution | Some legacy enterprise applications use HTA interfaces | HTA file is in a known application directory under `C:\Program Files\`, not `%TEMP%` or `%APPDATA%`; parent is a known enterprise application |
+| User pastes into Run dialog or PowerShell during a support session ([ClickFix](../scenarios/13-clickfix/investigation.md) look-alike) | Helpdesk/remote-assistance session (Quick Assist, TeamViewer, RDP) has the user press Win+R and paste a one-line diagnostic or repair command | Concurrent remote-assistance session and a matching helpdesk ticket around the same timestamp; command matches a documented internal script or a known vendor repair command, not an opaque base64 blob |
+| User pastes a documented internal script | Company-approved PowerShell one-liner from an internal wiki/runbook (e.g. mapping a drive, clearing a cache, re-registering an agent) | Command line matches a known internal script verbatim; source is an internal wiki/SharePoint URL, not an external page |
+| User pastes a vendor support/repair command | Vendor support page tells the user to paste a command to repair or reinstall an agent (VPN clients, printer drivers, conferencing software) | Destination domain is the vendor's own site/CDN, not a newly-registered domain; no fake CAPTCHA/"verify you're human" prompt preceded it |
 
-> **Still escalate if:** the decoded PowerShell command downloads and executes a second-stage payload, or any LOLBin execution is immediately followed by an outbound connection to an external IP.
+> **Still escalate if:** the decoded PowerShell command downloads and executes a second-stage payload, any LOLBin execution is immediately followed by an outbound connection to an external IP, or the user reports being told to "verify you're human" or "fix an error" immediately before pasting — that framing is specific to [ClickFix](../scenarios/13-clickfix/investigation.md) lures and isn't something legitimate IT support or vendor instructions use.
 
 ---
 

@@ -12,7 +12,7 @@ Coverage: Techniques commonly seen in incidents handled at a UK MSSP targeting S
 | Tactic | Techniques covered |
 |--------|-------------------|
 | Initial Access | T1078, T1133, T1189, T1195, T1566.001, T1566.002, T1566.003 |
-| Execution | T1059.001, T1059.005, T1059.007, T1106, T1204.002, T1218 |
+| Execution | T1059.001, T1059.005, T1059.007, T1106, T1204.002, T1204.004, T1218 |
 | Persistence | T1053.005, T1136.001, T1543.003, T1546.003, T1547.001 |
 | Privilege Escalation | T1548.002, T1055, T1078 |
 | Defence Evasion | T1027, T1036.005, T1055, T1070.001, T1112, T1218, T1562.001, T1562.002 |
@@ -51,6 +51,7 @@ Coverage: Techniques commonly seen in incidents handled at a UK MSSP targeting S
 | JavaScript | T1059.007 | mshta inline JavaScript execution | [lolbin-sweep.kql](kql/process/lolbin-sweep.kql) |
 | Native API | T1106 | Process hollowing via memory write APIs | [docs/12-defence-evasion.md](docs/12-defence-evasion.md) |
 | User execution — malicious file | T1204.002 | User opens phishing attachment | [office-spawning-shells.kql](kql/process/office-spawning-shells.kql) |
+| User execution — malicious copy/paste | T1204.004 (ATT&CK v16+) | User pastes an attacker-supplied command into Run dialog or PowerShell after a fake CAPTCHA/verification prompt (ClickFix) | [clickfix-lolbin-from-browser-explorer.kql](kql/process/clickfix-lolbin-from-browser-explorer.kql) |
 | Signed binary proxy execution | T1218 | certutil, mshta, regsvr32, rundll32, wmic, bitsadmin | [lolbin-sweep.kql](kql/process/lolbin-sweep.kql) |
 
 ---
@@ -137,6 +138,7 @@ Coverage: Techniques commonly seen in incidents handled at a UK MSSP targeting S
 | Application layer protocol — DNS | T1071.004 | DNS tunnelling via encoded subdomains | [dns-tunnelling.kql](kql/network/dns-tunnelling.kql) |
 | Non-application layer protocol | T1095 | Raw socket connections, unusual protocol usage | [unusual-outbound-ports.kql](kql/network/unusual-outbound-ports.kql) |
 | Web service — LOTS | T1102 | Scripting engine connecting to Discord, Telegram, Pastebin | [lots-suspicious-process-to-cloud.kql](kql/network/lots-suspicious-process-to-cloud.kql) |
+| Web service — smart contract C2 (EtherHiding) | T1102 | Non-browser process querying a BSC/EVM RPC endpoint to read attacker-staged commands from a smart contract; IOC is an RPC host + contract address, not a domain | [clickfix-etherhiding-rpc-callout.kql](kql/network/clickfix-etherhiding-rpc-callout.kql) |
 | Web service — dead drop | T1102.001 | Paste service GET followed by raw IP connection | [lots-dead-drop-resolver.kql](kql/network/lots-dead-drop-resolver.kql) |
 | Non-standard port | T1571 | Connections on ports 4444, 50050, 1337, 8080, etc. | [unusual-outbound-ports.kql](kql/network/unusual-outbound-ports.kql) |
 | Encrypted channel | T1573 | Low-volume HTTPS beaconing to single CDN IP | [beacon-interval-regularity.kql](kql/network/beacon-interval-regularity.kql) |

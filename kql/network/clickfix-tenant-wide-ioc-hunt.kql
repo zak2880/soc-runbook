@@ -1,0 +1,26 @@
+// ClickFix — tenant-wide IOC hunt across process, network, URL-click, and email-URL telemetry
+// Run once the malicious domain from a confirmed ClickFix incident is known, to find every other
+// user/device that touched it — the same lure page is usually served to everyone who lands on it,
+// not just the device that raised the original alert
+// Add every known-bad domain/URL fragment from the incident to KnownBadDomains before running
+// Ref: docs/scenarios/13-clickfix/investigation.md
+let KnownBadDomains = dynamic(["SUSPICIOUS_DOMAIN_HERE", "PASTE_ADDITIONAL_DOMAIN_HERE"]);
+let NetworkHits = DeviceNetworkEvents
+| where Timestamp > ago(7d)
+| where RemoteUrl has_any (KnownBadDomains)
+| project Timestamp, Source = "DeviceNetworkEvents", DeviceName, AccountName, Detail = RemoteUrl;
+let ProcessHits = DeviceProcessEvents
+| where Timestamp > ago(7d)
+| where ProcessCommandLine has_any (KnownBadDomains)
+| project Timestamp, Source = "DeviceProcessEvents", DeviceName, AccountName, Detail = ProcessCommandLine;
+let ClickHits = UrlClickEvents
+| where Timestamp > ago(7d)
+| where Url has_any (KnownBadDomains)
+| project Timestamp, Source = "UrlClickEvents", DeviceName = "", AccountName = AccountUpn, Detail = Url;
+let EmailHits = EmailUrlInfo
+| where Timestamp > ago(7d)
+| where Url has_any (KnownBadDomains)
+| project Timestamp, Source = "EmailUrlInfo", DeviceName = "", AccountName = "", Detail = Url;
+NetworkHits
+| union ProcessHits, ClickHits, EmailHits
+| order by Timestamp desc

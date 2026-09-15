@@ -7,7 +7,7 @@
 DeviceFileEvents
 | where DeviceName == "HOSTNAME"
 | where ActionType == "FileCreated"
-| where FileName endswith_any (
+| where FileName has_any (
     ".exe", ".dll", ".ps1", ".vbs", ".bat", ".hta", ".js", ".wsf")
 | where FolderPath has_any (
     "AppData", "Temp", "ProgramData", "Public")

@@ -1,0 +1,21 @@
+// ClickFix — network callout correlation
+// Confirms the LOLBin identified in clickfix-lolbin-from-browser-explorer.kql actually reached
+// out to the malicious staging/C2 domain, rather than the paste failing or being blocked
+// Replace SUSPICIOUS_DOMAIN_HERE with the IOC from the alert or TI report before running
+// Ref: docs/scenarios/13-clickfix/investigation.md
+let MaliciousDomain = "SUSPICIOUS_DOMAIN_HERE";
+let LOLBinExec = DeviceProcessEvents
+| where Timestamp > ago(24h)
+| where FileName in~ ("powershell.exe", "pwsh.exe", "mshta.exe", "cmd.exe")
+| where ProcessCommandLine has_any (
+    "-enc", "-EncodedCommand", "-w hidden", "-windowstyle hidden",
+    "IEX", "Invoke-Expression", "DownloadString", "mshta")
+| project DeviceName, InitiatingProcessId = ProcessId, ProcessCommandLine, ExecTime = Timestamp;
+DeviceNetworkEvents
+| where Timestamp > ago(24h)
+| where RemoteUrl has MaliciousDomain
+| join kind=inner LOLBinExec on DeviceName, InitiatingProcessId
+| where Timestamp between (ExecTime .. (ExecTime + 5m))
+| project Timestamp, DeviceName, AccountName, RemoteUrl, RemoteIP, RemotePort,
+    ProcessCommandLine, ExecTime
+| order by Timestamp asc

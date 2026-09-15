@@ -23,6 +23,7 @@ Each scenario folder contains an **investigation guide** (what to look for, how 
 | 10 — Initial access | [investigation](docs/scenarios/10-initial-access/investigation.md) | [playbook](docs/scenarios/10-initial-access/playbook.md) |
 | 11 — Defence evasion | [investigation](docs/scenarios/11-defence-evasion/investigation.md) | [playbook](docs/scenarios/11-defence-evasion/playbook.md) |
 | 12 — Phishing email | [investigation](docs/scenarios/12-phishing-email/investigation.md) | [playbook](docs/scenarios/12-phishing-email/playbook.md) |
+| 13 — ClickFix | [investigation](docs/scenarios/13-clickfix/investigation.md) | [playbook](docs/scenarios/13-clickfix/playbook.md) |
 
 ---
 
@@ -43,8 +44,8 @@ Full index with MITRE mappings in [kql/README.md](kql/README.md).
 
 | Folder | Queries |
 |--------|---------|
-| [kql/process/](kql/process/) | PowerShell, LOLBins, office-spawning-shells, credential access sweep |
-| [kql/network/](kql/network/) | Beaconing, DNS tunnelling, lateral movement, LOTS, unusual ports |
+| [kql/process/](kql/process/) | PowerShell, LOLBins, office-spawning-shells, credential access sweep, ClickFix |
+| [kql/network/](kql/network/) | Beaconing, DNS tunnelling, lateral movement, LOTS, unusual ports, ClickFix (incl. EtherHiding) |
 | [kql/persistence/](kql/persistence/) | Registry run keys, scheduled tasks, services, WMI subscriptions |
 | [kql/files/](kql/files/) | Suspicious drops, hash sweep across estate |
 | [kql/identity/](kql/identity/) | lsass access, lateral movement, new accounts, Entra ID anomalies |
