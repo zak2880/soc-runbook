@@ -83,23 +83,36 @@ DeviceNetworkEvents
 
 ### Interval regularity
 ```kql
+// C2 beaconing detection — interval regularity (catches jittered beacons)
+// Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// Calculates standard deviation of gaps between connections to the same destination
+// Low StdDev relative to MeanInterval = mechanical timer = beaconing
+// Regularity score: 95%+ = almost certainly beaconing, 70-90% = investigate
+// Covers the 24h before T0 (24h keeps the per-day thresholds meaningful); for a daily hunt set T0 to now()
+// Ref: docs/scenarios/08-c2-beaconing/investigation.md
+
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(PASTE_TIME_UTC);
 DeviceNetworkEvents
-| where TimeGenerated > ago(24h)
+| where Timestamp between ((T0 - 24h) .. T0)
 | where RemoteIPType != "Private"
-| sort by DeviceName, RemoteIP, TimeGenerated asc
-| extend PrevTime = prev(TimeGenerated, 1)
+| sort by DeviceName, RemoteIP, Timestamp asc
+| extend PrevTime = prev(Timestamp, 1)
 | extend PrevDevice = prev(DeviceName, 1)
 | extend PrevIP = prev(RemoteIP, 1)
 | where DeviceName == PrevDevice and RemoteIP == PrevIP
-| extend IntervalSec = datetime_diff('second', TimeGenerated, PrevTime)
+| extend IntervalSec = datetime_diff('second', Timestamp, PrevTime)
 | where IntervalSec between (5 .. 3600)
 | summarize
     ConnCount = count(),
     MeanInterval = round(avg(IntervalSec), 1),
-    StdDev = round(stdev(IntervalSec), 1)
+    StdDev = round(stdev(IntervalSec), 1),
+    MinGap = min(IntervalSec),
+    MaxGap = max(IntervalSec)
     by DeviceName, RemoteIP, RemoteUrl
 | where ConnCount > 20
-| extend Regularity = round((1 - (StdDev / MeanInterval)) * 100, 1)
+| extend Regularity = round(
+    (1 - (StdDev / MeanInterval)) * 100, 1)
 | where Regularity > 70
 | order by Regularity desc
 ```
@@ -108,19 +121,36 @@ Regularity: **95%+** = almost certainly beaconing. **70–90%** = investigate. *
 
 ### Combined suspicion score
 ```kql
+// C2 beaconing detection — combined suspicion score
+// Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// Combines connection count, after-hours activity, and single-port consistency
+// Score >= 5 warrants investigation; tune threshold for your environment
+// Run this daily as a hunt query
+// Covers the 24h before T0 (24h keeps the per-day thresholds meaningful); for a daily hunt set T0 to now()
+// Ref: docs/scenarios/08-c2-beaconing/investigation.md
+
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(PASTE_TIME_UTC);
 DeviceNetworkEvents
-| where TimeGenerated > ago(24h)
+| where Timestamp between ((T0 - 24h) .. T0)
 | where RemoteIPType != "Private"
 | where RemoteIP != ""
 | summarize
     TotalConns = count(),
-    NightConns = countif(hourofday(TimeGenerated) between (0 .. 6)),
+    NightConns = countif(hourofday(Timestamp) between (0 .. 6)),
     DistinctPorts = dcount(RemotePort),
     Processes = make_set(InitiatingProcessFileName, 3)
     by DeviceName, RemoteIP, RemoteUrl
 | extend
-    CountScore = case(TotalConns > 100, 4, TotalConns > 50, 3, TotalConns > 20, 2, 1),
-    NightScore = case(NightConns > 20, 3, NightConns > 5, 2, 0),
+    CountScore = case(
+        TotalConns > 100, 4,
+        TotalConns > 50,  3,
+        TotalConns > 20,  2,
+        1),
+    NightScore = case(
+        NightConns > 20, 3,
+        NightConns > 5,  2,
+        0),
     PortScore = iff(DistinctPorts == 1, 2, 0)
 | extend SuspicionScore = CountScore + NightScore + PortScore
 | where SuspicionScore >= 5

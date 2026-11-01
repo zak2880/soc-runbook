@@ -1,16 +1,20 @@
 // C2 beaconing detection — combined suspicion score
+// Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
 // Combines connection count, after-hours activity, and single-port consistency
 // Score >= 5 warrants investigation; tune threshold for your environment
 // Run this daily as a hunt query
+// Covers the 24h before T0 (24h keeps the per-day thresholds meaningful); for a daily hunt set T0 to now()
 // Ref: docs/scenarios/08-c2-beaconing/investigation.md
 
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(1970-01-01);
 DeviceNetworkEvents
-| where TimeGenerated > ago(24h)
+| where Timestamp between ((T0 - 24h) .. T0)
 | where RemoteIPType != "Private"
 | where RemoteIP != ""
 | summarize
     TotalConns = count(),
-    NightConns = countif(hourofday(TimeGenerated) between (0 .. 6)),
+    NightConns = countif(hourofday(Timestamp) between (0 .. 6)),
     DistinctPorts = dcount(RemotePort),
     Processes = make_set(InitiatingProcessFileName, 3)
     by DeviceName, RemoteIP, RemoteUrl
