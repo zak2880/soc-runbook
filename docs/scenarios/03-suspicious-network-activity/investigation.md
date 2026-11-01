@@ -14,7 +14,7 @@ Full detail → [../08-c2-beaconing/investigation.md](../08-c2-beaconing/investi
 |--------|--------------------|
 | High connection count | Same device → same external IP 30+ times per day |
 | Regular timing intervals | Low standard deviation = mechanical timer |
-| Uniform byte sizes | Identical bytes sent/received on every connection |
+| Uniform byte sizes | Identical bytes sent/received on every connection (not available in MDE; needs proxy/firewall logs) |
 | After-hours traffic | Connections at 1–5am with no user logged in |
 | Suspicious process | svchost from AppData, random binary making outbound calls |
 
@@ -69,33 +69,48 @@ Scripting engines connecting to: Discord CDN, Telegram API, Pastebin, GitHub raw
 
 ### All external connections from a device
 ```kql
+// 03 — all external connections from one device
+// Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// Replace HOSTNAME with the short device name (e.g. PC01); startswith matches the FQDN, case-insensitive
+// TODO: byte volumes need proxy/firewall logs; DeviceNetworkEvents has no SentBytes/ReceivedBytes
+
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(PASTE_TIME_UTC);
 DeviceNetworkEvents
-| where DeviceName == "HOSTNAME"
-| where TimeGenerated > ago(24h)
+| where DeviceName startswith "HOSTNAME"
+| where Timestamp between ((T0 - 24h) .. (T0 + 24h))
 | where RemoteIPType != "Private"
-| project TimeGenerated, RemoteIP, RemoteUrl, RemotePort,
-    InitiatingProcessFileName, SentBytes, ReceivedBytes
-| order by TimeGenerated asc
+| project Timestamp, RemoteIP, RemoteUrl, RemotePort,
+    InitiatingProcessFileName
+| order by Timestamp asc
 ```
 
 ### High connection count
 ```kql
+// C2 beaconing detection — high connection count to single external destination
+// Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// Primary beacon signal: same device hitting same external IP 30+ times per day
+// Sort by ConnectionCount desc and investigate anything above 30 to a non-CDN destination
+// Counts ConnectionSuccess rows in the 24h before T0 (24h keeps the 30-per-day threshold meaningful)
+// TODO: byte volumes need proxy/firewall logs; DeviceNetworkEvents has no byte-count columns
+// Ref: docs/scenarios/08-c2-beaconing/investigation.md, docs/scenarios/03-suspicious-network-activity/investigation.md
+
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(PASTE_TIME_UTC);
 DeviceNetworkEvents
-| where TimeGenerated > ago(24h)
+| where Timestamp between ((T0 - 24h) .. T0)
+| where ActionType == "ConnectionSuccess"
 | where RemoteIPType != "Private"
 | where RemoteIP != ""
-| where isnotempty(AdditionalFields)
-| extend AdditionalFieldsData = parse_json(AdditionalFields)
-| extend SentBytes = tolong(AdditionalFieldsData.orig_bytes)
-| where SentBytes > 0
 | summarize
     ConnectionCount = count(),
-    FirstSeen = min(TimeGenerated),
-    LastSeen = max(TimeGenerated),
-    Processes = make_set(InitiatingProcessFileName, 3),
-    TotalBytesSent = sum(SentBytes)
+    FirstSeen = min(Timestamp),
+    LastSeen = max(Timestamp),
+    Processes = make_set(InitiatingProcessFileName, 3)
     by DeviceName, RemoteIP, RemoteUrl, RemotePort
 | where ConnectionCount > 30
+| extend DurationHrs = round(
+    datetime_diff('minute', LastSeen, FirstSeen) / 60.0, 1)
 | order by ConnectionCount desc
 ```
 

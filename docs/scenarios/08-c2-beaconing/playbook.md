@@ -17,7 +17,7 @@
 ### Investigation (if not FP)
 - [ ] Connection count checked — 30+ to same destination?
 - [ ] Interval regularity checked — regularity score above 70%?
-- [ ] Byte sizes checked — uniform sizes across connections?
+- [ ] Byte sizes checked — uniform sizes across connections? (not available in MDE; needs proxy/firewall logs)
 - [ ] After-hours connections checked — active between 1–5am?
 - [ ] Destination enriched — VirusTotal, AbuseIPDB, domain age, Shodan
 - [ ] IE7 user agent checked — instant Cobalt Strike indicator

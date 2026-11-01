@@ -1,22 +1,23 @@
 // C2 beaconing detection — high connection count to single external destination
+// Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
 // Primary beacon signal: same device hitting same external IP 30+ times per day
 // Sort by ConnectionCount desc and investigate anything above 30 to a non-CDN destination
-// Ref: docs/scenarios/08-c2-beaconing/investigation.md
+// Counts ConnectionSuccess rows in the 24h before T0 (24h keeps the 30-per-day threshold meaningful)
+// TODO: byte volumes need proxy/firewall logs; DeviceNetworkEvents has no byte-count columns
+// Ref: docs/scenarios/08-c2-beaconing/investigation.md, docs/scenarios/03-suspicious-network-activity/investigation.md
 
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(1970-01-01);
 DeviceNetworkEvents
-| where TimeGenerated > ago(24h)
+| where Timestamp between ((T0 - 24h) .. T0)
+| where ActionType == "ConnectionSuccess"
 | where RemoteIPType != "Private"
 | where RemoteIP != ""
-| where isnotempty(AdditionalFields)
-| extend AdditionalFieldsData = parse_json(AdditionalFields)
-| extend SentBytes = tolong(AdditionalFieldsData.orig_bytes)
-| where SentBytes > 0
 | summarize
     ConnectionCount = count(),
-    FirstSeen = min(TimeGenerated),
-    LastSeen = max(TimeGenerated),
-    Processes = make_set(InitiatingProcessFileName, 3),
-    TotalBytesSent = sum(SentBytes)
+    FirstSeen = min(Timestamp),
+    LastSeen = max(Timestamp),
+    Processes = make_set(InitiatingProcessFileName, 3)
     by DeviceName, RemoteIP, RemoteUrl, RemotePort
 | where ConnectionCount > 30
 | extend DurationHrs = round(

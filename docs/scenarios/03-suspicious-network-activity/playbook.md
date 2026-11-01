@@ -11,7 +11,7 @@
 ### Investigation
 - [ ] Connection count to destination checked — is it beaconing?
 - [ ] Interval regularity checked — low stdev = timer = beacon
-- [ ] Byte sizes checked — uniform sizes = heartbeat packet
+- [ ] Byte sizes checked — uniform sizes = heartbeat packet (not available in MDE; needs proxy/firewall logs)
 - [ ] After-hours connections checked
 - [ ] Destination enriched — VirusTotal, AbuseIPDB, domain age
 - [ ] DNS queries checked — any base64-looking subdomains?
@@ -53,5 +53,5 @@ All three yes → likely false positive. Document and tune out.
 Confirmed live C2 session (interactive response)
 Cobalt Strike named pipe detected
 Internal scanning on ports 445/3389/5985 across multiple hosts
-Large outbound transfer (potential exfiltration)
+Large outbound transfer (potential exfiltration) (not available in MDE; needs proxy/firewall logs)
 ```

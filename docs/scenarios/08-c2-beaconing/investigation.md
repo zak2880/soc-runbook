@@ -12,7 +12,7 @@ Malware phones home on a regular schedule — checking in for instructions or wa
 |--------|---------------|
 | High connection count to one destination | Timers hit the same IP hundreds of times — humans don't |
 | Low standard deviation of intervals | Mechanical timer = low variance. Human browsing = chaotic variance |
-| Uniform byte sizes | Fixed heartbeat packet — real traffic has wildly varying sizes |
+| Uniform byte sizes | Fixed heartbeat packet — real traffic has wildly varying sizes (not available in MDE; needs proxy/firewall logs) |
 | After-hours traffic | Beacons don't sleep — connections at 2–5am mean the user isn't driving them |
 | Suspicious initiating process | svchost from AppData, random binary, scheduled task process |
 
@@ -37,6 +37,7 @@ Malware phones home on a regular schedule — checking in for instructions or wa
 02:01:00  185.220.101.45  443  312 bytes  svchost.exe (AppData\Temp)
 02:02:00  185.220.101.45  443  312 bytes  svchost.exe (AppData\Temp)
 ```
+Byte counts in this example come from proxy/firewall logs; they are not available in MDE.
 
 **Jittered beacon (~100s mean, 20% jitter):**
 ```
@@ -53,18 +54,30 @@ Looks random — but tiny standard deviation. The regularity KQL catches this.
 
 ### High connection count
 ```kql
+// C2 beaconing detection — high connection count to single external destination
+// Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// Primary beacon signal: same device hitting same external IP 30+ times per day
+// Sort by ConnectionCount desc and investigate anything above 30 to a non-CDN destination
+// Counts ConnectionSuccess rows in the 24h before T0 (24h keeps the 30-per-day threshold meaningful)
+// TODO: byte volumes need proxy/firewall logs; DeviceNetworkEvents has no byte-count columns
+// Ref: docs/scenarios/08-c2-beaconing/investigation.md, docs/scenarios/03-suspicious-network-activity/investigation.md
+
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(PASTE_TIME_UTC);
 DeviceNetworkEvents
-| where TimeGenerated > ago(24h)
+| where Timestamp between ((T0 - 24h) .. T0)
+| where ActionType == "ConnectionSuccess"
 | where RemoteIPType != "Private"
 | where RemoteIP != ""
 | summarize
     ConnectionCount = count(),
-    FirstSeen = min(TimeGenerated),
-    LastSeen = max(TimeGenerated),
-    Processes = make_set(InitiatingProcessFileName, 3),
-    TotalBytesSent = sum(SentBytes)
+    FirstSeen = min(Timestamp),
+    LastSeen = max(Timestamp),
+    Processes = make_set(InitiatingProcessFileName, 3)
     by DeviceName, RemoteIP, RemoteUrl, RemotePort
 | where ConnectionCount > 30
+| extend DurationHrs = round(
+    datetime_diff('minute', LastSeen, FirstSeen) / 60.0, 1)
 | order by ConnectionCount desc
 ```
 
