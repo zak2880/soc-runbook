@@ -1,17 +1,23 @@
 // Suspicious PowerShell command-line flags
+// Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
 // Covers: encoded commands, download cradles, fileless execution, evasion switches
-// Replace HOSTNAME or remove the device filter to run estate-wide
+// PowerShell accepts abbreviated switches: -e / -ec = -EncodedCommand, -w h = -WindowStyle Hidden
+// -nop = -NoProfile, -noni = -NonInteractive (two different switches)
+// Runs estate-wide; add | where DeviceName startswith "HOSTNAME" (short name) to scope to one device
 // Ref: docs/scenarios/02-suspicious-process/investigation.md, docs/scenarios/07-lolbin-abuse/investigation.md
 
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(1970-01-01);
 DeviceProcessEvents
-| where FileName =~ "powershell.exe"
+| where Timestamp between ((T0 - 24h) .. (T0 + 24h))
+| where FileName in~ ("powershell.exe", "pwsh.exe")
 | where ProcessCommandLine has_any (
-    "-enc", "-EncodedCommand",
+    "-e", "-ec", "-enc", "-EncodedCommand",
     "IEX", "Invoke-Expression",
     "DownloadString", "WebClient",
-    "-nop", "-NonInteractive",
+    "-nop", "-NoProfile",
+    "-noni", "-NonInteractive",
     "Reflection.Assembly", "FromBase64String",
-    "-w hidden", "-WindowStyle Hidden")
-| where TimeGenerated > ago(24h)
-| project TimeGenerated, DeviceName, AccountName,
+    "-w h", "-w hidden", "-WindowStyle Hidden")
+| project Timestamp, DeviceName, AccountName,
     ProcessCommandLine, InitiatingProcessFileName

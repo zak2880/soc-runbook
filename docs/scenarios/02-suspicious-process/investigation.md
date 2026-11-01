@@ -24,9 +24,10 @@ Malware almost always needs to run a process. The question is: what spawned it, 
 Flags to look for in `ProcessCommandLine`:
 
 ```
--enc / -EncodedCommand         base64 payload
--nop / -NonInteractive         evasion — no profile loaded
--w hidden / -WindowStyle Hidden  hiding from the user
+-e / -ec / -enc / -EncodedCommand  base64 payload (PowerShell accepts abbreviations)
+-nop / -NoProfile              skips profile scripts
+-noni / -NonInteractive        no interactive prompt
+-w h / -w hidden / -WindowStyle Hidden  hiding from the user
 IEX / Invoke-Expression        executes a string as code
 DownloadString / WebClient     downloads from the internet
 Reflection.Assembly::Load      loads .NET in memory (fileless)
@@ -86,14 +87,28 @@ DeviceProcessEvents
 
 ### Suspicious PowerShell
 ```kql
+// Suspicious PowerShell command-line flags
+// Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// Covers: encoded commands, download cradles, fileless execution, evasion switches
+// PowerShell accepts abbreviated switches: -e / -ec = -EncodedCommand, -w h = -WindowStyle Hidden
+// -nop = -NoProfile, -noni = -NonInteractive (two different switches)
+// Runs estate-wide; add | where DeviceName startswith "HOSTNAME" (short name) to scope to one device
+// Ref: docs/scenarios/02-suspicious-process/investigation.md, docs/scenarios/07-lolbin-abuse/investigation.md
+
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(PASTE_TIME_UTC);
 DeviceProcessEvents
-| where FileName =~ "powershell.exe"
+| where Timestamp between ((T0 - 24h) .. (T0 + 24h))
+| where FileName in~ ("powershell.exe", "pwsh.exe")
 | where ProcessCommandLine has_any (
-    "-enc", "-EncodedCommand", "IEX", "Invoke-Expression",
-    "DownloadString", "WebClient", "-nop",
-    "Reflection.Assembly", "FromBase64String", "-w hidden")
-| where TimeGenerated > ago(24h)
-| project TimeGenerated, DeviceName, AccountName,
+    "-e", "-ec", "-enc", "-EncodedCommand",
+    "IEX", "Invoke-Expression",
+    "DownloadString", "WebClient",
+    "-nop", "-NoProfile",
+    "-noni", "-NonInteractive",
+    "Reflection.Assembly", "FromBase64String",
+    "-w h", "-w hidden", "-WindowStyle Hidden")
+| project Timestamp, DeviceName, AccountName,
     ProcessCommandLine, InitiatingProcessFileName
 ```
 
