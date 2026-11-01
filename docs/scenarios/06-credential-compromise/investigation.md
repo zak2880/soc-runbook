@@ -33,7 +33,7 @@ Either accessed by a non-system process = critical indicator.
 
 ### Account on new devices post-infection
 
-After T0, does the account appear on devices it doesn't normally access?
+After T0, does the account appear on devices it doesn't normally access? Advanced Hunting holds 30 days of native data; activity older than that needs Sentinel retention.
 
 ### Remote execution tools
 
@@ -85,11 +85,26 @@ DeviceProcessEvents
 
 ### User on multiple devices
 ```kql
+// Identity — compromised user account appearing on multiple devices
+// Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// Indicates lateral movement using stolen credentials
+// Run after identifying a compromised account to check for spread since T0
+// Replace USERNAME with the SAM account name (e.g. jsmith), not the UPN or display name
+// Advanced Hunting holds 30 days of native data; older activity needs Sentinel retention
+// Ref: docs/scenarios/06-credential-compromise/investigation.md, docs/scenarios/01-malware-alert/investigation.md
+
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(PASTE_TIME_UTC);
 DeviceLogonEvents
-| where AccountName == "USERNAME"
+| where Timestamp between ((T0 - 1h) .. (T0 + 30d))
+| where AccountName =~ "USERNAME"
 | where LogonType in ("Network", "RemoteInteractive")
-| where TimeGenerated > ago(24h)
-| summarize Devices = make_set(DeviceName), LogonCount = count() by AccountName
+    // VERIFY: LogonType strings (Learn describes them, does not list the exact values):
+    // DeviceLogonEvents | where Timestamp > ago(7d) | summarize count() by LogonType, ActionType
+| summarize
+    Devices = make_set(DeviceName),
+    LogonCount = count()
+    by AccountName
 | where array_length(Devices) > 2
 ```
 

@@ -5,7 +5,7 @@
 ### Immediate
 - [ ] Identify the affected account(s)
 - [ ] Is lsass being actively accessed? If yes — escalate now
-- [ ] Has the account been used on other devices since T0?
+- [ ] Has the account been used on other devices since T0? (Advanced Hunting holds 30 days of native data)
 - [ ] Disable the compromised account if active lateral movement confirmed
 
 ### Investigation
@@ -13,7 +13,7 @@
 - [ ] comsvcs.dll MiniDump checked
 - [ ] SAM / NTDS.dit access checked
 - [ ] Mimikatz / credential dumping keywords checked in process events
-- [ ] Compromised account checked across all devices post-T0
+- [ ] Compromised account checked across all devices post-T0 (Advanced Hunting holds 30 days of native data)
 - [ ] Entra ID sign-in log checked — new locations, impossible travel
 - [ ] MFA logs checked — fatigue attack attempted?
 - [ ] Legacy auth sign-ins checked
@@ -28,7 +28,7 @@
 - [ ] Any backdoor accounts removed
 
 ### Remediation
-- [ ] All devices the account accessed post-T0 investigated
+- [ ] All devices the account accessed post-T0 investigated (Advanced Hunting holds 30 days of native data)
 - [ ] Lateral movement paths closed (patch RDP if exposed, disable WMI remotely if not needed)
 - [ ] Confirmed no persistent access remains
 
