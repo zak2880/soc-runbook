@@ -1,10 +1,19 @@
 // Identity / triage — all Defender alerts for a specific device
+// Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
 // Use at the start of any investigation to get the full picture before drilling into logs
-// Replace HOSTNAME before running
+// DeviceAlertEvents is retired: device evidence is in AlertEvidence, title/severity in AlertInfo
+// Replace HOSTNAME with the short device name (e.g. PC01); startswith matches the FQDN, case-insensitive
 // Ref: docs/scenarios/01-malware-alert/investigation.md
 
-DeviceAlertEvents
-| where DeviceName == "HOSTNAME"
-| where TimeGenerated > ago(7d)
-| project TimeGenerated, AlertId, Title, Severity
-| order by TimeGenerated desc
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(1970-01-01);
+AlertEvidence
+| where Timestamp between ((T0 - 7d) .. (T0 + 1d))
+| where DeviceName startswith "HOSTNAME"
+| distinct AlertId
+| join kind=inner (
+    AlertInfo
+    | where Timestamp between ((T0 - 7d) .. (T0 + 1d))
+    ) on AlertId
+| project Timestamp, AlertId, Title, Severity, Category, ServiceSource, DetectionSource
+| order by Timestamp desc

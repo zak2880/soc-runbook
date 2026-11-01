@@ -17,7 +17,7 @@ Built for daily use as an L2 CSOC Analyst. Queries are written against:
 - `DeviceNetworkEvents`
 - `DeviceFileEvents`
 - `DeviceRegistryEvents`
-- `DeviceAlertEvents`
+- `AlertInfo` and `AlertEvidence` (replace the retired `DeviceAlertEvents`)
 - `DeviceLogonEvents`
 - `DeviceEvents`
 - `AADSignInEventsBeta`
