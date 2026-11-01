@@ -138,18 +138,43 @@ DeviceProcessEvents
 
 ### All LOLBin abuse
 ```kql
+// LOLBin abuse — master sweep across all known Living Off the Land binaries
+// Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// Covers: certutil, PowerShell, mshta, regsvr32, rundll32, wmic, bitsadmin
+// Run estate-wide as a daily hunt (set T0 to now()) or scope to a specific device
+// "has" matches whole terms, so "http" does not match https:// URLs; both are listed
+// Ref: docs/scenarios/07-lolbin-abuse/investigation.md, docs/scenarios/02-suspicious-process/investigation.md
+
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(PASTE_TIME_UTC);
 DeviceProcessEvents
-| where TimeGenerated > ago(24h)
+| where Timestamp between ((T0 - 24h) .. (T0 + 24h))
 | where (
-    (FileName =~ "certutil.exe" and ProcessCommandLine has_any("-urlcache","-decode","http"))
-    or (FileName =~ "powershell.exe" and ProcessCommandLine has_any("-enc","IEX","DownloadString","-w hidden","Reflection.Assembly"))
-    or (FileName =~ "mshta.exe" and ProcessCommandLine has_any("http","vbscript:","javascript:"))
-    or (FileName =~ "regsvr32.exe" and ProcessCommandLine has_any("http","scrobj.dll","/i:"))
-    or (FileName =~ "rundll32.exe" and ProcessCommandLine has_any("comsvcs","MiniDump","AppData","Temp"))
-    or (FileName =~ "wmic.exe" and ProcessCommandLine has_any("process call create","shadowcopy delete","/node:"))
-    or (FileName =~ "bitsadmin.exe" and ProcessCommandLine has_any("/transfer","http","SetNotifyCmdLine"))
+    // certutil downloading or decoding
+    (FileName =~ "certutil.exe"
+        and ProcessCommandLine has_any("-urlcache", "-decode", "http", "https"))
+    // PowerShell suspicious flags (-e / -ec abbreviate -EncodedCommand, -w h = -WindowStyle Hidden)
+    or (FileName in~ ("powershell.exe", "pwsh.exe")
+        and ProcessCommandLine has_any(
+            "-e", "-ec", "-enc", "-EncodedCommand", "IEX",
+            "DownloadString", "-w h", "-w hidden", "Reflection.Assembly"))
+    // mshta — almost never legitimate in modern environments
+    or (FileName =~ "mshta.exe"
+        and ProcessCommandLine has_any("http", "https", "vbscript:", "javascript:"))
+    // regsvr32 remote scriptlet (Squiblydoo / AppLocker bypass)
+    or (FileName =~ "regsvr32.exe"
+        and ProcessCommandLine has_any("http", "https", "scrobj.dll", "/i:"))
+    // rundll32 credential dump or suspicious DLL
+    or (FileName =~ "rundll32.exe"
+        and ProcessCommandLine has_any("comsvcs", "MiniDump", "javascript:", "AppData", "Temp"))
+    // wmic remote execution or shadow deletion
+    or (FileName =~ "wmic.exe"
+        and ProcessCommandLine has_any("process call create", "shadowcopy delete", "/node:"))
+    // bitsadmin download or notification command
+    or (FileName =~ "bitsadmin.exe"
+        and ProcessCommandLine has_any("/transfer", "http", "https", "SetNotifyCmdLine"))
 )
-| project TimeGenerated, DeviceName, AccountName, FileName,
+| project Timestamp, DeviceName, AccountName, FileName,
     ProcessCommandLine, InitiatingProcessFileName
-| order by TimeGenerated desc
+| order by Timestamp desc
 ```
