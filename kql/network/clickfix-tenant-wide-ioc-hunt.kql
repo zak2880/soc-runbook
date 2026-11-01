@@ -1,4 +1,5 @@
 // ClickFix — tenant-wide IOC hunt across process, network, URL-click, and email-URL telemetry
+// Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
 // Run once the malicious domain from a confirmed ClickFix incident is known, to find every other
 // user/device that touched it — the same lure page is usually served to everyone who lands on it,
 // not just the device that raised the original alert
@@ -8,7 +9,7 @@ let KnownBadDomains = dynamic(["SUSPICIOUS_DOMAIN_HERE", "PASTE_ADDITIONAL_DOMAI
 let NetworkHits = DeviceNetworkEvents
 | where Timestamp > ago(7d)
 | where RemoteUrl has_any (KnownBadDomains)
-| project Timestamp, Source = "DeviceNetworkEvents", DeviceName, AccountName, Detail = RemoteUrl;
+| project Timestamp, Source = "DeviceNetworkEvents", DeviceName, AccountName = InitiatingProcessAccountName, Detail = RemoteUrl;
 let ProcessHits = DeviceProcessEvents
 | where Timestamp > ago(7d)
 | where ProcessCommandLine has_any (KnownBadDomains)

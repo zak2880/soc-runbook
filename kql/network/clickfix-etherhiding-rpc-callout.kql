@@ -1,5 +1,7 @@
-// ClickFix — EtherHiding variant detection: payload staged via a smart contract eth_call
-// instead of a traditional C2 domain. The C2 indicator here is an RPC endpoint host (and,
+// ClickFix — EtherHiding variant detection
+// Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// Payload staged via a smart contract eth_call instead of a traditional C2 domain. The C2 indicator
+// here is an RPC endpoint host (and,
 // once identified, a contract address) — not a domain, so it won't appear in domain
 // blocklists or the tenant-wide hunt in clickfix-tenant-wide-ioc-hunt.kql
 // Flags a non-browser process (LOLBin, script host) connecting to a known BSC/EVM RPC host
@@ -15,6 +17,6 @@ DeviceNetworkEvents
     "polygon-rpc.com", "cloudflare-eth.com")
 | where InitiatingProcessFileName !in~ (
     "chrome.exe", "msedge.exe", "firefox.exe", "brave.exe", "opera.exe")
-| project Timestamp, DeviceName, AccountName, RemoteUrl, RemoteIP, RemotePort,
+| project Timestamp, DeviceName, InitiatingProcessAccountName, RemoteUrl, RemoteIP, RemotePort,
     InitiatingProcessFileName, InitiatingProcessCommandLine
 | order by Timestamp desc
