@@ -1,19 +1,24 @@
 // Identity — Entra ID impossible travel detection
+// Runs in: Defender XDR Advanced Hunting only
+// AADSignInEventsBeta is deprecated (Microsoft: replaced by EntraIdSignInEvents from 19 Oct 2026);
+// not migrated in this batch. In Sentinel use SigninLogs instead
 // Flags accounts signing in from two different countries within a short window
 // Indicates credential compromise and use from a foreign location
 // Adjust the window (currently 1 hour) based on your environment
 // Ref: docs/scenarios/06-credential-compromise/investigation.md
 
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(1970-01-01);
 let Window = 1h;
 AADSignInEventsBeta
-| where TimeGenerated > ago(7d)
+| where Timestamp between ((T0 - 7d) .. (T0 + 1d))
 | where ErrorCode == 0  // successful sign-ins only
 | summarize
     Locations = make_set(Country),
     SignInCount = count(),
     IPAddresses = make_set(IPAddress)
-    by AccountUpn, bin(TimeGenerated, Window)
+    by AccountUpn, bin(Timestamp, Window)
 | where array_length(Locations) > 1
-| project TimeGenerated, AccountUpn, Locations,
+| project Timestamp, AccountUpn, Locations,
     SignInCount, IPAddresses
-| order by TimeGenerated desc
+| order by Timestamp desc

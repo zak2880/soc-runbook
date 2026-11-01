@@ -1,17 +1,22 @@
 // Identity — Entra ID MFA fatigue / MFA push bombing
+// Runs in: Defender XDR Advanced Hunting only
+// AADSignInEventsBeta is deprecated (Microsoft: replaced by EntraIdSignInEvents from 19 Oct 2026);
+// not migrated in this batch. In Sentinel use SigninLogs instead
 // Attacker has valid credentials and hammers the user with MFA prompts hoping
 // they approve one to make it stop
 // Threshold: 5+ MFA prompts in 10 minutes — tune for your environment
 // Ref: docs/scenarios/06-credential-compromise/investigation.md
 
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(1970-01-01);
 AADSignInEventsBeta
-| where TimeGenerated > ago(24h)
+| where Timestamp between ((T0 - 24h) .. (T0 + 24h))
 | where AuthenticationRequirement == "multiFactorAuthentication"
 | where ErrorCode != 0  // failed sign-ins — MFA not yet approved
 | summarize
     MFAPrompts = count(),
     SourceIPs = make_set(IPAddress),
     Countries = make_set(Country)
-    by AccountUpn, bin(TimeGenerated, 10m)
+    by AccountUpn, bin(Timestamp, 10m)
 | where MFAPrompts >= 5
 | order by MFAPrompts desc
