@@ -17,7 +17,7 @@ C:\Windows\Temp\
 C:\Users\Public\
 ```
 
-File types to watch: `.exe`, `.dll`, `.ps1`, `.vbs`, `.bat`, `.hta`, `.js`, `.wsf`
+File types to watch: `.exe`, `.dll`, `.ps1`, `.vbs`, `.bat`, `.hta`, `.js`, `.wsf`, `.cmd`, `.scr`, `.lnk`, `.iso`, `.img`
 
 ---
 
@@ -63,13 +63,25 @@ Low global prevalence + no legitimate signer + phishing delivery = strong malici
 
 ### Executables dropped in suspicious paths
 ```kql
+// File artefacts — executables written to suspicious locations
+// Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// Legitimate software installs to Program Files, not Temp/AppData/ProgramData/Public
+// Any executable created in these paths warrants investigation
+// Replace HOSTNAME with the short device name (e.g. PC01); startswith matches the FQDN, case-insensitive
+// Remove the device filter to hunt estate-wide
+// SHA256 is usually empty in DeviceFileEvents; enrich on SHA1
+// Ref: docs/scenarios/05-malicious-file/investigation.md
+
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(PASTE_TIME_UTC);
 DeviceFileEvents
-| where DeviceName == "HOSTNAME"
+| where DeviceName startswith "HOSTNAME"
 | where ActionType == "FileCreated"
-| where FileName endswith_any (".exe", ".dll", ".ps1", ".vbs", ".bat", ".hta")
-| where FolderPath has_any ("AppData", "Temp", "ProgramData", "Public")
-| where TimeGenerated > ago(24h)
-| project TimeGenerated, FileName, FolderPath, SHA256, InitiatingProcessFileName
+| where FileName matches regex @"(?i)\.(exe|dll|ps1|vbs|bat|hta|js|wsf|cmd|scr|lnk|iso|img)$"
+| where FolderPath has_any (
+    "AppData", "Temp", "ProgramData", "Public")
+| where Timestamp between ((T0 - 24h) .. (T0 + 24h))
+| project Timestamp, FileName, FolderPath, SHA1, SHA256, InitiatingProcessFileName
 ```
 
 ### Ransomware — mass file renames
