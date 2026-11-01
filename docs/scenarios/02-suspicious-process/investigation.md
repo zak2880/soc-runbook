@@ -114,8 +114,16 @@ DeviceProcessEvents
 
 ### Office spawning shells
 ```kql
+// Office application spawning shell processes (phishing chain detector)
+// Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// Covers: Word, Excel, PowerPoint, Outlook, OneNote spawning cmd/PowerShell/mshta/LOLBins
+// High-fidelity signal — legitimate Office apps should not spawn shells
+// Ref: docs/scenarios/02-suspicious-process/investigation.md
+
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(PASTE_TIME_UTC);
 DeviceProcessEvents
-| where TimeGenerated > ago(7d)
+| where Timestamp between ((T0 - 7d) .. (T0 + 1d))
 | where InitiatingProcessFileName in~ (
     "winword.exe", "excel.exe", "powerpnt.exe",
     "outlook.exe", "onenote.exe", "msaccess.exe")
@@ -123,9 +131,9 @@ DeviceProcessEvents
     "cmd.exe", "powershell.exe", "wscript.exe", "cscript.exe",
     "mshta.exe", "regsvr32.exe", "rundll32.exe",
     "certutil.exe", "bitsadmin.exe", "wmic.exe")
-| project TimeGenerated, DeviceName, AccountName,
+| project Timestamp, DeviceName, AccountName,
     InitiatingProcessFileName, FileName, ProcessCommandLine
-| order by TimeGenerated desc
+| order by Timestamp desc
 ```
 
 ### All LOLBin abuse
