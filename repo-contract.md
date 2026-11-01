@@ -26,8 +26,9 @@ All tables are standard Microsoft Defender XDR / Sentinel Advanced Hunting schem
 
 ## Query conventions
 
-- Queries use `HOSTNAME`, `USERNAME`, `HASH`, and datetime placeholders — replace before running
-- Time windows default to `ago(24h)` or `ago(7d)` — adjust as needed
+- Queries use `HOSTNAME` (short device name, matched with `startswith`), `USERNAME` (SAM account name), `PASTE_SHA1_HERE` / `PASTE_SHA256_HERE` and a `T0` incident-time placeholder — replace before running; see [kql/README.md](kql/README.md)
+- Investigation queries are anchored on `T0` (`Timestamp between ((T0 - X) .. (T0 + Y))`) rather than `ago()`; Advanced Hunting holds 30 days of native data
+- Each query's second header line states where it runs (`// Runs in:`): `Timestamp` for Defender tables, `TimeGenerated` only for Sentinel-only tables
 - No live schema validation — queries are syntax-checked only (see [docs/reference/kql-validation.md](docs/reference/kql-validation.md))
 
 ## Structure

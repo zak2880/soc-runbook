@@ -4,7 +4,14 @@ Index of all queries in this library. Each file contains a single query with a c
 
 All queries are syntax-checked by the harness in `tests/kql-smoke/`. See [docs/reference/kql-validation.md](../docs/reference/kql-validation.md) for details.
 
-Replace `HOSTNAME`, `USERNAME`, `PASTE_HASH_HERE`, and datetime placeholders before running.
+Replace placeholders before running:
+
+- `HOSTNAME` — the **short** device name (e.g. `PC01`). Queries match it with `DeviceName startswith "HOSTNAME"`, which is case-insensitive and also matches the FQDN that `DeviceName` stores. It also matches longer names that share the prefix (`PC01` matches `PC010`), so check `DeviceName` in the results.
+- `USERNAME` — the SAM account name (e.g. `jsmith`), not the UPN.
+- `PASTE_SHA1_HERE` / `PASTE_SHA256_HERE` — file hashes. SHA256 is often empty in Defender tables; paste SHA1 too.
+- `T0` — the incident time in UTC, on the line under `// REPLACE: incident time`. In `.kql` files it is `datetime(1970-01-01)`, which parses but returns nothing until replaced. In the copies embedded in `docs/` it is `datetime(PASTE_TIME_UTC)`, which fails to parse until replaced. For a routine hunt, set `T0` to `now()`.
+
+Each query's second header line says where it runs (`// Runs in:`). Defender tables use `Timestamp`; Sentinel-only tables (`SigninLogs`, `AADNonInteractiveUserSignInLogs`) use `TimeGenerated`. Advanced Hunting holds 30 days of native data.
 
 ---
 
