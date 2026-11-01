@@ -68,12 +68,20 @@ Always check the **full file path**, not just the process name.
 
 ### Processes in a time window
 ```kql
+// All process events on a device within a specific time window
+// Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// Use to reconstruct execution chain around a detection timestamp
+// Replace HOSTNAME with the short device name (e.g. PC01); startswith matches the FQDN, case-insensitive
+// Ref: docs/scenarios/01-malware-alert/investigation.md, docs/scenarios/02-suspicious-process/investigation.md
+
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(PASTE_TIME_UTC);
 DeviceProcessEvents
-| where DeviceName == "HOSTNAME"
-| where TimeGenerated between (datetime(YYYY-MM-DDThh:mm) .. datetime(YYYY-MM-DDThh:mm))
-| project TimeGenerated, InitiatingProcessFileName, FileName,
+| where DeviceName startswith "HOSTNAME"
+| where Timestamp between ((T0 - 30m) .. (T0 + 2h))
+| project Timestamp, InitiatingProcessFileName, FileName,
     ProcessCommandLine, FolderPath, AccountName
-| order by TimeGenerated asc
+| order by Timestamp asc
 ```
 
 ### Suspicious PowerShell
