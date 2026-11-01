@@ -1,14 +1,37 @@
-// Ransomware / defence evasion — Defender disabled and audit logs cleared
+// Ransomware / defence evasion — Defender disabled or weakened
+// Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
 // Attackers disable security controls before deploying payload
 // Any of these = active attacker, not just malware — escalate immediately
-// Ref: docs/reference/escalation-triggers.md
+// Three sources: Defender policy values set in the registry (value names are in RegistryValueName,
+// not RegistryKey) or exclusions added; Set-/Add-MpPreference disabling or excluding on the command
+// line; and Defender tamper-protection TamperingAttempt events
+// A hit is an attempt; confirm the actual Defender state on the device
+// VERIFY: ActionType "RegistryValueSet" is not listed on Microsoft Learn:
+// DeviceRegistryEvents | where Timestamp > ago(1d) | summarize count() by ActionType
+// Ref: docs/reference/escalation-triggers.md, docs/scenarios/11-defence-evasion/investigation.md
 
-// Defender disabled via registry
-DeviceRegistryEvents
-| where RegistryKey has_any (
-    "DisableAntiSpyware",
-    "DisableRealtimeMonitoring",
-    "DisableBehaviorMonitoring")
-| where RegistryValueData == "1"
-| where TimeGenerated > ago(24h)
-| project TimeGenerated, DeviceName, RegistryKey, InitiatingProcessFileName
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(1970-01-01);
+union
+    (DeviceRegistryEvents
+    | where Timestamp between ((T0 - 1d) .. (T0 + 1d))
+    | where ActionType == "RegistryValueSet"
+    | where RegistryKey has @"Windows Defender"
+    | where RegistryValueName in~ ("DisableAntiSpyware", "DisableRealtimeMonitoring",
+        "DisableBehaviorMonitoring", "DisableIOAVProtection")
+        or RegistryKey has @"Windows Defender\Exclusions"
+    | project Timestamp, DeviceName, Source = "registry",
+        Detail = strcat(RegistryKey, " ", RegistryValueName, "=", RegistryValueData),
+        InitiatingProcessFileName, InitiatingProcessAccountName),
+    (DeviceProcessEvents
+    | where Timestamp between ((T0 - 1d) .. (T0 + 1d))
+    | where ProcessCommandLine has_any ("Set-MpPreference", "Add-MpPreference")
+    | where ProcessCommandLine has_any ("Exclusion", "Disable")
+    | project Timestamp, DeviceName, Source = "cmdline", Detail = ProcessCommandLine,
+        InitiatingProcessFileName, InitiatingProcessAccountName = AccountName),
+    (DeviceEvents
+    | where Timestamp between ((T0 - 1d) .. (T0 + 1d))
+    | where ActionType == "TamperingAttempt"
+    | project Timestamp, DeviceName, Source = "tamper", Detail = tostring(AdditionalFields),
+        InitiatingProcessFileName, InitiatingProcessAccountName)
+| order by Timestamp asc

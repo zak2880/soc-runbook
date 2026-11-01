@@ -1,11 +1,17 @@
 // Defence evasion — Windows event log clearing
+// Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
 // Attackers clear logs to destroy forensic evidence before or after ransomware deployment
 // If logs are being cleared, assume active attacker covering tracks — escalate immediately
-// Ref: docs/reference/escalation-triggers.md
+// Covers wevtutil cl / clear-log and PowerShell Clear-EventLog; file names matched case-insensitively
+// Ref: docs/reference/escalation-triggers.md, docs/scenarios/11-defence-evasion/investigation.md
 
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(1970-01-01);
 DeviceProcessEvents
-| where (FileName == "wevtutil.exe" and ProcessCommandLine has " cl ")
-    or (FileName == "wevtutil.exe" and ProcessCommandLine has "clear-log")
-| where TimeGenerated > ago(24h)
-| project TimeGenerated, DeviceName, AccountName,
+| where Timestamp between ((T0 - 24h) .. (T0 + 24h))
+| where (FileName =~ "wevtutil.exe"
+    and ProcessCommandLine has_any (" cl ", "clear-log"))
+    or (FileName in~ ("powershell.exe", "pwsh.exe")
+    and ProcessCommandLine has "Clear-EventLog")
+| project Timestamp, DeviceName, AccountName,
     ProcessCommandLine, InitiatingProcessFileName
