@@ -17,10 +17,15 @@
 Search Threat Explorer by whichever IOC you have: sender, subject, attachment filename, SHA256, URL.
 
 ```kql
+// 12 — find the email by sender
+// Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(PASTE_TIME_UTC);
 EmailEvents
 | where SenderFromAddress =~ "attacker@malicious.com"
-| where TimeGenerated > ago(7d)
-| project TimeGenerated, SenderFromAddress, RecipientEmailAddress,
+| where Timestamp between ((T0 - 7d) .. (T0 + 1d))
+| project Timestamp, SenderFromAddress, RecipientEmailAddress,
     Subject, DeliveryAction, DeliveryLocation, NetworkMessageId
 ```
 
@@ -40,9 +45,11 @@ EmailEvents
 ## Step 3 — all recipients
 
 ```kql
+// 12 — every recipient of this message
+// Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
 EmailEvents
 | where NetworkMessageId == "PASTE_MESSAGE_ID_HERE"
-| project TimeGenerated, RecipientEmailAddress,
+| project Timestamp, RecipientEmailAddress,
     DeliveryAction, DeliveryLocation
 ```
 
@@ -51,10 +58,14 @@ EmailEvents
 ## Step 4 — attachment investigation
 
 ```kql
+// 12 — attachments on this message
+// Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// SHA256 is usually empty in this table (Microsoft schema note) and the table has no SHA1 column:
+// take the hash from the email entity page
 EmailAttachmentInfo
 | where NetworkMessageId == "PASTE_MESSAGE_ID_HERE"
-| project TimeGenerated, FileName, FileType, SHA256,
-    MalwareFamily, DetectionMethods
+| project Timestamp, FileName, FileType, FileSize, SHA256,
+    ThreatTypes, ThreatNames, DetectionMethods
 ```
 
 ```kql
@@ -88,10 +99,15 @@ union withsource = SourceTable DeviceFileEvents, DeviceProcessEvents, DeviceImag
 ## Step 5 — URL / Safe Links
 
 ```kql
+// 12 — clicks on the suspicious domain
+// Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(PASTE_TIME_UTC);
 UrlClickEvents
 | where Url has "SUSPICIOUS_DOMAIN_HERE"
-| where TimeGenerated > ago(7d)
-| project TimeGenerated, AccountUpn, Url, ActionType,
+| where Timestamp between ((T0 - 1d) .. (T0 + 7d))
+| project Timestamp, AccountUpn, Url, ActionType,
     IsClickedThrough, IPAddress
 ```
 
@@ -102,16 +118,30 @@ UrlClickEvents
 ## Step 6 — did the user interact?
 
 ```kql
-let EmailTime = EmailEvents
+// 12 — did anyone who clicked a link in this email run something afterwards?
+// Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// Anchored on each click, not on delivery: processes from 5 minutes before to 60 minutes after the click
+// T0 = delivery time; clicks are searched from T0-1h to T0+7d
+// No result here does NOT rule out credential phishing; check the clicker's sign-ins (06)
+
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(PASTE_TIME_UTC);
+let Clicks = UrlClickEvents
+| where Timestamp between ((T0 - 1h) .. (T0 + 7d))
 | where NetworkMessageId == "PASTE_MESSAGE_ID_HERE"
-| project EmailTime = TimeGenerated, RecipientEmailAddress;
+| project ClickTime = Timestamp, Upn = tolower(AccountUpn), Url, ActionType, IsClickedThrough;
+let Clickers = Clicks | distinct Upn;
 DeviceProcessEvents
-| join kind=inner EmailTime
-    on $left.AccountName == $right.RecipientEmailAddress
-| where TimeGenerated between ((EmailTime) .. (EmailTime + 30min))
-| project TimeGenerated, DeviceName, FileName,
-    ProcessCommandLine, InitiatingProcessFileName
-| order by TimeGenerated asc
+| where Timestamp between ((T0 - 1h) .. (T0 + 7d + 1h))
+| extend Upn = tolower(AccountUpn)
+| where Upn in (Clickers)
+| join kind=inner Clicks on Upn
+| where Timestamp between ((ClickTime - 5m) .. (ClickTime + 60m))
+| where InitiatingProcessFileName in~ ("outlook.exe", "msedge.exe", "chrome.exe", "firefox.exe",
+    "winword.exe", "excel.exe", "powerpnt.exe")
+| project Timestamp, ClickTime, DeviceName, AccountUpn, InitiatingProcessFileName,
+    FileName, ProcessCommandLine, Url
+| order by Timestamp asc
 ```
 
 ---
