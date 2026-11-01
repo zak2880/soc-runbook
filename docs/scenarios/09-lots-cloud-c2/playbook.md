@@ -13,7 +13,7 @@
 - [ ] URL retrieved and scanned on URLScan.io
 - [ ] Content of the URL checked — payload, IP address, encoded data?
 - [ ] Dead-drop resolver pattern checked — paste GET followed by raw IP connection?
-- [ ] Byte size checked — large outbound transfer = potential exfiltration?
+- [ ] Byte size checked — large outbound transfer = potential exfiltration? (not available in MDE; needs proxy/firewall logs)
 - [ ] Process chain traced — what spawned the process contacting the cloud service?
 - [ ] Any files downloaded from the cloud service identified and hashed?
 
@@ -45,6 +45,6 @@
 ```
 Scripting engine contacting Telegram API or Discord CDN
 Dead-drop resolver pattern confirmed
-Non-browser process uploading >5MB to cloud storage
+Non-browser process uploading >5MB to cloud storage (not available in MDE; needs proxy/firewall logs)
 Payload successfully downloaded and executed
 ```
