@@ -116,12 +116,25 @@ DeviceNetworkEvents
 
 ### Internal lateral movement scanning
 ```kql
+// Internal lateral movement — network scanning detection
+// Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// Infected device probing internal IPs on admin/remote-access ports
+// High TargetCount on any port = active scanning for spread opportunities
+// Replace HOSTNAME with the short device name (e.g. PC01); startswith matches the FQDN, case-insensitive
+// Remove the device filter to run estate-wide
+// Ref: docs/scenarios/03-suspicious-network-activity/investigation.md, docs/scenarios/06-credential-compromise/investigation.md
+
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(PASTE_TIME_UTC);
 DeviceNetworkEvents
-| where DeviceName == "HOSTNAME"
+| where DeviceName startswith "HOSTNAME"
 | where RemoteIPType == "Private"
 | where RemotePort in (445, 3389, 22, 135, 139, 5985, 5986)
-| where TimeGenerated > ago(2h)
-| summarize TargetCount = dcount(RemoteIP) by RemotePort, InitiatingProcessFileName
+| where Timestamp between ((T0 - 1h) .. (T0 + 1h))
+| summarize
+    TargetCount = dcount(RemoteIP),
+    TargetIPs = make_set(RemoteIP, 10)
+    by RemotePort, InitiatingProcessFileName
 | order by TargetCount desc
 ```
 
