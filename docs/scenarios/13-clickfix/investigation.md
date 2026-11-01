@@ -36,18 +36,39 @@ chrome.exe / msedge.exe → mshta.exe / powershell.exe   (protocol-handler varia
 The parent alone isn't the whole signal — `explorer.exe` spawning `powershell.exe` happens legitimately too. What makes it ClickFix is the *combination*: an unexpected LOLBin, an obfuscated/hidden command line, and a browser session active on the same device moments earlier. See [clickfix-lolbin-from-browser-explorer.kql](../../../kql/process/clickfix-lolbin-from-browser-explorer.kql) — it joins the LOLBin execution back to the nearest preceding browser process on the same device.
 
 ```kql
+// ClickFix — LOLBin spawned from explorer.exe (Run dialog) or a browser
+// Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// Looks for an encoded/hidden command line, joined back to the nearest preceding browser process
+// on the same device
+// Covers: powershell.exe, mshta.exe, cmd.exe launched as if a user pasted a fake CAPTCHA /
+//   "verify you're human" command into Win+R or a terminal
+// A LOLBin alone from explorer.exe isn't unusual — the browser correlation within 5 minutes
+// is what separates ClickFix from routine admin activity
+// Ref: docs/scenarios/13-clickfix/investigation.md
+
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(PASTE_TIME_UTC);
 let LOLBinExec = DeviceProcessEvents
-| where Timestamp > ago(24h)
+| where Timestamp between ((T0 - 24h) .. (T0 + 24h))
 | where FileName in~ ("powershell.exe", "pwsh.exe", "mshta.exe", "cmd.exe")
 | where InitiatingProcessFileName in~ (
-    "explorer.exe", "chrome.exe", "msedge.exe", "firefox.exe", "brave.exe")
+    "explorer.exe", "chrome.exe", "msedge.exe", "firefox.exe", "brave.exe", "opera.exe")
 | where ProcessCommandLine has_any (
     "-enc", "-EncodedCommand", "-w hidden", "-windowstyle hidden",
     "-nop", "-noprofile", "IEX", "Invoke-Expression",
     "DownloadString", "FromBase64String", "mshta")
 | project Timestamp, DeviceName, AccountName, FileName, ProcessCommandLine,
     InitiatingProcessFileName, InitiatingProcessId;
+let BrowserActivity = DeviceProcessEvents
+| where Timestamp between ((T0 - 24h) .. (T0 + 24h))
+| where FileName in~ ("chrome.exe", "msedge.exe", "firefox.exe", "brave.exe", "opera.exe")
+| project BrowserTimestamp = Timestamp, DeviceName, BrowserProcess = FileName;
 LOLBinExec
+| join kind=leftouter BrowserActivity on DeviceName
+| where isempty(BrowserProcess) or BrowserTimestamp between ((Timestamp - 5m) .. Timestamp)
+| project Timestamp, DeviceName, AccountName, FileName, ProcessCommandLine,
+    InitiatingProcessFileName, InitiatingProcessId, BrowserProcess, BrowserTimestamp
+| order by Timestamp desc
 ```
 
 ---
@@ -69,9 +90,15 @@ Work through these in order:
 Pull the process tree around the alert timestamp — parent, the LOLBin, and anything the LOLBin subsequently spawned.
 
 ```kql
+// 13 — process tree around the alert
+// Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// Replace HOSTNAME with the short device name (e.g. PC01); startswith matches the FQDN, case-insensitive
+
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(PASTE_TIME_UTC);
 DeviceProcessEvents
-| where DeviceName == "HOSTNAME"
-| where Timestamp between (datetime(YYYY-MM-DDThh:mm) .. (datetime(YYYY-MM-DDThh:mm) + 30m))
+| where DeviceName startswith "HOSTNAME"
+| where Timestamp between ((T0 - 10m) .. (T0 + 30m))
 | project Timestamp, FileName, ProcessCommandLine,
     InitiatingProcessFileName, InitiatingProcessCommandLine
 | order by Timestamp asc
@@ -82,10 +109,16 @@ DeviceProcessEvents
 Confirm the LOLBin actually reached out — not every paste succeeds (typos, the page going down, EDR network blocking). See [clickfix-callout-correlation.kql](../../../kql/network/clickfix-callout-correlation.kql).
 
 ```kql
+// 13 — callouts from this device to the malicious domain
+// Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// Replace HOSTNAME with the short device name (e.g. PC01); startswith matches the FQDN, case-insensitive
+
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(PASTE_TIME_UTC);
 let MaliciousDomain = "SUSPICIOUS_DOMAIN_HERE";
 DeviceNetworkEvents
-| where DeviceName == "HOSTNAME"
-| where Timestamp > ago(24h)
+| where DeviceName startswith "HOSTNAME"
+| where Timestamp between ((T0 - 24h) .. (T0 + 24h))
 | where RemoteUrl has MaliciousDomain
 | project Timestamp, InitiatingProcessFileName, InitiatingProcessCommandLine,
     RemoteUrl, RemoteIP, RemotePort
@@ -98,11 +131,17 @@ One user pasting a command rarely means one user was targeted — the same lure 
 ### d. Check for dropped payloads / persistence
 
 ```kql
+// 13 — files dropped in user-writable paths
+// Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// Replace HOSTNAME with the short device name (e.g. PC01); startswith matches the FQDN, case-insensitive
+
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(PASTE_TIME_UTC);
 DeviceFileEvents
-| where DeviceName == "HOSTNAME"
+| where DeviceName startswith "HOSTNAME"
 | where FolderPath has_any ("\\Temp\\", "\\AppData\\", "\\ProgramData\\")
-| where Timestamp > ago(24h)
-| project Timestamp, FileName, FolderPath, SHA256, InitiatingProcessFileName
+| where Timestamp between ((T0 - 24h) .. (T0 + 24h))
+| project Timestamp, FileName, FolderPath, SHA1, SHA256, InitiatingProcessFileName
 ```
 
 Also check scheduled tasks and Run keys — see [scheduled-task-creation.kql](../../../kql/persistence/scheduled-task-creation.kql) and [registry-run-key-modifications.kql](../../../kql/persistence/registry-run-key-modifications.kql).
@@ -112,9 +151,14 @@ Also check scheduled tasks and Run keys — see [scheduled-task-creation.kql](..
 Many ClickFix lures sit on a page that also harvested credentials before showing the paste step. Check sign-in logs for the affected user around and after the incident, and revoke tokens if there's any doubt.
 
 ```kql
+// 13 — sign-ins for the affected user around and after the incident
+// Runs in: Sentinel only
+
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(PASTE_TIME_UTC);
 union SigninLogs, AADNonInteractiveUserSignInLogs
 | where UserPrincipalName =~ "USERNAME"
-| where TimeGenerated > ago(24h)
+| where TimeGenerated between ((T0 - 24h) .. (T0 + 24h))
 | project TimeGenerated, AppDisplayName, IPAddress, ResultType, Type
 | order by TimeGenerated desc
 ```

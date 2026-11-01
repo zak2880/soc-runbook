@@ -1,12 +1,17 @@
-// ClickFix — LOLBin spawned from explorer.exe (Run dialog) or a browser, with an encoded/hidden
-// command line, joined back to the nearest preceding browser process on the same device
+// ClickFix — LOLBin spawned from explorer.exe (Run dialog) or a browser
+// Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// Looks for an encoded/hidden command line, joined back to the nearest preceding browser process
+// on the same device
 // Covers: powershell.exe, mshta.exe, cmd.exe launched as if a user pasted a fake CAPTCHA /
 //   "verify you're human" command into Win+R or a terminal
 // A LOLBin alone from explorer.exe isn't unusual — the browser correlation within 5 minutes
 // is what separates ClickFix from routine admin activity
 // Ref: docs/scenarios/13-clickfix/investigation.md
+
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(1970-01-01);
 let LOLBinExec = DeviceProcessEvents
-| where Timestamp > ago(24h)
+| where Timestamp between ((T0 - 24h) .. (T0 + 24h))
 | where FileName in~ ("powershell.exe", "pwsh.exe", "mshta.exe", "cmd.exe")
 | where InitiatingProcessFileName in~ (
     "explorer.exe", "chrome.exe", "msedge.exe", "firefox.exe", "brave.exe", "opera.exe")
@@ -17,7 +22,7 @@ let LOLBinExec = DeviceProcessEvents
 | project Timestamp, DeviceName, AccountName, FileName, ProcessCommandLine,
     InitiatingProcessFileName, InitiatingProcessId;
 let BrowserActivity = DeviceProcessEvents
-| where Timestamp > ago(24h)
+| where Timestamp between ((T0 - 24h) .. (T0 + 24h))
 | where FileName in~ ("chrome.exe", "msedge.exe", "firefox.exe", "brave.exe", "opera.exe")
 | project BrowserTimestamp = Timestamp, DeviceName, BrowserProcess = FileName;
 LOLBinExec
