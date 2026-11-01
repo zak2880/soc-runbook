@@ -1,11 +1,14 @@
 // Network — outbound connections on non-standard C2 ports
+// Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
 // Covers commonly used C2 and reverse shell ports not typical in business traffic
 // Excludes known legitimate uses where possible — tune the process exclusion list
 // for your environment
 // Ref: docs/scenarios/03-suspicious-network-activity/investigation.md, docs/scenarios/08-c2-beaconing/investigation.md
 
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(1970-01-01);
 DeviceNetworkEvents
-| where TimeGenerated > ago(24h)
+| where Timestamp between ((T0 - 24h) .. (T0 + 24h))
 | where RemoteIPType != "Private"
 | where RemotePort in (
     4444,   // Metasploit default
@@ -28,7 +31,7 @@ DeviceNetworkEvents
 | where InitiatingProcessFileName !in~ (
     "chrome.exe", "msedge.exe", "firefox.exe",
     "teams.exe", "slack.exe", "zoom.exe")
-| project TimeGenerated, DeviceName, AccountName,
+| project Timestamp, DeviceName, InitiatingProcessAccountName,
     RemoteIP, RemotePort, RemoteUrl,
     InitiatingProcessFileName, InitiatingProcessCommandLine
-| order by TimeGenerated desc
+| order by Timestamp desc

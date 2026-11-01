@@ -140,12 +140,41 @@ DeviceNetworkEvents
 
 ### Unusual outbound ports
 ```kql
+// Network — outbound connections on non-standard C2 ports
+// Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// Covers commonly used C2 and reverse shell ports not typical in business traffic
+// Excludes known legitimate uses where possible — tune the process exclusion list
+// for your environment
+// Ref: docs/scenarios/03-suspicious-network-activity/investigation.md, docs/scenarios/08-c2-beaconing/investigation.md
+
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(PASTE_TIME_UTC);
 DeviceNetworkEvents
-| where TimeGenerated > ago(24h)
+| where Timestamp between ((T0 - 24h) .. (T0 + 24h))
 | where RemoteIPType != "Private"
-| where RemotePort in (4444, 4445, 1337, 8080, 8443, 8888, 9001, 50050, 31337)
+| where RemotePort in (
+    4444,   // Metasploit default
+    4445,   // Metasploit alternate
+    1337,   // common C2 / reverse shell
+    8080,   // alternate HTTP C2
+    8443,   // alternate HTTPS C2
+    8888,   // common C2
+    9001,   // Tor / C2
+    9090,   // common C2
+    50050,  // Cobalt Strike team server default
+    31337,  // classic backdoor port (Back Orifice)
+    6666,   // IRC / C2
+    6667,   // IRC C2
+    1234,   // generic reverse shell
+    2222,   // alternate SSH / C2
+    5555,   // Android ADB / C2
+    7777    // common C2
+)
 | where InitiatingProcessFileName !in~ (
-    "chrome.exe", "msedge.exe", "firefox.exe", "teams.exe")
-| project TimeGenerated, DeviceName, RemoteIP, RemotePort,
+    "chrome.exe", "msedge.exe", "firefox.exe",
+    "teams.exe", "slack.exe", "zoom.exe")
+| project Timestamp, DeviceName, InitiatingProcessAccountName,
+    RemoteIP, RemotePort, RemoteUrl,
     InitiatingProcessFileName, InitiatingProcessCommandLine
+| order by Timestamp desc
 ```
