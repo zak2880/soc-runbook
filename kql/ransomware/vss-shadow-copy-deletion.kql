@@ -1,8 +1,11 @@
 // Ransomware pre-cursor — VSS and shadow copy deletion
+// Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
 // Attackers destroy backups before deploying ransomware to prevent recovery
 // Seeing these commands = ransomware is imminent or already running — escalate immediately
 // Ref: docs/reference/escalation-triggers.md, docs/scenarios/05-malicious-file/investigation.md
 
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(1970-01-01);
 DeviceProcessEvents
 | where ProcessCommandLine has_any (
     "delete shadows",
@@ -10,6 +13,6 @@ DeviceProcessEvents
     "vssadmin",
     "wmic shadowcopy delete",
     "bcdedit /set")
-| where TimeGenerated > ago(24h)
-| project TimeGenerated, DeviceName, AccountName,
+| where Timestamp between ((T0 - 24h) .. (T0 + 24h))
+| project Timestamp, DeviceName, AccountName,
     ProcessCommandLine, InitiatingProcessFileName

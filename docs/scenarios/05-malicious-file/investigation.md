@@ -86,14 +86,26 @@ DeviceFileEvents
 
 ### Ransomware — mass file renames
 ```kql
+// Ransomware detection — mass file rename activity
+// Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// Ransomware renames/re-extensions hundreds of files per minute during encryption
+// Threshold: >20 renames per minute from a single process — tune for your environment
+// Replace HOSTNAME with the short device name (e.g. PC01); startswith matches the FQDN, case-insensitive
+// Remove the device filter to monitor estate-wide
+// Ref: docs/scenarios/05-malicious-file/investigation.md, docs/reference/escalation-triggers.md
+
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(PASTE_TIME_UTC);
 DeviceFileEvents
-| where DeviceName == "HOSTNAME"
+| where DeviceName startswith "HOSTNAME"
 | where ActionType == "FileRenamed"
-| where TimeGenerated > ago(2h)
-| summarize RenameCount = count(), SampleFiles = make_set(FileName, 5)
-    by bin(TimeGenerated, 1m), InitiatingProcessFileName
+| where Timestamp between ((T0 - 1h) .. (T0 + 4h))
+| summarize
+    RenameCount = count(),
+    SampleFiles = make_set(FileName, 5)
+    by bin(Timestamp, 1m), InitiatingProcessFileName
 | where RenameCount > 20
-| order by TimeGenerated asc
+| order by Timestamp asc
 ```
 
 ### Hash across estate
@@ -125,9 +137,22 @@ union withsource = SourceTable DeviceFileEvents, DeviceProcessEvents, DeviceImag
 
 ### VSS deletion
 ```kql
+// Ransomware pre-cursor — VSS and shadow copy deletion
+// Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// Attackers destroy backups before deploying ransomware to prevent recovery
+// Seeing these commands = ransomware is imminent or already running — escalate immediately
+// Ref: docs/reference/escalation-triggers.md, docs/scenarios/05-malicious-file/investigation.md
+
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(PASTE_TIME_UTC);
 DeviceProcessEvents
 | where ProcessCommandLine has_any (
-    "delete shadows", "vssadmin", "wmic shadowcopy delete", "bcdedit /set")
-| where TimeGenerated > ago(24h)
-| project TimeGenerated, DeviceName, ProcessCommandLine, InitiatingProcessFileName
+    "delete shadows",
+    "resize shadowstorage",
+    "vssadmin",
+    "wmic shadowcopy delete",
+    "bcdedit /set")
+| where Timestamp between ((T0 - 24h) .. (T0 + 24h))
+| project Timestamp, DeviceName, AccountName,
+    ProcessCommandLine, InitiatingProcessFileName
 ```
