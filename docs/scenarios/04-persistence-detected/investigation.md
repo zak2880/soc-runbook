@@ -61,53 +61,109 @@ Three parts: **EventFilter** (trigger) → **EventConsumer** (action) → **Filt
 
 ### Registry run key modifications
 ```kql
+// Persistence — registry Run key modifications
+// Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// Covers HKCU and HKLM Run, RunOnce, and Winlogon keys
+// Any modification around the time of a malware alert warrants investigation
+// Replace HOSTNAME with the short device name (e.g. PC01); startswith matches the FQDN, case-insensitive
+// Remove the device filter to hunt estate-wide
+// Window: T0-14d to T0+2d. Advanced Hunting holds 30 days of native data; older needs Sentinel retention
+// Ref: docs/scenarios/04-persistence-detected/investigation.md
+
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(PASTE_TIME_UTC);
 DeviceRegistryEvents
-| where DeviceName == "HOSTNAME"
+| where DeviceName startswith "HOSTNAME"
 | where RegistryKey has_any (
     "CurrentVersion\\Run",
     "CurrentVersion\\RunOnce",
     "Winlogon")
-| where TimeGenerated > ago(7d)
-| project TimeGenerated, RegistryKey, RegistryValueName,
+| where Timestamp between ((T0 - 14d) .. (T0 + 2d))
+| project Timestamp, RegistryKey, RegistryValueName,
     RegistryValueData, InitiatingProcessFileName
 ```
 
 ### Scheduled task creation
 ```kql
+// Persistence — scheduled task creation via schtasks.exe
+// Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// Malware frequently creates scheduled tasks to re-execute the payload on reboot or login
+// Look for: random task names, Temp/AppData paths, PowerShell -enc in the action
+// Replace HOSTNAME with the short device name (e.g. PC01); startswith matches the FQDN, case-insensitive
+// Window: T0-14d to T0+2d. Advanced Hunting holds 30 days of native data; older needs Sentinel retention
+// Ref: docs/scenarios/04-persistence-detected/investigation.md
+
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(PASTE_TIME_UTC);
 DeviceProcessEvents
-| where DeviceName == "HOSTNAME"
-| where FileName == "schtasks.exe"
+| where DeviceName startswith "HOSTNAME"
+| where FileName =~ "schtasks.exe"
 | where ProcessCommandLine has "/create"
-| where TimeGenerated > ago(7d)
-| project TimeGenerated, ProcessCommandLine, InitiatingProcessFileName
+| where Timestamp between ((T0 - 14d) .. (T0 + 2d))
+| project Timestamp, ProcessCommandLine, InitiatingProcessFileName
 ```
 
 ### New services installed
 ```kql
+// Persistence — new Windows services installed
+// Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// Malware can install itself as a service for persistence and SYSTEM-level execution
+// Look for: unusual binary paths, non-standard service names, creation by unexpected processes
+// Replace HOSTNAME with the short device name (e.g. PC01); startswith matches the FQDN, case-insensitive
+// Window: T0-14d to T0+2d. Advanced Hunting holds 30 days of native data; older needs Sentinel retention
+// VERIFY: ServiceInstalled may depend on the "Audit Security System Extension" policy (event 4697);
+// devices with zero rows here may lack it:
+// DeviceEvents | where Timestamp > ago(30d) | where ActionType == "ServiceInstalled" | summarize count() by DeviceName
+// Ref: docs/scenarios/04-persistence-detected/investigation.md
+
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(PASTE_TIME_UTC);
 DeviceEvents
-| where DeviceName == "HOSTNAME"
+| where DeviceName startswith "HOSTNAME"
 | where ActionType == "ServiceInstalled"
-| where TimeGenerated > ago(7d)
-| project TimeGenerated, FileName, FolderPath, AdditionalFields
+| where Timestamp between ((T0 - 14d) .. (T0 + 2d))
+| project Timestamp, FileName, FolderPath, AdditionalFields
 ```
 
 ### WMI subscription creation
 ```kql
+// Persistence — WMI event subscription creation
+// Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// Advanced persistence technique: malware registers WMI events that fire on system conditions
+// Does not appear in normal startup tools — requires specific hunting
+// Replace HOSTNAME with the short device name (e.g. PC01); startswith matches the FQDN, case-insensitive
+// Window: T0-14d to T0+2d. Advanced Hunting holds 30 days of native data; older needs Sentinel retention
+// VERIFY: these ActionType names are not on Microsoft Learn; community queries use
+// WmiBindEventFilterToConsumer. Check what the tenant emits before relying on an empty result:
+// DeviceEvents | where Timestamp > ago(30d) | where ActionType startswith "Wmi" | distinct ActionType
+// Ref: docs/scenarios/04-persistence-detected/investigation.md
+
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(PASTE_TIME_UTC);
 DeviceEvents
-| where DeviceName == "HOSTNAME"
+| where DeviceName startswith "HOSTNAME"
 | where ActionType in (
-    "WmiBindingCreated", "WmiFilterCreated", "WmiConsumerCreated")
-| where TimeGenerated > ago(7d)
-| project TimeGenerated, ActionType, InitiatingProcessFileName,
+    "WmiBindingCreated",
+    "WmiFilterCreated",
+    "WmiConsumerCreated")
+| where Timestamp between ((T0 - 14d) .. (T0 + 2d))
+| project Timestamp, ActionType, InitiatingProcessFileName,
     InitiatingProcessCommandLine, AdditionalFields
 ```
 
 ### Files dropped in startup folder
 ```kql
+// 04 — files written to the Startup folder
+// Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// Replace HOSTNAME with the short device name (e.g. PC01); startswith matches the FQDN, case-insensitive
+// SHA256 is usually empty in DeviceFileEvents; enrich on SHA1
+
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(PASTE_TIME_UTC);
 DeviceFileEvents
-| where DeviceName == "HOSTNAME"
+| where DeviceName startswith "HOSTNAME"
 | where FolderPath has "Start Menu\\Programs\\Startup"
 | where ActionType == "FileCreated"
-| where TimeGenerated > ago(7d)
-| project TimeGenerated, FileName, FolderPath, SHA256, InitiatingProcessFileName
+| where Timestamp between ((T0 - 14d) .. (T0 + 2d))
+| project Timestamp, FileName, FolderPath, SHA1, SHA256, InitiatingProcessFileName
 ```

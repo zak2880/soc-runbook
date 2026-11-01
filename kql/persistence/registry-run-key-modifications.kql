@@ -1,15 +1,20 @@
 // Persistence — registry Run key modifications
+// Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
 // Covers HKCU and HKLM Run, RunOnce, and Winlogon keys
 // Any modification around the time of a malware alert warrants investigation
-// Replace HOSTNAME or remove filter to hunt estate-wide
+// Replace HOSTNAME with the short device name (e.g. PC01); startswith matches the FQDN, case-insensitive
+// Remove the device filter to hunt estate-wide
+// Window: T0-14d to T0+2d. Advanced Hunting holds 30 days of native data; older needs Sentinel retention
 // Ref: docs/scenarios/04-persistence-detected/investigation.md
 
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(1970-01-01);
 DeviceRegistryEvents
-| where DeviceName == "HOSTNAME"
+| where DeviceName startswith "HOSTNAME"
 | where RegistryKey has_any (
     "CurrentVersion\\Run",
     "CurrentVersion\\RunOnce",
     "Winlogon")
-| where TimeGenerated > ago(7d)
-| project TimeGenerated, RegistryKey, RegistryValueName,
+| where Timestamp between ((T0 - 14d) .. (T0 + 2d))
+| project Timestamp, RegistryKey, RegistryValueName,
     RegistryValueData, InitiatingProcessFileName

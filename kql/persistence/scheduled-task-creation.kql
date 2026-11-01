@@ -1,11 +1,16 @@
 // Persistence — scheduled task creation via schtasks.exe
+// Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
 // Malware frequently creates scheduled tasks to re-execute the payload on reboot or login
 // Look for: random task names, Temp/AppData paths, PowerShell -enc in the action
+// Replace HOSTNAME with the short device name (e.g. PC01); startswith matches the FQDN, case-insensitive
+// Window: T0-14d to T0+2d. Advanced Hunting holds 30 days of native data; older needs Sentinel retention
 // Ref: docs/scenarios/04-persistence-detected/investigation.md
 
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(1970-01-01);
 DeviceProcessEvents
-| where DeviceName == "HOSTNAME"
-| where FileName == "schtasks.exe"
+| where DeviceName startswith "HOSTNAME"
+| where FileName =~ "schtasks.exe"
 | where ProcessCommandLine has "/create"
-| where TimeGenerated > ago(7d)
-| project TimeGenerated, ProcessCommandLine, InitiatingProcessFileName
+| where Timestamp between ((T0 - 14d) .. (T0 + 2d))
+| project Timestamp, ProcessCommandLine, InitiatingProcessFileName

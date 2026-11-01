@@ -1,10 +1,18 @@
 // Persistence — new Windows services installed
+// Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
 // Malware can install itself as a service for persistence and SYSTEM-level execution
 // Look for: unusual binary paths, non-standard service names, creation by unexpected processes
+// Replace HOSTNAME with the short device name (e.g. PC01); startswith matches the FQDN, case-insensitive
+// Window: T0-14d to T0+2d. Advanced Hunting holds 30 days of native data; older needs Sentinel retention
+// VERIFY: ServiceInstalled may depend on the "Audit Security System Extension" policy (event 4697);
+// devices with zero rows here may lack it:
+// DeviceEvents | where Timestamp > ago(30d) | where ActionType == "ServiceInstalled" | summarize count() by DeviceName
 // Ref: docs/scenarios/04-persistence-detected/investigation.md
 
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(1970-01-01);
 DeviceEvents
-| where DeviceName == "HOSTNAME"
+| where DeviceName startswith "HOSTNAME"
 | where ActionType == "ServiceInstalled"
-| where TimeGenerated > ago(7d)
-| project TimeGenerated, FileName, FolderPath, AdditionalFields
+| where Timestamp between ((T0 - 14d) .. (T0 + 2d))
+| project Timestamp, FileName, FolderPath, AdditionalFields
