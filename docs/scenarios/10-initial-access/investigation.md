@@ -29,28 +29,39 @@ Open Device Timeline in Defender XDR and scroll back before the alert. Look for 
 ### Step 2 — check what files were created before execution
 
 ```kql
+// 10 — files created on the device around the first malicious event
+// Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// Replace HOSTNAME with the short device name (e.g. PC01); startswith matches the FQDN, case-insensitive
+// SHA256 is usually empty in DeviceFileEvents; enrich on SHA1
+
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(PASTE_TIME_UTC);
 DeviceFileEvents
-| where DeviceName == "HOSTNAME"
+| where DeviceName startswith "HOSTNAME"
 | where ActionType == "FileCreated"
-| where TimeGenerated between (datetime(YYYY-MM-DDThh:mm) .. datetime(YYYY-MM-DDThh:mm))
-| project TimeGenerated, FileName, FolderPath, SHA256, InitiatingProcessFileName
-| order by TimeGenerated asc
+| where Timestamp between ((T0 - 1h) .. (T0 + 1h))
+| project Timestamp, FileName, FolderPath, SHA1, SHA256, InitiatingProcessFileName
+| order by Timestamp asc
 ```
 
 ### Step 3 — check browser download history
 
 ```kql
+// 10 — files written by the browser (download history)
+// Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// Replace HOSTNAME with the short device name (e.g. PC01); startswith matches the FQDN, case-insensitive
+// SHA256 is usually empty in DeviceFileEvents; enrich on SHA1
+
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(PASTE_TIME_UTC);
 DeviceFileEvents
-| where DeviceName == "HOSTNAME"
+| where DeviceName startswith "HOSTNAME"
 | where InitiatingProcessFileName in~ (
     "chrome.exe", "msedge.exe", "firefox.exe", "iexplore.exe")
 | where ActionType == "FileCreated"
-| where FileName endswith_any (
-    ".exe", ".dll", ".zip", ".iso", ".img",
-    ".doc", ".docx", ".xls", ".xlsm",
-    ".pdf", ".lnk", ".js", ".vbs", ".hta", ".ps1")
-| where TimeGenerated > ago(24h)
-| project TimeGenerated, FileName, FolderPath, SHA256
+| where FileName matches regex @"(?i)\.(exe|dll|ps1|vbs|bat|hta|js|wsf|cmd|scr|lnk|iso|img|zip|doc|docx|xls|xlsm|pdf)$"
+| where Timestamp between ((T0 - 7d) .. (T0 + 1h))
+| project Timestamp, FileName, FolderPath, SHA1, SHA256
 ```
 
 ---
@@ -60,15 +71,25 @@ DeviceFileEvents
 Files extracted from ISO/IMG containers don't get the Zone.Identifier ADS — macros run without Protected View warning.
 
 ```kql
+// 10 — processes started from a mounted ISO/IMG (drive letters D: to Z:)
+// Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// Replace HOSTNAME with the short device name (e.g. PC01); startswith matches the FQDN, case-insensitive
+// Two cases: (a) an executable run straight from the mounted image (its own path is on D:-Z:);
+// (b) an LNK on the image launching a system binary from C: whose command line points at D:-Z:
+// Mapped network drives and USB volumes also use D:-Z: and will appear as false positives
+
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(PASTE_TIME_UTC);
 DeviceProcessEvents
-| where DeviceName == "HOSTNAME"
+| where DeviceName startswith "HOSTNAME"
+| where Timestamp between ((T0 - 24h) .. (T0 + 24h))
 | where InitiatingProcessFileName =~ "explorer.exe"
-| where FolderPath matches regex @"[D-Z]:\\"
-| where FileName in~ (
-    "cmd.exe", "powershell.exe", "wscript.exe",
-    "mshta.exe", "rundll32.exe", "regsvr32.exe")
-| where TimeGenerated > ago(24h)
-| project TimeGenerated, FileName, FolderPath, ProcessCommandLine
+| where FolderPath matches regex @"(?i)^[D-Z]:\\"
+    or (FileName in~ (
+            "cmd.exe", "powershell.exe", "wscript.exe",
+            "mshta.exe", "rundll32.exe", "regsvr32.exe")
+        and ProcessCommandLine matches regex @"(?i)\b[D-Z]:\\")
+| project Timestamp, FileName, FolderPath, ProcessCommandLine, InitiatingProcessFileName
 ```
 
 ---
@@ -76,17 +97,30 @@ DeviceProcessEvents
 ## RDP brute force
 
 ```kql
+// 10 — RDP brute force against this device, grouped by source IP
+// Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// Replace HOSTNAME with the short device name (e.g. PC01); startswith matches the FQDN, case-insensitive
+// With Network Level Authentication, failed RDP logons are recorded as Network logons, not
+// RemoteInteractive, so both types are counted. Public source IPs only
+// VERIFY: LogonType and ActionType strings (Learn describes LogonType but does not list the values):
+// DeviceLogonEvents | where Timestamp > ago(7d) | summarize count() by LogonType, ActionType
+
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(PASTE_TIME_UTC);
 DeviceLogonEvents
-| where DeviceName == "HOSTNAME"
-| where LogonType == "RemoteInteractive"
-| where TimeGenerated > ago(24h)
+| where DeviceName startswith "HOSTNAME"
+| where Timestamp between ((T0 - 14d) .. (T0 + 1d))
+| where LogonType in ("RemoteInteractive", "Network")
+| where RemoteIPType == "Public"
 | summarize
     FailedAttempts = countif(ActionType == "LogonFailed"),
     SuccessfulLogons = countif(ActionType == "LogonSuccess"),
-    SourceIPs = make_set(RemoteIP)
-    by AccountName
-| where FailedAttempts > 10
-| order by FailedAttempts desc
+    Accounts = make_set(AccountName, 50),
+    FirstSeen = min(Timestamp),
+    FirstSuccess = minif(Timestamp, ActionType == "LogonSuccess")
+    by RemoteIP
+| where FailedAttempts > 10 or SuccessfulLogons > 0
+| order by SuccessfulLogons desc, FailedAttempts desc
 ```
 
 ---
