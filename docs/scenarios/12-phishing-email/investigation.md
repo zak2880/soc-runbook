@@ -58,10 +58,29 @@ EmailAttachmentInfo
 ```
 
 ```kql
-DeviceFileEvents
-| where SHA256 == "PASTE_HASH_HERE"
-| where TimeGenerated > ago(7d)
-| summarize Devices = make_set(DeviceName), Count = count()
+// File artefacts — check if a known-bad hash has appeared on other devices
+// Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// Use after identifying a malicious file on one device to check for spread and find patient zero
+// SHA256 is usually empty in these tables (Microsoft schema note): paste SHA1 from the Defender
+// file page as well. Leave an unknown hash as its placeholder — it then matches nothing
+// Zero rows does NOT prove no spread: cross-check the file page "Observed in organization" tab
+// Advanced Hunting holds 30 days of native data; older activity needs Sentinel retention
+// Ref: docs/scenarios/05-malicious-file/investigation.md, docs/scenarios/01-malware-alert/investigation.md
+
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(PASTE_TIME_UTC);
+let sha1 = "PASTE_SHA1_HERE";
+let sha256 = "PASTE_SHA256_HERE";
+union withsource = SourceTable DeviceFileEvents, DeviceProcessEvents, DeviceImageLoadEvents
+| where Timestamp between ((T0 - 30d) .. (T0 + 30d))
+| where (isnotempty(sha1) and SHA1 =~ sha1) or (isnotempty(sha256) and SHA256 =~ sha256)
+| summarize
+    FirstSeen = min(Timestamp),
+    LastSeen = max(Timestamp),
+    Paths = make_set(FolderPath, 5),
+    Tables = make_set(SourceTable)
+    by DeviceName
+| order by FirstSeen asc
 ```
 
 ---

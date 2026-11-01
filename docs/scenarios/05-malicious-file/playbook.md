@@ -3,7 +3,7 @@
 ## Checklist
 
 ### Immediate
-- [ ] Pull the SHA256 of the file
+- [ ] Pull the SHA1 and SHA256 of the file (SHA256 is often empty in Defender tables; SHA1 is on the file page)
 - [ ] Note the full file path
 - [ ] Note the process that created/executed it
 - [ ] Check if the file is still present on disk
@@ -31,7 +31,7 @@
 - [ ] Any files dropped by this file also removed
 
 ### Close out
-- [ ] SHA256, file path, malware family documented
+- [ ] SHA1, SHA256, file path, malware family documented
 - [ ] All affected devices confirmed clean
 - [ ] Findings written up
 

@@ -11,7 +11,7 @@
 ### Investigation
 - [ ] All recipients found — how many people got it?
 - [ ] Delivery action confirmed for each recipient
-- [ ] Attachment investigated — SHA256 pulled, enriched on VirusTotal
+- [ ] Attachment investigated — SHA1 and SHA256 pulled (SHA256 is often empty; take hashes from the email entity page), enriched on VirusTotal
 - [ ] Attachment hash swept across estate — any devices?
 - [ ] URLs in the email checked on URLScan.io
 - [ ] URL click data checked — did anyone click through Safe Links?
