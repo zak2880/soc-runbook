@@ -5,7 +5,7 @@ Full mapping of soc-runbook detection content to MITRE ATT&CK tactics and techni
 Framework version: ATT&CK v20.0 (Enterprise). IDs, names and tactics checked against attack.mitre.org on 2026-11-02.  
 Coverage: Techniques commonly seen in incidents handled at a UK MSSP targeting SME and mid-market organisations.
 
-ATT&CK v20 replaced the Defense Evasion tactic with **Stealth** and **Defense Impairment**. Former T1562 (Impair Defenses) sub-techniques and T1070.001 now sit under T1685 (Disable or Modify Tools).
+ATT&CK v20 replaced the Defense Evasion tactic with **Stealth** and **Defense Impairment**. IDs this repo used to cite now redirect: T1562.001 and T1562.006 to T1685 (Disable or Modify Tools), T1562.002 to T1685.001, and T1070.001 to T1685.005.
 
 ---
 
