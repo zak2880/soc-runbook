@@ -39,10 +39,10 @@ Status: **Query** = a linked `.kql` file implements the detection. **Guidance** 
 
 | Technique | ID | Detection | Status | Detection / reference |
 |-----------|-----|-----------|--------|-----------------------|
-| Phishing — spearphishing attachment | T1566.001 | Malicious attachment delivered via email | Query | [office-spawning-shells.kql](kql/process/office-spawning-shells.kql) |
+| Phishing — spearphishing attachment | T1566.001 | Office application (Word, Excel, PowerPoint, Outlook, OneNote, Access) spawning cmd, PowerShell, script hosts or LOLBins | Query | [office-spawning-shells.kql](kql/process/office-spawning-shells.kql) |
 | Phishing — spearphishing link | T1566.002 | User clicks malicious link from email | Guidance | [12-phishing-email/investigation.md](docs/scenarios/12-phishing-email/investigation.md) |
 | Phishing — spearphishing via service (Teams) | T1566.003 | External Teams message with malicious content | Gap | [12-phishing-email/investigation.md](docs/scenarios/12-phishing-email/investigation.md) |
-| Valid accounts | T1078 | Credential-based logon from unusual location | Query | [entra-impossible-travel.kql](kql/identity/entra-impossible-travel.kql) |
+| Valid accounts | T1078 | Successful sign-ins from more than one country within a 1-hour window | Query | [entra-impossible-travel.kql](kql/identity/entra-impossible-travel.kql) |
 | External remote services (RDP) | T1133 | RDP brute force — many failures then success | Guidance | [10-initial-access/investigation.md](docs/scenarios/10-initial-access/investigation.md) |
 | Drive-by compromise | T1189 | Browser download of executable or script | Guidance | [10-initial-access/investigation.md](docs/scenarios/10-initial-access/investigation.md) |
 | Supply chain compromise | T1195 | Trojanised installer or update | Gap | [10-initial-access/investigation.md](docs/scenarios/10-initial-access/investigation.md) |
@@ -53,12 +53,12 @@ Status: **Query** = a linked `.kql` file implements the detection. **Guidance** 
 
 | Technique | ID | Detection | Status | Detection / reference |
 |-----------|-----|-----------|--------|-----------------------|
-| PowerShell | T1059.001 | Encoded commands, download cradles, AMSI bypass | Query | [suspicious-powershell.kql](kql/process/suspicious-powershell.kql), [lolbin-sweep.kql](kql/process/lolbin-sweep.kql) |
+| PowerShell | T1059.001 | Encoded commands, download cradles, hidden-window and no-profile flags in PowerShell command lines | Query | [suspicious-powershell.kql](kql/process/suspicious-powershell.kql), [lolbin-sweep.kql](kql/process/lolbin-sweep.kql) |
 | Visual Basic | T1059.005 | wscript/cscript spawning shells | Gap | [lolbin-sweep.kql](kql/process/lolbin-sweep.kql) |
 | JavaScript | T1059.007 | mshta inline JavaScript execution | Query | [lolbin-sweep.kql](kql/process/lolbin-sweep.kql) |
 | Native API | T1106 | Process hollowing via memory write APIs | Gap | [11-defence-evasion/investigation.md](docs/scenarios/11-defence-evasion/investigation.md) |
-| User execution — malicious file | T1204.002 | User opens phishing attachment | Query | [office-spawning-shells.kql](kql/process/office-spawning-shells.kql) |
-| User execution — malicious copy and paste | T1204.004 | User pastes an attacker-supplied command into Run dialog or PowerShell after a fake CAPTCHA/verification prompt (ClickFix) | Query | [clickfix-lolbin-from-browser-explorer.kql](kql/process/clickfix-lolbin-from-browser-explorer.kql) |
+| User execution — malicious file | T1204.002 | Office application spawning a shell or LOLBin, as after a user opens a malicious document | Query | [office-spawning-shells.kql](kql/process/office-spawning-shells.kql) |
+| User execution — malicious copy and paste | T1204.004 | powershell, pwsh, mshta or cmd launched by explorer.exe or a browser with an encoded, hidden-window or download-cradle command line, joined to browser activity within 5 minutes (ClickFix) | Query | [clickfix-lolbin-from-browser-explorer.kql](kql/process/clickfix-lolbin-from-browser-explorer.kql) |
 | Windows Management Instrumentation | T1047 | wmic process call create, wmic /node: remote execution | Query | [lolbin-sweep.kql](kql/process/lolbin-sweep.kql) |
 
 ---
@@ -71,7 +71,7 @@ Status: **Query** = a linked `.kql` file implements the detection. **Guidance** 
 | Winlogon helper DLL | T1547.004 | Winlogon key modifications | Query | [registry-run-key-modifications.kql](kql/persistence/registry-run-key-modifications.kql) |
 | Scheduled task | T1053.005 | Task creation via schtasks.exe | Query | [scheduled-task-creation.kql](kql/persistence/scheduled-task-creation.kql) |
 | Windows service | T1543.003 | New service installed | Query | [new-services-installed.kql](kql/persistence/new-services-installed.kql) |
-| WMI event subscription | T1546.003 | WMI filter, consumer, binding creation | Query | [wmi-subscription-creation.kql](kql/persistence/wmi-subscription-creation.kql) |
+| WMI event subscription | T1546.003 | DeviceEvents WmiFilterCreated, WmiConsumerCreated and WmiBindingCreated (ActionType names unverified; see the VERIFY note in the query) | Query | [wmi-subscription-creation.kql](kql/persistence/wmi-subscription-creation.kql) |
 | Local account creation | T1136.001 | New local user account created | Query | [new-local-accounts-created.kql](kql/identity/new-local-accounts-created.kql) |
 
 ---
@@ -90,14 +90,14 @@ Status: **Query** = a linked `.kql` file implements the detection. **Guidance** 
 
 | Technique | ID | Detection | Status | Detection / reference |
 |-----------|-----|-----------|--------|-----------------------|
-| Obfuscated files or information | T1027 | Base64 encoded PowerShell, char array obfuscation | Query | [suspicious-powershell.kql](kql/process/suspicious-powershell.kql) |
+| Obfuscated files or information | T1027 | Base64 encoded PowerShell (-enc, FromBase64String) | Query | [suspicious-powershell.kql](kql/process/suspicious-powershell.kql) |
 | Deobfuscate/decode files or information | T1140 | certutil -decode | Query | [lolbin-sweep.kql](kql/process/lolbin-sweep.kql) |
 | Masquerading — match legitimate resource name or location | T1036.005 | Executables in Temp/AppData with system process names | Gap | [executables-in-suspicious-paths.kql](kql/files/executables-in-suspicious-paths.kql) |
 | Process injection | T1055 | Memory API calls from unexpected processes | Guidance | [11-defence-evasion/investigation.md](docs/scenarios/11-defence-evasion/investigation.md) |
 | Indicator removal — timestomp | T1070.006 | Files with suspiciously old timestamps in temp paths | Gap | [11-defence-evasion/investigation.md](docs/scenarios/11-defence-evasion/investigation.md) |
 | System binary proxy execution — Mshta | T1218.005 | mshta with a URL or inline vbscript:/javascript: | Query | [lolbin-sweep.kql](kql/process/lolbin-sweep.kql) |
 | System binary proxy execution — Regsvr32 | T1218.010 | regsvr32 remote scriptlet (/i: URL, scrobj.dll) | Query | [lolbin-sweep.kql](kql/process/lolbin-sweep.kql) |
-| System binary proxy execution — Rundll32 | T1218.011 | rundll32 comsvcs MiniDump, javascript:, DLL in Temp/AppData | Query | [lolbin-sweep.kql](kql/process/lolbin-sweep.kql) |
+| System binary proxy execution — Rundll32 | T1218.011 | rundll32 command lines containing comsvcs, MiniDump, javascript:, AppData or Temp | Query | [lolbin-sweep.kql](kql/process/lolbin-sweep.kql) |
 | BITS jobs | T1197 | bitsadmin /transfer or SetNotifyCmdLine | Query | [lolbin-sweep.kql](kql/process/lolbin-sweep.kql) |
 
 ---
@@ -107,7 +107,7 @@ Status: **Query** = a linked `.kql` file implements the detection. **Guidance** 
 | Technique | ID | Detection | Status | Detection / reference |
 |-----------|-----|-----------|--------|-----------------------|
 | Modify registry | T1112 | UAC bypass registry modifications | Guidance | [11-defence-evasion/investigation.md](docs/scenarios/11-defence-evasion/investigation.md) |
-| Disable or modify tools — Defender | T1685 | Defender disabled via registry | Query | [defence-evasion-defender-disabled.kql](kql/ransomware/defence-evasion-defender-disabled.kql) |
+| Disable or modify tools — Defender | T1685 | Defender policy values or exclusions set in the registry, Set-/Add-MpPreference disabling or excluding, and TamperingAttempt events (a hit is an attempt, not confirmed state) | Query | [defence-evasion-defender-disabled.kql](kql/ransomware/defence-evasion-defender-disabled.kql) |
 | Disable or modify tools — AMSI bypass (variant) | T1685 | AmsiUtils / amsiInitFailed in PowerShell command line | Guidance | [11-defence-evasion/investigation.md](docs/scenarios/11-defence-evasion/investigation.md) |
 | Disable or modify tools — security process killed | T1685 | Security tools killed via taskkill | Guidance | [11-defence-evasion/investigation.md](docs/scenarios/11-defence-evasion/investigation.md) |
 | Disable or modify tools — ETW tampering | T1685 | ETW patching | Gap | [11-defence-evasion/investigation.md](docs/scenarios/11-defence-evasion/investigation.md) |
@@ -120,13 +120,13 @@ Status: **Query** = a linked `.kql` file implements the detection. **Guidance** 
 
 | Technique | ID | Detection | Status | Detection / reference |
 |-----------|-----|-----------|--------|-----------------------|
-| OS credential dumping — LSASS memory | T1003.001 | lsass.exe accessed by non-Windows process | Query | [lsass-access-credential-dump.kql](kql/identity/lsass-access-credential-dump.kql), [credential-access-sweep.kql](kql/process/credential-access-sweep.kql), [lolbin-sweep.kql](kql/process/lolbin-sweep.kql) |
-| OS credential dumping — SAM | T1003.002 | SAM hive read by non-system process | Query | [credential-access-sweep.kql](kql/process/credential-access-sweep.kql) |
-| OS credential dumping — NTDS | T1003.003 | NTDS.dit accessed by non-system process | Query | [credential-access-sweep.kql](kql/process/credential-access-sweep.kql) |
+| OS credential dumping — LSASS memory | T1003.001 | OpenProcessApiCall events whose AdditionalFields mention lsass (no process allow-list); sekurlsa:: and comsvcs/MiniDump in command lines | Query | [lsass-access-credential-dump.kql](kql/identity/lsass-access-credential-dump.kql), [credential-access-sweep.kql](kql/process/credential-access-sweep.kql), [lolbin-sweep.kql](kql/process/lolbin-sweep.kql) |
+| OS credential dumping — SAM | T1003.002 | reg save HKLM\SAM (and SYSTEM, SECURITY) in command lines; file reads are not logged by MDE | Query | [credential-access-sweep.kql](kql/process/credential-access-sweep.kql) |
+| OS credential dumping — NTDS | T1003.003 | ntdsutil or ntds.dit in command lines; file reads are not logged by MDE | Query | [credential-access-sweep.kql](kql/process/credential-access-sweep.kql) |
 | OS credential dumping — DCSync | T1003.006 | DCSync, drsuapi, DrsGetNCChanges in command lines | Query | [credential-access-sweep.kql](kql/process/credential-access-sweep.kql) |
 | Kerberoasting | T1558.003 | GetUserSPNs, Invoke-Kerberoast in command lines | Query | [credential-access-sweep.kql](kql/process/credential-access-sweep.kql) |
 | AS-REP roasting | T1558.004 | GetNPUsers, ASREPRoast in command lines | Query | [credential-access-sweep.kql](kql/process/credential-access-sweep.kql) |
-| MFA request generation (MFA fatigue) | T1621 | 5+ failed MFA prompts in 10 minutes | Query | [entra-mfa-fatigue.kql](kql/identity/entra-mfa-fatigue.kql) |
+| MFA request generation (MFA fatigue) | T1621 | 5+ failed sign-ins requiring MFA per account in a 10-minute window | Query | [entra-mfa-fatigue.kql](kql/identity/entra-mfa-fatigue.kql) |
 
 ---
 
@@ -138,7 +138,7 @@ Status: **Query** = a linked `.kql` file implements the detection. **Guidance** 
 | Process discovery | T1057 | wmic process list, tasklist in command lines | Gap | [lolbin-sweep.kql](kql/process/lolbin-sweep.kql) |
 | System info discovery | T1082 | wmic computersystem, systeminfo, hostname | Gap | [02-suspicious-process/investigation.md](docs/scenarios/02-suspicious-process/investigation.md) |
 | File and directory discovery | T1083 | dir /s, Get-ChildItem recursing filesystem | Gap | [05-malicious-file/investigation.md](docs/scenarios/05-malicious-file/investigation.md) |
-| Network service discovery | T1046 | Device probing many internal IPs on SMB, RDP, SSH, RPC and WinRM ports | Query | [lateral-movement-scanning.kql](kql/network/lateral-movement-scanning.kql) |
+| Network service discovery | T1046 | Device connecting to private IPs on ports 445, 3389, 22, 135, 139, 5985 and 5986, ranked by distinct targets per port | Query | [lateral-movement-scanning.kql](kql/network/lateral-movement-scanning.kql) |
 
 ---
 
@@ -146,7 +146,7 @@ Status: **Query** = a linked `.kql` file implements the detection. **Guidance** 
 
 | Technique | ID | Detection | Status | Detection / reference |
 |-----------|-----|-----------|--------|-----------------------|
-| RDP | T1021.001 | Account logging into new devices via RemoteInteractive | Query | [user-on-multiple-devices.kql](kql/identity/user-on-multiple-devices.kql) |
+| RDP | T1021.001 | Account with Network or RemoteInteractive logons on 3+ devices (RemoteInteractive is the RDP subset) | Query | [user-on-multiple-devices.kql](kql/identity/user-on-multiple-devices.kql) |
 | SMB / Windows Admin Shares | T1021.002 | Confirmed SMB logon or admin-share use (the scanning query shows port-445 attempts only) | Gap | [lateral-movement-scanning.kql](kql/network/lateral-movement-scanning.kql) |
 | WinRM | T1021.006 | Confirmed WinRM session (the scanning query shows port 5985/5986 attempts only) | Gap | [lateral-movement-scanning.kql](kql/network/lateral-movement-scanning.kql) |
 | Pass the Hash | T1550.002 | Network logons from unexpected source using domain account | Gap | [06-credential-compromise/investigation.md](docs/scenarios/06-credential-compromise/investigation.md) |
@@ -166,13 +166,13 @@ Status: **Query** = a linked `.kql` file implements the detection. **Guidance** 
 
 | Technique | ID | Detection | Status | Detection / reference |
 |-----------|-----|-----------|--------|-----------------------|
-| Application layer protocol — web | T1071.001 | Regular beaconing over HTTP/S; ClickFix LOLBin callout to its staging/C2 domain | Query | [beacon-suspicion-score.kql](kql/network/beacon-suspicion-score.kql), [beacon-high-connection-count.kql](kql/network/beacon-high-connection-count.kql), [beacon-interval-regularity.kql](kql/network/beacon-interval-regularity.kql), [beacon-after-hours.kql](kql/network/beacon-after-hours.kql), [clickfix-callout-correlation.kql](kql/network/clickfix-callout-correlation.kql) |
-| Application layer protocol — DNS | T1071.004 | DNS tunnelling via encoded subdomains | Query | [dns-tunnelling.kql](kql/network/dns-tunnelling.kql) |
+| Application layer protocol — web | T1071.001 | Repeated outbound connections to one external destination (connection count, interval regularity, after-hours, combined score; no HTTP/S protocol filter); ClickFix LOLBin callout to its staging/C2 domain | Query | [beacon-suspicion-score.kql](kql/network/beacon-suspicion-score.kql), [beacon-high-connection-count.kql](kql/network/beacon-high-connection-count.kql), [beacon-interval-regularity.kql](kql/network/beacon-interval-regularity.kql), [beacon-after-hours.kql](kql/network/beacon-after-hours.kql), [clickfix-callout-correlation.kql](kql/network/clickfix-callout-correlation.kql) |
+| Application layer protocol — DNS | T1071.004 | Port 53 connections whose first RemoteUrl label is 12+ base64-like characters, more than 5 per device and name | Query | [dns-tunnelling.kql](kql/network/dns-tunnelling.kql) |
 | Non-application layer protocol | T1095 | Raw socket connections, unusual protocol usage | Gap | [unusual-outbound-ports.kql](kql/network/unusual-outbound-ports.kql) |
 | Ingress tool transfer | T1105 | certutil -urlcache, bitsadmin /transfer downloads | Query | [lolbin-sweep.kql](kql/process/lolbin-sweep.kql) |
-| Web service — LOTS | T1102 | Scripting engine connecting to Discord, Telegram, Pastebin, cloud storage | Query | [lots-suspicious-process-to-cloud.kql](kql/network/lots-suspicious-process-to-cloud.kql), [lots-scripting-engine-to-cloud-storage.kql](kql/network/lots-scripting-engine-to-cloud-storage.kql) |
-| Web service — smart contract C2 (EtherHiding) | T1102 | Non-browser process querying a BSC/EVM RPC endpoint to read attacker-staged commands from a smart contract; IOC is an RPC host + contract address, not a domain | Query | [clickfix-etherhiding-rpc-callout.kql](kql/network/clickfix-etherhiding-rpc-callout.kql) |
-| Web service — dead drop resolver | T1102.001 | Paste service GET followed by raw IP connection | Query | [lots-dead-drop-resolver.kql](kql/network/lots-dead-drop-resolver.kql) |
+| Web service — LOTS | T1102 | Non-browser process connecting to Discord, Telegram, GitHub raw, paste and file-sharing sites; shells and script hosts connecting to OneDrive, SharePoint, Google Drive, GitHub, Dropbox or Pastebin | Query | [lots-suspicious-process-to-cloud.kql](kql/network/lots-suspicious-process-to-cloud.kql), [lots-scripting-engine-to-cloud-storage.kql](kql/network/lots-scripting-engine-to-cloud-storage.kql) |
+| Web service — smart contract C2 (EtherHiding) | T1102 | Non-browser process connecting to a listed BSC/EVM RPC host (EtherHiding); the query does not see the contract call. IOC is an RPC host + contract address, not a domain | Query | [clickfix-etherhiding-rpc-callout.kql](kql/network/clickfix-etherhiding-rpc-callout.kql) |
+| Web service — dead drop resolver | T1102.001 | Script host connecting to a paste or storage host, then to a public IP with no hostname from the same process within 5 minutes | Query | [lots-dead-drop-resolver.kql](kql/network/lots-dead-drop-resolver.kql) |
 | Non-standard port | T1571 | Connections on ports 4444, 50050, 1337, 8080, etc. | Query | [unusual-outbound-ports.kql](kql/network/unusual-outbound-ports.kql) |
 | Encrypted channel | T1573 | Low-volume HTTPS beaconing to single CDN IP | Gap | [beacon-interval-regularity.kql](kql/network/beacon-interval-regularity.kql) |
 
@@ -192,6 +192,6 @@ Status: **Query** = a linked `.kql` file implements the detection. **Guidance** 
 
 | Technique | ID | Detection | Status | Detection / reference |
 |-----------|-----|-----------|--------|-----------------------|
-| Data encrypted for impact (ransomware) | T1486 | Mass file renames, new extensions across filesystem | Query | [mass-file-renames.kql](kql/ransomware/mass-file-renames.kql) |
-| Inhibit system recovery | T1490 | VSS deletion, bcdedit recovery disabled | Query | [vss-shadow-copy-deletion.kql](kql/ransomware/vss-shadow-copy-deletion.kql), [lolbin-sweep.kql](kql/process/lolbin-sweep.kql) |
+| Data encrypted for impact (ransomware) | T1486 | More than 20 file renames per minute from one process on a device | Query | [mass-file-renames.kql](kql/ransomware/mass-file-renames.kql) |
+| Inhibit system recovery | T1490 | Command lines containing vssadmin, delete shadows, resize shadowstorage, wmic shadowcopy delete or bcdedit /set (any bcdedit /set, not only recovery settings) | Query | [vss-shadow-copy-deletion.kql](kql/ransomware/vss-shadow-copy-deletion.kql), [lolbin-sweep.kql](kql/process/lolbin-sweep.kql) |
 | Service stop | T1489 | Services stopped for impact (net stop / sc stop); killing security tools is under T1685 | Gap | — |
