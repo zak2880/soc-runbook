@@ -48,7 +48,7 @@ Do steps 4 to 8 when step 2 found something, or when the device ran attacker cod
    - Don't download it: it holds the stolen credentials. Don't delete it. The IR lead decides on collection.
    - If not found: record that. It may have been moved or exfiltrated; it doesn't mean there was no dump.
 
-8. **List every account exposed on the device.** In `DeviceLogonEvents` for this device: successful logons, every `LogonType` (including `Service` and `Batch`), from 30 days before T0 to now. Credential Guard doesn't change this list.
+8. **List every account exposed on the device.** In `DeviceLogonEvents` for this device: successful logons, every `LogonType` (including `Service` and `Batch`), from 30 days before T0 to now. Don't shorten this list because Credential Guard is on: it doesn't protect local accounts, Kerberos service tickets or supplied NTLM credentials, and malware on the device can still use any credential's privileges.
    - Expect: a list of accounts with logon types, privileged ones flagged.
    - If it holds a domain admin, another privileged account or a service account: escalate now.
    - If an infostealer ran on the device, or you can't rule one out: also treat the passwords saved in its browsers and its signed-in web sessions as exposed. Those users need step 16 and resets for the sites concerned.
