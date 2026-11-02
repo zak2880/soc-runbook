@@ -29,6 +29,8 @@ Counts are per technique ID, using the strongest status among that ID's rows in 
 | Exfiltration | T1041, T1567.002, T1567.001 | 1 | 0 | 2 |
 | Impact | T1486, T1490, T1489 | 2 | 0 | 1 |
 
+T1078 and T1055 each appear under two tactics, so the per-tactic rows sum to more than 66; the totals count each ID once.
+
 ---
 
 ## Technique detail

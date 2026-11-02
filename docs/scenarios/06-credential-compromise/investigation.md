@@ -161,7 +161,7 @@ DeviceLogonEvents
 // Runs in: Defender XDR Advanced Hunting only
 // MITRE: T1078
 // AADSignInEventsBeta is deprecated (Microsoft: replaced by EntraIdSignInEvents from 19 Oct 2026);
-// not migrated in this batch. In Sentinel use SigninLogs instead
+// not yet migrated to EntraIdSignInEvents. In Sentinel use SigninLogs instead
 // Flags accounts signing in from two different countries within a short window
 // Indicates credential compromise and use from a foreign location
 // Adjust the window (currently 1 hour) based on your environment
@@ -190,7 +190,7 @@ AADSignInEventsBeta
 // Runs in: Defender XDR Advanced Hunting only
 // MITRE: T1621
 // AADSignInEventsBeta is deprecated (Microsoft: replaced by EntraIdSignInEvents from 19 Oct 2026);
-// not migrated in this batch. In Sentinel use SigninLogs instead
+// not yet migrated to EntraIdSignInEvents. In Sentinel use SigninLogs instead
 // Attacker has valid credentials and hammers the user with MFA prompts hoping
 // they approve one to make it stop
 // Threshold: 5+ MFA prompts in 10 minutes — tune for your environment

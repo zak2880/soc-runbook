@@ -9,7 +9,7 @@ Replace placeholders before running:
 - `HOSTNAME` — the **short** device name (e.g. `PC01`). Queries match it with `DeviceName startswith "HOSTNAME"`, which is case-insensitive and also matches the FQDN that `DeviceName` stores. It also matches longer names that share the prefix (`PC01` matches `PC010`), so check `DeviceName` in the results.
 - `USERNAME` — the SAM account name (e.g. `jsmith`), not the UPN.
 - `PASTE_SHA1_HERE` / `PASTE_SHA256_HERE` — file hashes. SHA256 is often empty in Defender tables; paste SHA1 too.
-- `T0` — the incident time in UTC, on the line under `// REPLACE: incident time`. In `.kql` files it is `datetime(1970-01-01)`, which parses but returns nothing until replaced. In the copies embedded in `docs/` it is `datetime(PASTE_TIME_UTC)`, which fails to parse until replaced. For a routine hunt, set `T0` to `now()`.
+- `T0` — the incident time in UTC, on the line under `// REPLACE: incident time`. Both the `.kql` files and the copies embedded in `docs/` use `datetime(PASTE_TIME_UTC)`, which fails to parse until replaced. For a routine hunt, set `T0` to `now()`.
 
 Each query's second header line says where it runs (`// Runs in:`). Defender tables use `Timestamp`; Sentinel-only tables (`SigninLogs`, `AADNonInteractiveUserSignInLogs`) use `TimeGenerated`. Advanced Hunting holds 30 days of native data.
 
@@ -42,7 +42,7 @@ Each query's second header line says where it runs (`// Runs in:`). Defender tab
 | [lots-suspicious-process-to-cloud.kql](network/lots-suspicious-process-to-cloud.kql) | Non-browser process connecting to Discord CDN, Telegram, Pastebin, paste sites | T1102 |
 | [lots-scripting-engine-to-cloud-storage.kql](network/lots-scripting-engine-to-cloud-storage.kql) | Scripting engines reaching OneDrive, SharePoint, GitHub, Google Drive | T1102 |
 | [lots-dead-drop-resolver.kql](network/lots-dead-drop-resolver.kql) | Scripting engine hits paste service then immediately connects to a raw IP | T1102.001 |
-| [lots-exfiltration-via-cloud.kql](network/lots-exfiltration-via-cloud.kql) | High-volume uploads to cloud storage from a non-browser process | T1567.002 |
+| [lots-exfiltration-via-cloud.kql](network/lots-exfiltration-via-cloud.kql) | Non-browser connections to cloud storage (connection count; no volume data) | T1567.002 |
 | [clickfix-callout-correlation.kql](network/clickfix-callout-correlation.kql) | Confirms a ClickFix LOLBin reached its staging/C2 domain | T1071.001 |
 | [clickfix-tenant-wide-ioc-hunt.kql](network/clickfix-tenant-wide-ioc-hunt.kql) | Union hunt for a known ClickFix domain across process, network, URL-click, and email-URL telemetry | n/a (triage) |
 | [clickfix-etherhiding-rpc-callout.kql](network/clickfix-etherhiding-rpc-callout.kql) | Non-browser process connecting to a BSC/EVM RPC host — EtherHiding smart-contract C2 | T1102 |
@@ -65,7 +65,7 @@ Each query's second header line says where it runs (`// Runs in:`). Defender tab
 | File | What it detects | MITRE |
 |------|----------------|-------|
 | [executables-in-suspicious-paths.kql](files/executables-in-suspicious-paths.kql) | Executables and scripts written to Temp, AppData, ProgramData, Public | n/a (triage) |
-| [hash-sweep-across-estate.kql](files/hash-sweep-across-estate.kql) | Known-bad SHA256 appearing on any device in the estate | n/a (triage) |
+| [hash-sweep-across-estate.kql](files/hash-sweep-across-estate.kql) | Known-bad SHA1/SHA256 appearing on any device in the estate | n/a (triage) |
 
 ---
 
