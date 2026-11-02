@@ -82,6 +82,8 @@ Run steps 9 to 12 for every exposed account from step 8, or for the alert accoun
 
 ## 4. Contain the accounts
 
+If you don't hold the rights for a step in 15 to 20, request it from the customer's IT contact, record the time of the request, and continue with the steps you can do.
+
 Order: capture evidence, then disable, then revoke, then remove what the attacker added, then reset. Do this for every account confirmed or treated as compromised in steps 2 to 11.
 
 13. **Capture identity evidence before changing anything.** For each account, export its sign-ins since T0 (interactive and non-interactive) and its audit log entries since T0, and record its registered authentication methods.
