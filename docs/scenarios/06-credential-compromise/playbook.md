@@ -14,7 +14,7 @@ T0 = first malicious activity, in UTC. Advanced Hunting holds 30 days of native 
    - If the alert has no device (a cloud sign-in alert): go to step 3, then step 9.
 
 2. **Check the device for lsass access or a dump.** Run the lsass access query, the credential sweep and the lolbin sweep (it covers comsvcs `MiniDump`).
-   - Rule: any process opening `lsass.exe` that is not a verified security product, any lsass dump command or tool, or an lsass dump file = go to step 4 now and escalate. A verified security product runs from the vendor's install folder and shows the vendor as `Signer`, with `IsTrusted` true, in `DeviceFileCertificateInfo`.
+   - Rule: any process opening `lsass.exe` that is not a verified security product, any lsass dump command or tool, an lsass dump file, any credential-tool keyword (for example Mimikatz or `sekurlsa::`) in a command line on the device, or any `reg save` of SAM, SYSTEM or SECURITY = go to step 4 now and escalate. A verified security product runs from the vendor's install folder and shows the vendor as `Signer`, with `IsTrusted` true, in `DeviceFileCertificateInfo`.
    - Expect: no hits, or every lsass opener is a verified security product.
    - If not: go to step 4. Don't finish triage first.
    - An empty lsass query result doesn't clear the device; run the check query in its VERIFY note. An ASR `AsrLsassCredentialTheftBlocked` event doesn't clear it either.
