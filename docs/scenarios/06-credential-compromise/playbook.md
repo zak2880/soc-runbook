@@ -51,6 +51,7 @@ Do steps 4 to 8 when step 2 found something, or when the device ran attacker cod
 8. **List every account exposed on the device.** In `DeviceLogonEvents` for this device: successful logons, every `LogonType` (including `Service` and `Batch`), from 30 days before T0 to now. Credential Guard doesn't change this list.
    - Expect: a list of accounts with logon types, privileged ones flagged.
    - If it holds a domain admin, another privileged account or a service account: escalate now.
+   - If an infostealer ran on the device, or you can't rule one out: also treat the passwords saved in its browsers and its signed-in web sessions as exposed. Those users need step 16 and resets for the sites concerned.
 
 ---
 
@@ -60,6 +61,7 @@ Run steps 9 to 12 for every exposed account from step 8, or for the alert accoun
 
 9. **Check where each account logged on since T0** (user on multiple devices query).
    - Expect: only devices the account has a documented reason to use.
+   - Also check each device it reached for PsExec, WMI and WinRM remote execution (investigation: Remote execution tools). PsExec service names vary, and remote WMI doesn't need `wmic.exe`.
    - If not: lateral movement. Escalate, add each new device to scope and run steps 2 to 8 for it. Many devices is a reason to scope wider, never to close.
 
 10. **Check the credential sweep for Kerberoasting, AS-REP roasting, DCSync and NTDS theft.** It runs estate-wide from T0 − 24h to T0 + 24h; rerun it with a later T0 if activity continued past that.
