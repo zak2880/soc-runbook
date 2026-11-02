@@ -30,7 +30,7 @@
 
 ### Close out
 - [ ] LOLBin technique documented with full command line
-- [ ] MITRE technique ID noted (T1218 — Signed Binary Proxy Execution)
+- [ ] MITRE technique ID noted (mshta, regsvr32, rundll32: T1218.005 / .010 / .011 System Binary Proxy Execution; certutil: T1105 / T1140; wmic: T1047; bitsadmin: T1197; see [MITRE-mapping.md](../../../MITRE-mapping.md))
 - [ ] Findings written up
 
 ---

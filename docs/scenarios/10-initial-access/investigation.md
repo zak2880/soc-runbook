@@ -12,7 +12,7 @@ Initial access is how the attacker got in. Before you can fully understand an in
 |--------|-------------------|-------|
 | Phishing attachment | User opens Office doc, PDF, or archive with malicious content | T1566.001 |
 | Phishing link | User clicks link → drive-by download or credential harvest | T1566.002 |
-| Malicious macro | Office doc with VBA macro spawning a shell | T1137 |
+| Malicious macro | Office doc with VBA macro spawning a shell | T1204.002, T1059.005 |
 | ISO / IMG / ZIP | Archive containing LNK or executable — bypasses Mark of the Web | T1566.001 |
 | Drive-by download | Visiting a compromised site triggers a download | T1189 |
 | Valid accounts | Attacker logs in with stolen or brute-forced credentials | T1078 |

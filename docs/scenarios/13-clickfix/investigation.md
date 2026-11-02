@@ -187,7 +187,7 @@ If the lure was served from a **legitimate, otherwise-trusted website that's bee
 
 | Technique | ID |
 |-----------|-----|
-| User execution — malicious copy/paste | T1204.004 |
+| User execution — malicious copy and paste | T1204.004 |
 | PowerShell | T1059.001 |
 | Application layer protocol — web | T1071.001 |
 | Web service (EtherHiding C2 variant) | T1102 |
