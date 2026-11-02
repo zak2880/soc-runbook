@@ -1,4 +1,5 @@
 // Identity — new local user accounts created on a device
+// MITRE: T1136.001
 // Malware may create backdoor local admin accounts to maintain access after cleanup
 // Also check for accounts added to the local Administrators group
 // Ref: docs/scenarios/06-credential-compromise/investigation.md

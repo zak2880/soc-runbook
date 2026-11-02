@@ -56,6 +56,7 @@ Looks random — but tiny standard deviation. The regularity KQL catches this.
 ```kql
 // C2 beaconing detection — high connection count to single external destination
 // Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// MITRE: T1071.001
 // Primary beacon signal: same device hitting same external IP 30+ times per day
 // Sort by ConnectionCount desc and investigate anything above 30 to a non-CDN destination
 // Counts ConnectionSuccess rows in the 24h before T0 (24h keeps the 30-per-day threshold meaningful)
@@ -85,6 +86,7 @@ DeviceNetworkEvents
 ```kql
 // C2 beaconing detection — interval regularity (catches jittered beacons)
 // Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// MITRE: T1071.001
 // Calculates standard deviation of gaps between connections to the same destination
 // Low StdDev relative to MeanInterval = mechanical timer = beaconing
 // Regularity score: 95%+ = almost certainly beaconing, 70-90% = investigate
@@ -123,6 +125,7 @@ Regularity: **95%+** = almost certainly beaconing. **70–90%** = investigate. *
 ```kql
 // C2 beaconing detection — combined suspicion score
 // Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// MITRE: T1071.001
 // Combines connection count, after-hours activity, and single-port consistency
 // Score >= 5 warrants investigation; tune threshold for your environment
 // Run this daily as a hunt query

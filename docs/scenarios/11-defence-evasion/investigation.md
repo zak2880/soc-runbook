@@ -72,6 +72,7 @@ DeviceProcessEvents
 ```kql
 // Ransomware / defence evasion — Defender disabled or weakened
 // Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// MITRE: T1685
 // Attackers disable security controls before deploying payload
 // Any of these = active attacker, not just malware — escalate immediately
 // Three sources: Defender policy values set in the registry (value names are in RegistryValueName,
@@ -132,6 +133,7 @@ DeviceProcessEvents
 ```kql
 // Defence evasion — Windows event log clearing
 // Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// MITRE: T1685.005
 // Attackers clear logs to destroy forensic evidence before or after ransomware deployment
 // If logs are being cleared, assume active attacker covering tracks — escalate immediately
 // Covers wevtutil cl / clear-log and PowerShell Clear-EventLog; file names matched case-insensitively

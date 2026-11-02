@@ -1,5 +1,6 @@
 // Identity — compromised user account appearing on multiple devices
 // Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// MITRE: T1021.001
 // Indicates lateral movement using stolen credentials
 // Run after identifying a compromised account to check for spread since T0
 // Replace USERNAME with the SAM account name (e.g. jsmith), not the UPN or display name

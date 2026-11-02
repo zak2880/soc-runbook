@@ -1,5 +1,6 @@
 // Internal lateral movement — network scanning detection
 // Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// MITRE: T1046
 // Infected device probing internal IPs on admin/remote-access ports
 // High TargetCount on any port = active scanning for spread opportunities
 // Replace HOSTNAME with the short device name (e.g. PC01); startswith matches the FQDN, case-insensitive

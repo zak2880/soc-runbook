@@ -1,5 +1,6 @@
 // ClickFix — network callout correlation
 // Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// MITRE: T1071.001
 // Confirms the LOLBin identified in clickfix-lolbin-from-browser-explorer.kql actually reached
 // out to the malicious staging/C2 domain, rather than the paste failing or being blocked
 // Replace SUSPICIOUS_DOMAIN_HERE with the IOC from the alert or TI report before running

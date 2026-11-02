@@ -1,5 +1,6 @@
 // File artefacts — check if a known-bad hash has appeared on other devices
 // Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// MITRE: n/a (triage)
 // Use after identifying a malicious file on one device to check for spread and find patient zero
 // SHA256 is usually empty in these tables (Microsoft schema note): paste SHA1 from the Defender
 // file page as well. Leave an unknown hash as its placeholder — it then matches nothing

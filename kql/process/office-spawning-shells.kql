@@ -1,5 +1,6 @@
 // Office application spawning shell processes (phishing chain detector)
 // Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// MITRE: T1566.001, T1204.002
 // Covers: Word, Excel, PowerPoint, Outlook, OneNote spawning cmd/PowerShell/mshta/LOLBins
 // High-fidelity signal — legitimate Office apps should not spawn shells
 // Ref: docs/scenarios/02-suspicious-process/investigation.md

@@ -42,6 +42,7 @@ You can't block these destinations. Look for unusual processes reaching them.
 ```kql
 // LOTS — scripting engines reaching cloud storage and collaboration services
 // Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// MITRE: T1102
 // Covers: OneDrive, SharePoint, Google Drive, GitHub, Discord, Telegram, Dropbox, Pastebin
 // Scripting engines have no legitimate reason to contact these services directly
 // Ref: docs/scenarios/09-lots-cloud-c2/investigation.md
@@ -70,6 +71,7 @@ DeviceNetworkEvents
 ```kql
 // LOTS — dead-drop resolver detection
 // Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// MITRE: T1102.001
 // Scripting engine GETs a paste/storage service then connects to a raw IP within 5 minutes
 // The storage page contains the actual C2 IP — no hardcoded address in the binary
 // isempty(RemoteUrl) = direct IP connection with no hostname resolution
@@ -104,6 +106,7 @@ DeviceNetworkEvents
 ```kql
 // LOTS — non-browser processes connecting to cloud storage (possible exfiltration)
 // Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// MITRE: T1567.002
 // Covers potential exfiltration via OneDrive, SharePoint, Google Drive, Dropbox, S3, Azure Blob
 // Ranks process/destination pairs by connection count; no volume threshold
 // TODO: byte volumes need proxy/firewall logs; DeviceNetworkEvents has no SentBytes/ReceivedBytes

@@ -1,5 +1,6 @@
 // ClickFix — EtherHiding variant detection
 // Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// MITRE: T1102
 // Payload staged via a smart contract eth_call instead of a traditional C2 domain. The C2 indicator
 // here is an RPC endpoint host (and,
 // once identified, a contract address) — not a domain, so it won't appear in domain

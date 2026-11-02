@@ -1,5 +1,6 @@
 // Defence evasion — Windows event log clearing
 // Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// MITRE: T1685.005
 // Attackers clear logs to destroy forensic evidence before or after ransomware deployment
 // If logs are being cleared, assume active attacker covering tracks — escalate immediately
 // Covers wevtutil cl / clear-log and PowerShell Clear-EventLog; file names matched case-insensitively

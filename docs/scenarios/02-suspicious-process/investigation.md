@@ -71,6 +71,7 @@ Always check the **full file path**, not just the process name.
 ```kql
 // All process events on a device within a specific time window
 // Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// MITRE: n/a (triage)
 // Use to reconstruct execution chain around a detection timestamp
 // Replace HOSTNAME with the short device name (e.g. PC01); startswith matches the FQDN, case-insensitive
 // Ref: docs/scenarios/01-malware-alert/investigation.md, docs/scenarios/02-suspicious-process/investigation.md
@@ -89,6 +90,7 @@ DeviceProcessEvents
 ```kql
 // Suspicious PowerShell command-line flags
 // Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// MITRE: T1059.001, T1027
 // Covers: encoded commands, download cradles, fileless execution, evasion switches
 // PowerShell accepts abbreviated switches: -e / -ec = -EncodedCommand, -w h = -WindowStyle Hidden
 // -nop = -NoProfile, -noni = -NonInteractive (two different switches)
@@ -116,6 +118,7 @@ DeviceProcessEvents
 ```kql
 // Office application spawning shell processes (phishing chain detector)
 // Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// MITRE: T1566.001, T1204.002
 // Covers: Word, Excel, PowerPoint, Outlook, OneNote spawning cmd/PowerShell/mshta/LOLBins
 // High-fidelity signal — legitimate Office apps should not spawn shells
 // Ref: docs/scenarios/02-suspicious-process/investigation.md
@@ -140,6 +143,7 @@ DeviceProcessEvents
 ```kql
 // LOLBin abuse — master sweep across all known Living Off the Land binaries
 // Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// MITRE: T1218.005, T1218.010, T1218.011, T1059.001, T1059.007, T1105, T1140, T1047, T1197
 // Covers: certutil, PowerShell, mshta, regsvr32, rundll32, wmic, bitsadmin
 // Run estate-wide as a daily hunt (set T0 to now()) or scope to a specific device
 // "has" matches whole terms, so "http" does not match https:// URLs; both are listed

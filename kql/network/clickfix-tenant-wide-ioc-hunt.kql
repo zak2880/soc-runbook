@@ -1,5 +1,6 @@
 // ClickFix — tenant-wide IOC hunt across process, network, URL-click, and email-URL telemetry
 // Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// MITRE: n/a (triage)
 // Run once the malicious domain from a confirmed ClickFix incident is known, to find every other
 // user/device that touched it — the same lure page is usually served to everyone who lands on it,
 // not just the device that raised the original alert

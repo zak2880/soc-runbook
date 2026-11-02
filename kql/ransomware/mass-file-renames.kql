@@ -1,5 +1,6 @@
 // Ransomware detection — mass file rename activity
 // Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// MITRE: T1486
 // Ransomware renames/re-extensions hundreds of files per minute during encryption
 // Threshold: >20 renames per minute from a single process — tune for your environment
 // Replace HOSTNAME with the short device name (e.g. PC01); startswith matches the FQDN, case-insensitive

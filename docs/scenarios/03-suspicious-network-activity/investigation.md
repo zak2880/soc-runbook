@@ -89,6 +89,7 @@ DeviceNetworkEvents
 ```kql
 // C2 beaconing detection — high connection count to single external destination
 // Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// MITRE: T1071.001
 // Primary beacon signal: same device hitting same external IP 30+ times per day
 // Sort by ConnectionCount desc and investigate anything above 30 to a non-CDN destination
 // Counts ConnectionSuccess rows in the 24h before T0 (24h keeps the 30-per-day threshold meaningful)
@@ -118,6 +119,7 @@ DeviceNetworkEvents
 ```kql
 // Internal lateral movement — network scanning detection
 // Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// MITRE: T1046
 // Infected device probing internal IPs on admin/remote-access ports
 // High TargetCount on any port = active scanning for spread opportunities
 // Replace HOSTNAME with the short device name (e.g. PC01); startswith matches the FQDN, case-insensitive
@@ -142,6 +144,7 @@ DeviceNetworkEvents
 ```kql
 // Network — outbound connections on non-standard C2 ports
 // Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// MITRE: T1571
 // Covers commonly used C2 and reverse shell ports not typical in business traffic
 // Excludes known legitimate uses where possible — tune the process exclusion list
 // for your environment

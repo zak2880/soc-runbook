@@ -65,6 +65,7 @@ Low global prevalence + no legitimate signer + phishing delivery = strong malici
 ```kql
 // File artefacts — executables written to suspicious locations
 // Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// MITRE: n/a (triage)
 // Legitimate software installs to Program Files, not Temp/AppData/ProgramData/Public
 // Any executable created in these paths warrants investigation
 // Replace HOSTNAME with the short device name (e.g. PC01); startswith matches the FQDN, case-insensitive
@@ -88,6 +89,7 @@ DeviceFileEvents
 ```kql
 // Ransomware detection — mass file rename activity
 // Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// MITRE: T1486
 // Ransomware renames/re-extensions hundreds of files per minute during encryption
 // Threshold: >20 renames per minute from a single process — tune for your environment
 // Replace HOSTNAME with the short device name (e.g. PC01); startswith matches the FQDN, case-insensitive
@@ -112,6 +114,7 @@ DeviceFileEvents
 ```kql
 // File artefacts — check if a known-bad hash has appeared on other devices
 // Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// MITRE: n/a (triage)
 // Use after identifying a malicious file on one device to check for spread and find patient zero
 // SHA256 is usually empty in these tables (Microsoft schema note): paste SHA1 from the Defender
 // file page as well. Leave an unknown hash as its placeholder — it then matches nothing
@@ -139,6 +142,7 @@ union withsource = SourceTable DeviceFileEvents, DeviceProcessEvents, DeviceImag
 ```kql
 // Ransomware pre-cursor — VSS and shadow copy deletion
 // Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// MITRE: T1490
 // Attackers destroy backups before deploying ransomware to prevent recovery
 // Seeing these commands = ransomware is imminent or already running — escalate immediately
 // Ref: docs/reference/escalation-triggers.md, docs/scenarios/05-malicious-file/investigation.md

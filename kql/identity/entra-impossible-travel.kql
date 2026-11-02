@@ -1,5 +1,6 @@
 // Identity — Entra ID impossible travel detection
 // Runs in: Defender XDR Advanced Hunting only
+// MITRE: T1078
 // AADSignInEventsBeta is deprecated (Microsoft: replaced by EntraIdSignInEvents from 19 Oct 2026);
 // not migrated in this batch. In Sentinel use SigninLogs instead
 // Flags accounts signing in from two different countries within a short window

@@ -38,6 +38,7 @@ The parent alone isn't the whole signal — `explorer.exe` spawning `powershell.
 ```kql
 // ClickFix — LOLBin spawned from explorer.exe (Run dialog) or a browser
 // Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// MITRE: T1204.004
 // Looks for an encoded/hidden command line, joined back to the nearest preceding browser process
 // on the same device
 // Covers: powershell.exe, mshta.exe, cmd.exe launched as if a user pasted a fake CAPTCHA /

@@ -1,5 +1,6 @@
 // LOTS — dead-drop resolver detection
 // Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// MITRE: T1102.001
 // Scripting engine GETs a paste/storage service then connects to a raw IP within 5 minutes
 // The storage page contains the actual C2 IP — no hardcoded address in the binary
 // isempty(RemoteUrl) = direct IP connection with no hostname resolution

@@ -1,5 +1,6 @@
 // LOTS — non-browser processes connecting to cloud storage (possible exfiltration)
 // Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// MITRE: T1567.002
 // Covers potential exfiltration via OneDrive, SharePoint, Google Drive, Dropbox, S3, Azure Blob
 // Ranks process/destination pairs by connection count; no volume threshold
 // TODO: byte volumes need proxy/firewall logs; DeviceNetworkEvents has no SentBytes/ReceivedBytes

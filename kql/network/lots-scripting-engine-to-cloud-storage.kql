@@ -1,5 +1,6 @@
 // LOTS — scripting engines reaching cloud storage and collaboration services
 // Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// MITRE: T1102
 // Covers: OneDrive, SharePoint, Google Drive, GitHub, Discord, Telegram, Dropbox, Pastebin
 // Scripting engines have no legitimate reason to contact these services directly
 // Ref: docs/scenarios/09-lots-cloud-c2/investigation.md

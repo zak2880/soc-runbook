@@ -1,5 +1,6 @@
 // LOTS (Living Off Trusted Sites) — non-browser process connecting to trusted cloud services
 // Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// MITRE: T1102
 // Covers: Discord CDN, Telegram API, GitHub raw, Pastebin, file-sharing sites
 // A hit from powershell, cmd, wscript, mshta, or unknown binary = suspicious
 // Prioritise over browser hits — browsers have legitimate reasons to visit these

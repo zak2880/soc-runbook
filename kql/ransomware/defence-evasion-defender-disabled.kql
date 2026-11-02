@@ -1,5 +1,6 @@
 // Ransomware / defence evasion — Defender disabled or weakened
 // Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// MITRE: T1685
 // Attackers disable security controls before deploying payload
 // Any of these = active attacker, not just malware — escalate immediately
 // Three sources: Defender policy values set in the registry (value names are in RegistryValueName,

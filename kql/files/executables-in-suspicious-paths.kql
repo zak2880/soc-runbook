@@ -1,5 +1,6 @@
 // File artefacts — executables written to suspicious locations
 // Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// MITRE: n/a (triage)
 // Legitimate software installs to Program Files, not Temp/AppData/ProgramData/Public
 // Any executable created in these paths warrants investigation
 // Replace HOSTNAME with the short device name (e.g. PC01); startswith matches the FQDN, case-insensitive

@@ -63,6 +63,7 @@ After T0, does the account appear on devices it doesn't normally access? Advance
 ```kql
 // Identity — lsass.exe access (credential dumping signal)
 // Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// MITRE: T1003.001
 // Any non-Windows process opening lsass = likely credential theft attempt
 // Covers: Mimikatz-style direct access and comsvcs.dll MiniDump technique
 // Replace HOSTNAME with the short device name (e.g. PC01); startswith matches the FQDN, case-insensitive
@@ -86,6 +87,7 @@ DeviceEvents
 ```kql
 // Process — credential access sweep
 // Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// MITRE: T1003.001, T1003.002, T1003.003, T1003.006, T1558.003, T1558.004
 // Hunts for Mimikatz keywords, credential dumping tools, and related command patterns
 // Covers: sekurlsa, lsadump, kerberos ticket dumping, NTLM hash dumping, DCSync
 // Any hit here = escalate immediately
@@ -131,6 +133,7 @@ DeviceProcessEvents
 ```kql
 // Identity — compromised user account appearing on multiple devices
 // Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// MITRE: T1021.001
 // Indicates lateral movement using stolen credentials
 // Run after identifying a compromised account to check for spread since T0
 // Replace USERNAME with the SAM account name (e.g. jsmith), not the UPN or display name
@@ -156,6 +159,7 @@ DeviceLogonEvents
 ```kql
 // Identity — Entra ID impossible travel detection
 // Runs in: Defender XDR Advanced Hunting only
+// MITRE: T1078
 // AADSignInEventsBeta is deprecated (Microsoft: replaced by EntraIdSignInEvents from 19 Oct 2026);
 // not migrated in this batch. In Sentinel use SigninLogs instead
 // Flags accounts signing in from two different countries within a short window
@@ -184,6 +188,7 @@ AADSignInEventsBeta
 ```kql
 // Identity — Entra ID MFA fatigue / MFA push bombing
 // Runs in: Defender XDR Advanced Hunting only
+// MITRE: T1621
 // AADSignInEventsBeta is deprecated (Microsoft: replaced by EntraIdSignInEvents from 19 Oct 2026);
 // not migrated in this batch. In Sentinel use SigninLogs instead
 // Attacker has valid credentials and hammers the user with MFA prompts hoping

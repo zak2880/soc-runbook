@@ -1,5 +1,6 @@
 // Persistence — scheduled task creation via schtasks.exe
 // Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// MITRE: T1053.005
 // Malware frequently creates scheduled tasks to re-execute the payload on reboot or login
 // Look for: random task names, Temp/AppData paths, PowerShell -enc in the action
 // Replace HOSTNAME with the short device name (e.g. PC01); startswith matches the FQDN, case-insensitive

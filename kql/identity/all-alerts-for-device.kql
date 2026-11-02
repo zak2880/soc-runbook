@@ -1,5 +1,6 @@
 // Identity / triage — all Defender alerts for a specific device
 // Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// MITRE: n/a (triage)
 // Use at the start of any investigation to get the full picture before drilling into logs
 // DeviceAlertEvents is retired: device evidence is in AlertEvidence, title/severity in AlertInfo
 // Replace HOSTNAME with the short device name (e.g. PC01); startswith matches the FQDN, case-insensitive

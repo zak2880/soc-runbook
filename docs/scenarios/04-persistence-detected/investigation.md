@@ -63,6 +63,7 @@ Three parts: **EventFilter** (trigger) → **EventConsumer** (action) → **Filt
 ```kql
 // Persistence — registry Run key modifications
 // Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// MITRE: T1547.001, T1547.004
 // Covers HKCU and HKLM Run, RunOnce, and Winlogon keys
 // Any modification around the time of a malware alert warrants investigation
 // Replace HOSTNAME with the short device name (e.g. PC01); startswith matches the FQDN, case-insensitive
@@ -87,6 +88,7 @@ DeviceRegistryEvents
 ```kql
 // Persistence — scheduled task creation via schtasks.exe
 // Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// MITRE: T1053.005
 // Malware frequently creates scheduled tasks to re-execute the payload on reboot or login
 // Look for: random task names, Temp/AppData paths, PowerShell -enc in the action
 // Replace HOSTNAME with the short device name (e.g. PC01); startswith matches the FQDN, case-insensitive
@@ -107,6 +109,7 @@ DeviceProcessEvents
 ```kql
 // Persistence — new Windows services installed
 // Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// MITRE: T1543.003
 // Malware can install itself as a service for persistence and SYSTEM-level execution
 // Look for: unusual binary paths, non-standard service names, creation by unexpected processes
 // Replace HOSTNAME with the short device name (e.g. PC01); startswith matches the FQDN, case-insensitive
@@ -129,6 +132,7 @@ DeviceEvents
 ```kql
 // Persistence — WMI event subscription creation
 // Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// MITRE: T1546.003
 // Advanced persistence technique: malware registers WMI events that fire on system conditions
 // Does not appear in normal startup tools — requires specific hunting
 // Replace HOSTNAME with the short device name (e.g. PC01); startswith matches the FQDN, case-insensitive

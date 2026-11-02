@@ -1,5 +1,6 @@
 // Ransomware pre-cursor — VSS and shadow copy deletion
 // Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// MITRE: T1490
 // Attackers destroy backups before deploying ransomware to prevent recovery
 // Seeing these commands = ransomware is imminent or already running — escalate immediately
 // Ref: docs/reference/escalation-triggers.md, docs/scenarios/05-malicious-file/investigation.md

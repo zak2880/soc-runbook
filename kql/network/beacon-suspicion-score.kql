@@ -1,5 +1,6 @@
 // C2 beaconing detection — combined suspicion score
 // Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// MITRE: T1071.001
 // Combines connection count, after-hours activity, and single-port consistency
 // Score >= 5 warrants investigation; tune threshold for your environment
 // Run this daily as a hunt query

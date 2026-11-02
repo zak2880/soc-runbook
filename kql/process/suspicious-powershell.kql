@@ -1,5 +1,6 @@
 // Suspicious PowerShell command-line flags
 // Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// MITRE: T1059.001, T1027
 // Covers: encoded commands, download cradles, fileless execution, evasion switches
 // PowerShell accepts abbreviated switches: -e / -ec = -EncodedCommand, -w h = -WindowStyle Hidden
 // -nop = -NoProfile, -noni = -NonInteractive (two different switches)

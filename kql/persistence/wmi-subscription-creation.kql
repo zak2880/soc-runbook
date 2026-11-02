@@ -1,5 +1,6 @@
 // Persistence — WMI event subscription creation
 // Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// MITRE: T1546.003
 // Advanced persistence technique: malware registers WMI events that fire on system conditions
 // Does not appear in normal startup tools — requires specific hunting
 // Replace HOSTNAME with the short device name (e.g. PC01); startswith matches the FQDN, case-insensitive
