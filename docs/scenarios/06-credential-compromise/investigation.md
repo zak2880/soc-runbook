@@ -10,15 +10,31 @@ If malware has credentials, a single infected device becomes a full breach. This
 
 ### lsass.exe access
 
-`lsass.exe` holds cached credentials in memory. Mimikatz and similar tools access it directly.
+`lsass.exe` is the Local Security Authority process. Without Credential Guard, Windows keeps secrets such as NTLM password hashes and Kerberos TGTs in its memory. Mimikatz and similar tools read them from there.
 
-> Any non-Windows process accessing `lsass.exe` = escalate immediately.
+> Any process opening `lsass.exe` that is not a verified security product, any lsass dump command or tool, or an lsass dump file on disk = isolate the device and escalate. This is the one lsass rule for this scenario.
+
+"Non-Windows process" is not the test. The comsvcs dump below runs as `rundll32.exe`, a Windows binary.
+
+A security product counts as verified only when both hold:
+- The process runs from the vendor's install folder.
+- `DeviceFileCertificateInfo` for its SHA1 shows the vendor as `Signer` and `IsTrusted` is true.
+
+Don't rely on `InitiatingProcessVersionInfoCompanyName`. It is read from the file's own version information, which whoever built the file sets.
 
 **Classic dump via comsvcs.dll:**
 ```
 rundll32.exe C:\Windows\System32\comsvcs.dll, MiniDump 624 C:\Users\Public\lsass.dmp full
 ```
-The number (624) is the PID of lsass.exe. Near-certain credential theft — escalate now.
+The number (624 here) is the PID of `lsass.exe` on that host when the command ran. Confirm it against `lsass.exe` in `DeviceProcessEvents` for that device; don't search for 624 on other hosts. The last path is the dump file. The [lolbin sweep](../../../kql/process/lolbin-sweep.kql) matches `comsvcs` and `MiniDump` in rundll32 command lines; the credential sweep below does not.
+
+**The dump file.** Record the output path from the command line and what Live Response `fileinfo` returns for it. Don't download it: it holds the stolen credentials. Don't delete it. The IR lead decides on collection. If the file is gone, it may have been moved or exfiltrated; that doesn't mean there was no dump.
+
+**Was it blocked?** If the ASR rule "Block credential stealing from the Windows local security authority subsystem" is deployed, check `DeviceEvents` for `AsrLsassCredentialTheftBlocked` or `AsrLsassCredentialTheftAudited` from the suspect process. Microsoft says most of this rule's audit events are safe to ignore, so weigh only events from the process you are investigating. A block means that one access was denied. It doesn't clear the device: the attacker had the rights to try and may have used another route (comsvcs, a dump tool, the SAM hive). Still escalate.
+
+**Who is exposed after a dump.** Treat every account with a logon on the host as exposed, not only the user in the alert. That includes other users, admins who connected for support, and service and scheduled-task accounts. List them from `DeviceLogonEvents` for this device: successful logons, every `LogonType` (including `Service` and `Batch`), from 30 days before T0 to now. Flag privileged accounts first.
+
+Credential Guard doesn't change this. Microsoft lists what it doesn't protect, including local accounts, Kerberos service tickets and NTLM credentials typed at a prompt. It also doesn't stop malware on the device from using the privileges of any credential there.
 
 ### SAM and NTDS.dit
 
@@ -60,6 +76,9 @@ After T0, does the account appear on devices it doesn't normally access? Advance
 ## KQL queries
 
 ### lsass access
+
+An empty result doesn't clear the device. The query's VERIFY note says the lsass target may be in `FileName`, not `AdditionalFields`; run the check query in that note first.
+
 ```kql
 // Identity — lsass.exe access (credential dumping signal)
 // Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)

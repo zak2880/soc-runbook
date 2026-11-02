@@ -13,7 +13,7 @@
 - Ransom note files created in multiple folders
 
 ### Credential access
-- Any non-Windows process accessing `lsass.exe`
+- Any process opening `lsass.exe` that is not a verified security product (Windows binaries such as `rundll32.exe` included), or an lsass dump file on disk
 - `rundll32.exe comsvcs.dll, MiniDump [PID]`
 - `NTDS.dit` accessed by a non-system process
 - SAM hive read by a non-system process
