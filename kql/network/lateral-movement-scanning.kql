@@ -7,7 +7,7 @@
 // Ref: docs/scenarios/03-suspicious-network-activity/investigation.md, docs/scenarios/06-credential-compromise/investigation.md
 
 // REPLACE: incident time (T0, UTC) on the next line before running
-let T0 = datetime(1970-01-01);
+let T0 = datetime(PASTE_TIME_UTC);
 DeviceNetworkEvents
 | where DeviceName startswith "HOSTNAME"
 | where RemoteIPType == "Private"

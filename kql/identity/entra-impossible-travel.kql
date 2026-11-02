@@ -8,7 +8,7 @@
 // Ref: docs/scenarios/06-credential-compromise/investigation.md
 
 // REPLACE: incident time (T0, UTC) on the next line before running
-let T0 = datetime(1970-01-01);
+let T0 = datetime(PASTE_TIME_UTC);
 let Window = 1h;
 AADSignInEventsBeta
 | where Timestamp between ((T0 - 7d) .. (T0 + 1d))

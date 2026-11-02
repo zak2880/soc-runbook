@@ -5,7 +5,7 @@
 // Ref: docs/scenarios/01-malware-alert/investigation.md, docs/scenarios/02-suspicious-process/investigation.md
 
 // REPLACE: incident time (T0, UTC) on the next line before running
-let T0 = datetime(1970-01-01);
+let T0 = datetime(PASTE_TIME_UTC);
 DeviceProcessEvents
 | where DeviceName startswith "HOSTNAME"
 | where Timestamp between ((T0 - 30m) .. (T0 + 2h))

@@ -7,7 +7,7 @@
 // Ref: docs/scenarios/09-lots-cloud-c2/investigation.md
 
 // REPLACE: incident time (T0, UTC) on the next line before running
-let T0 = datetime(1970-01-01);
+let T0 = datetime(PASTE_TIME_UTC);
 let ResolverHits = DeviceNetworkEvents
 | where Timestamp between ((T0 - 24h) .. (T0 + 24h))
 | where InitiatingProcessFileName in~ (
