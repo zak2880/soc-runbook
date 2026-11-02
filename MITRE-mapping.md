@@ -19,9 +19,9 @@ Counts are per technique ID, using the strongest status among that ID's rows in 
 | Execution | T1059.001, T1059.005, T1059.007, T1106, T1204.002, T1204.004, T1047 | 5 | 0 | 2 |
 | Persistence | T1547.001, T1547.004, T1053.005, T1543.003, T1546.003, T1136.001 | 6 | 0 | 0 |
 | Privilege Escalation | T1548.002, T1055, T1078 | 0 | 2 | 1 |
-| Stealth | T1027, T1140, T1036.005, T1055, T1070.006, T1218.005, T1218.010, T1218.011, T1197 | 6 | 1 | 2 |
+| Stealth | T1027, T1140, T1036.005, T1055, T1070.006, T1218.005, T1218.010, T1218.011, T1218.003, T1197 | 6 | 2 | 2 |
 | Defense Impairment | T1112, T1685, T1685.001, T1685.005 | 2 | 1 | 1 |
-| Credential Access | T1003.001, T1003.002, T1003.003, T1003.006, T1558.003, T1558.004, T1621 | 7 | 0 | 0 |
+| Credential Access | T1003.001, T1003.002, T1003.003, T1003.006, T1558.003, T1558.004, T1621, T1110.001 | 7 | 1 | 0 |
 | Discovery | T1018, T1057, T1082, T1083, T1046 | 1 | 0 | 4 |
 | Lateral Movement | T1021.001, T1021.002, T1021.006, T1550.002 | 1 | 0 | 3 |
 | Collection | T1560, T1074 | 0 | 0 | 2 |
@@ -29,7 +29,7 @@ Counts are per technique ID, using the strongest status among that ID's rows in 
 | Exfiltration | T1041, T1567.002, T1567.001 | 1 | 0 | 2 |
 | Impact | T1486, T1490, T1489 | 2 | 0 | 1 |
 
-T1078 and T1055 each appear under two tactics, so the per-tactic rows sum to more than 66; the totals count each ID once.
+T1078 and T1055 each appear under two tactics, so the per-tactic rows sum to more than 68; the totals count each ID once.
 
 ---
 
@@ -100,6 +100,7 @@ Status: **Query** = a linked `.kql` file implements the detection. **Guidance** 
 | System binary proxy execution — Mshta | T1218.005 | mshta with a URL or inline vbscript:/javascript: | Query | [lolbin-sweep.kql](kql/process/lolbin-sweep.kql) |
 | System binary proxy execution — Regsvr32 | T1218.010 | regsvr32 remote scriptlet (/i: URL, scrobj.dll) | Query | [lolbin-sweep.kql](kql/process/lolbin-sweep.kql) |
 | System binary proxy execution — Rundll32 | T1218.011 | rundll32 command lines containing comsvcs, MiniDump, javascript:, AppData or Temp | Query | [lolbin-sweep.kql](kql/process/lolbin-sweep.kql) |
+| System binary proxy execution — CMSTP | T1218.003 | Child processes launched by cmstp.exe (the cmstp.exe branch of the UAC-bypass query) | Guidance | [11-defence-evasion/investigation.md](docs/scenarios/11-defence-evasion/investigation.md) |
 | BITS jobs | T1197 | bitsadmin /transfer or SetNotifyCmdLine | Query | [lolbin-sweep.kql](kql/process/lolbin-sweep.kql) |
 
 ---
@@ -129,6 +130,7 @@ Status: **Query** = a linked `.kql` file implements the detection. **Guidance** 
 | Kerberoasting | T1558.003 | GetUserSPNs, Invoke-Kerberoast in command lines | Query | [credential-access-sweep.kql](kql/process/credential-access-sweep.kql) |
 | AS-REP roasting | T1558.004 | GetNPUsers, ASREPRoast in command lines | Query | [credential-access-sweep.kql](kql/process/credential-access-sweep.kql) |
 | MFA request generation (MFA fatigue) | T1621 | 5+ failed sign-ins requiring MFA per account in a 10-minute window | Query | [entra-mfa-fatigue.kql](kql/identity/entra-mfa-fatigue.kql) |
+| Brute force — password guessing | T1110.001 | RDP logon failures (more than 10) or successes per public source IP, counting Network and RemoteInteractive logons | Guidance | [10-initial-access/investigation.md](docs/scenarios/10-initial-access/investigation.md) |
 
 ---
 
