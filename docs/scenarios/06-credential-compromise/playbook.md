@@ -141,6 +141,23 @@ Order: capture evidence, then disable, then revoke, then remove what the attacke
 
 ---
 
+## Closing as a false positive
+
+Close only with a named, verifiable benign cause, and record it. "Nothing else found", low volume, or "seen on many devices" is never enough; spread means scope wider.
+
+Never close these yourself, even if a pen test is mentioned: an lsass dump command, tool or file; DCSync; NTDS.dit or hive theft; Mimikatz or other credential-tool keywords. Escalate; the IR lead confirms any authorised test.
+
+| Signal | Close only if all of these hold |
+|--------|---------------------------------|
+| A process opened lsass | It runs from the security vendor's install folder. `DeviceFileCertificateInfo` for its SHA1 shows the vendor as `Signer` with `IsTrusted` true. The product is deployed at this customer (asset list or ticket). No dump command, dump file or credential-sweep hit on the device |
+| MFA burst | The user confirms they caused the prompts. The burst IPs are the user's own known device or office. No successful sign-in from any other IP. No Entra ID Protection detection for the account |
+| Impossible travel | One location is a documented corporate VPN or proxy egress (customer documentation or a named location in Entra), and the other is the user's usual location |
+| Account on several devices | A documented role (for example IT support) with a ticket covering those devices. The account was not a Kerberoasting or AS-REP target and had no logon on a dumped host. Any remote execution came from a documented management server |
+
+If any condition can't be confirmed, don't close: escalate.
+
+---
+
 ## Escalate if
 
 See also [escalation triggers](../../reference/escalation-triggers.md).
