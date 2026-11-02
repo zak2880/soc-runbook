@@ -70,7 +70,7 @@ Defender/EDR tampered or killed
 
 ## MITRE ATT&CK coverage
 
-Full technique mapping in [MITRE-mapping.md](MITRE-mapping.md) — covers 12 tactics and 40+ techniques.
+Full technique mapping in [MITRE-mapping.md](MITRE-mapping.md), against ATT&CK v20.0 (Enterprise): 66 techniques across 13 tactics. 39 have a `.kql` query, 6 have investigation guidance only, and 21 are listed as gaps.
 
 ---
 
