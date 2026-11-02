@@ -33,12 +33,12 @@ Coverage: Techniques commonly seen in incidents handled at a UK MSSP targeting S
 | Technique | ID | Detection | KQL |
 |-----------|-----|-----------|-----|
 | Phishing — spearphishing attachment | T1566.001 | Malicious attachment delivered via email | [office-spawning-shells.kql](kql/process/office-spawning-shells.kql) |
-| Phishing — spearphishing link | T1566.002 | User clicks malicious link from email | [docs/13-email-investigation.md](docs/13-email-investigation.md) |
-| Phishing — spearphishing via Teams | T1566.003 | External Teams message with malicious content | [docs/13-email-investigation.md](docs/13-email-investigation.md) |
+| Phishing — spearphishing link | T1566.002 | User clicks malicious link from email | [12-phishing-email/investigation.md](docs/scenarios/12-phishing-email/investigation.md) |
+| Phishing — spearphishing via Teams | T1566.003 | External Teams message with malicious content | [12-phishing-email/investigation.md](docs/scenarios/12-phishing-email/investigation.md) |
 | Valid accounts | T1078 | Credential-based logon from unusual location | [entra-impossible-travel.kql](kql/identity/entra-impossible-travel.kql) |
-| External remote services (RDP) | T1133 | RDP brute force — many failures then success | [docs/11-initial-access.md](docs/11-initial-access.md) |
-| Drive-by compromise | T1189 | Browser download of executable or script | [docs/11-initial-access.md](docs/11-initial-access.md) |
-| Supply chain compromise | T1195 | Trojanised installer or update | [docs/11-initial-access.md](docs/11-initial-access.md) |
+| External remote services (RDP) | T1133 | RDP brute force — many failures then success | [10-initial-access/investigation.md](docs/scenarios/10-initial-access/investigation.md) |
+| Drive-by compromise | T1189 | Browser download of executable or script | [10-initial-access/investigation.md](docs/scenarios/10-initial-access/investigation.md) |
+| Supply chain compromise | T1195 | Trojanised installer or update | [10-initial-access/investigation.md](docs/scenarios/10-initial-access/investigation.md) |
 
 ---
 
@@ -49,7 +49,7 @@ Coverage: Techniques commonly seen in incidents handled at a UK MSSP targeting S
 | PowerShell | T1059.001 | Encoded commands, download cradles, AMSI bypass | [suspicious-powershell.kql](kql/process/suspicious-powershell.kql) |
 | Visual Basic (VBScript) | T1059.005 | wscript/cscript spawning shells | [lolbin-sweep.kql](kql/process/lolbin-sweep.kql) |
 | JavaScript | T1059.007 | mshta inline JavaScript execution | [lolbin-sweep.kql](kql/process/lolbin-sweep.kql) |
-| Native API | T1106 | Process hollowing via memory write APIs | [docs/12-defence-evasion.md](docs/12-defence-evasion.md) |
+| Native API | T1106 | Process hollowing via memory write APIs | [11-defence-evasion/investigation.md](docs/scenarios/11-defence-evasion/investigation.md) |
 | User execution — malicious file | T1204.002 | User opens phishing attachment | [office-spawning-shells.kql](kql/process/office-spawning-shells.kql) |
 | User execution — malicious copy/paste | T1204.004 (ATT&CK v16+) | User pastes an attacker-supplied command into Run dialog or PowerShell after a fake CAPTCHA/verification prompt (ClickFix) | [clickfix-lolbin-from-browser-explorer.kql](kql/process/clickfix-lolbin-from-browser-explorer.kql) |
 | Signed binary proxy execution | T1218 | certutil, mshta, regsvr32, rundll32, wmic, bitsadmin | [lolbin-sweep.kql](kql/process/lolbin-sweep.kql) |
@@ -72,8 +72,8 @@ Coverage: Techniques commonly seen in incidents handled at a UK MSSP targeting S
 
 | Technique | ID | Detection | KQL |
 |-----------|-----|-----------|-----|
-| UAC bypass | T1548.002 | fodhelper, eventvwr, computerdefaults spawning children | [docs/12-defence-evasion.md](docs/12-defence-evasion.md) |
-| Process injection | T1055 | Legitimate process making unexpected network connections | [docs/12-defence-evasion.md](docs/12-defence-evasion.md) |
+| UAC bypass | T1548.002 | fodhelper, eventvwr, computerdefaults spawning children | [11-defence-evasion/investigation.md](docs/scenarios/11-defence-evasion/investigation.md) |
+| Process injection | T1055 | Legitimate process making unexpected network connections | [11-defence-evasion/investigation.md](docs/scenarios/11-defence-evasion/investigation.md) |
 | Valid accounts | T1078 | Compromised account used for privilege escalation | [user-on-multiple-devices.kql](kql/identity/user-on-multiple-devices.kql) |
 
 ---
@@ -84,14 +84,14 @@ Coverage: Techniques commonly seen in incidents handled at a UK MSSP targeting S
 |-----------|-----|-----------|-----|
 | Obfuscated files / encoding | T1027 | Base64 encoded PowerShell, char array obfuscation | [suspicious-powershell.kql](kql/process/suspicious-powershell.kql) |
 | Masquerading — match legitimate name | T1036.005 | Executables in Temp/AppData with system process names | [executables-in-suspicious-paths.kql](kql/files/executables-in-suspicious-paths.kql) |
-| Process injection | T1055 | Memory API calls from unexpected processes | [docs/12-defence-evasion.md](docs/12-defence-evasion.md) |
+| Process injection | T1055 | Memory API calls from unexpected processes | [11-defence-evasion/investigation.md](docs/scenarios/11-defence-evasion/investigation.md) |
 | Indicator removal — clear event logs | T1070.001 | wevtutil cl, Clear-EventLog | [event-log-clearing.kql](kql/ransomware/event-log-clearing.kql) |
-| Modify registry | T1112 | UAC bypass registry modifications | [docs/12-defence-evasion.md](docs/12-defence-evasion.md) |
+| Modify registry | T1112 | UAC bypass registry modifications | [11-defence-evasion/investigation.md](docs/scenarios/11-defence-evasion/investigation.md) |
 | Signed binary proxy execution | T1218 | LOLBin abuse | [lolbin-sweep.kql](kql/process/lolbin-sweep.kql) |
 | Impair defences — disable AV | T1562.001 | Defender disabled via registry | [defence-evasion-defender-disabled.kql](kql/ransomware/defence-evasion-defender-disabled.kql) |
-| Impair defences — disable logging | T1562.002 | ETW patching, audit policy modification | [docs/12-defence-evasion.md](docs/12-defence-evasion.md) |
-| AMSI bypass | T1562.001 | AmsiUtils / amsiInitFailed in PowerShell command line | [docs/12-defence-evasion.md](docs/12-defence-evasion.md) |
-| Timestomping | T1070.006 | Files with suspiciously old timestamps in temp paths | [docs/12-defence-evasion.md](docs/12-defence-evasion.md) |
+| Impair defences — disable logging | T1562.002 | ETW patching, audit policy modification | [11-defence-evasion/investigation.md](docs/scenarios/11-defence-evasion/investigation.md) |
+| AMSI bypass | T1562.001 | AmsiUtils / amsiInitFailed in PowerShell command line | [11-defence-evasion/investigation.md](docs/scenarios/11-defence-evasion/investigation.md) |
+| Timestomping | T1070.006 | Files with suspiciously old timestamps in temp paths | [11-defence-evasion/investigation.md](docs/scenarios/11-defence-evasion/investigation.md) |
 
 ---
 
@@ -112,10 +112,10 @@ Coverage: Techniques commonly seen in incidents handled at a UK MSSP targeting S
 
 | Technique | ID | Detection | KQL |
 |-----------|-----|-----------|-----|
-| Remote system discovery | T1018 | wmic querying network, arp -a, nslookup sweeps | [docs/02-process-investigation.md](docs/02-process-investigation.md) |
+| Remote system discovery | T1018 | wmic querying network, arp -a, nslookup sweeps | [02-suspicious-process/investigation.md](docs/scenarios/02-suspicious-process/investigation.md) |
 | Process discovery | T1057 | wmic process list, tasklist in command lines | [lolbin-sweep.kql](kql/process/lolbin-sweep.kql) |
-| System info discovery | T1082 | wmic computersystem, systeminfo, hostname | [docs/02-process-investigation.md](docs/02-process-investigation.md) |
-| File and directory discovery | T1083 | dir /s, Get-ChildItem recursing filesystem | [docs/05-file-artefacts.md](docs/05-file-artefacts.md) |
+| System info discovery | T1082 | wmic computersystem, systeminfo, hostname | [02-suspicious-process/investigation.md](docs/scenarios/02-suspicious-process/investigation.md) |
+| File and directory discovery | T1083 | dir /s, Get-ChildItem recursing filesystem | [05-malicious-file/investigation.md](docs/scenarios/05-malicious-file/investigation.md) |
 
 ---
 
@@ -126,7 +126,7 @@ Coverage: Techniques commonly seen in incidents handled at a UK MSSP targeting S
 | RDP | T1021.001 | Account logging into new devices via RemoteInteractive | [user-on-multiple-devices.kql](kql/identity/user-on-multiple-devices.kql) |
 | SMB / Windows Admin Shares | T1021.002 | Connections to port 445 on multiple internal IPs | [lateral-movement-scanning.kql](kql/network/lateral-movement-scanning.kql) |
 | WinRM | T1021.006 | Connections to port 5985/5986 on multiple internal IPs | [lateral-movement-scanning.kql](kql/network/lateral-movement-scanning.kql) |
-| Pass the Hash | T1550.002 | Network logons from unexpected source using domain account | [docs/06-identity-and-credentials.md](docs/06-identity-and-credentials.md) |
+| Pass the Hash | T1550.002 | Network logons from unexpected source using domain account | [06-credential-compromise/investigation.md](docs/scenarios/06-credential-compromise/investigation.md) |
 
 ---
 
@@ -149,7 +149,7 @@ Coverage: Techniques commonly seen in incidents handled at a UK MSSP targeting S
 
 | Technique | ID | Detection | KQL |
 |-----------|-----|-----------|-----|
-| Exfil over C2 channel | T1041 | Large outbound transfers from unexpected process | [docs/03-network-investigation.md](docs/03-network-investigation.md) |
+| Exfil over C2 channel | T1041 | Large outbound transfers from unexpected process | [03-suspicious-network-activity/investigation.md](docs/scenarios/03-suspicious-network-activity/investigation.md) |
 | Exfil to cloud storage | T1567 | High-volume uploads to OneDrive, S3, Dropbox from non-browser | [lots-exfiltration-via-cloud.kql](kql/network/lots-exfiltration-via-cloud.kql) |
 | Exfil to code repository | T1567.002 | Non-browser process pushing to GitHub | [lots-scripting-engine-to-cloud-storage.kql](kql/network/lots-scripting-engine-to-cloud-storage.kql) |
 
@@ -161,4 +161,4 @@ Coverage: Techniques commonly seen in incidents handled at a UK MSSP targeting S
 |-----------|-----|-----------|-----|
 | Data encrypted for impact (ransomware) | T1486 | Mass file renames, new extensions across filesystem | [mass-file-renames.kql](kql/ransomware/mass-file-renames.kql) |
 | Inhibit system recovery | T1490 | VSS deletion, bcdedit recovery disabled | [vss-shadow-copy-deletion.kql](kql/ransomware/vss-shadow-copy-deletion.kql) |
-| Service stop | T1489 | Security tools killed via taskkill | [docs/12-defence-evasion.md](docs/12-defence-evasion.md) |
+| Service stop | T1489 | Security tools killed via taskkill | [11-defence-evasion/investigation.md](docs/scenarios/11-defence-evasion/investigation.md) |
