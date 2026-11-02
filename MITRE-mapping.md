@@ -120,7 +120,7 @@ Status: **Query** = a linked `.kql` file implements the detection. **Guidance** 
 
 | Technique | ID | Detection | Status | Detection / reference |
 |-----------|-----|-----------|--------|-----------------------|
-| OS credential dumping — LSASS memory | T1003.001 | lsass.exe accessed by non-Windows process | Query | [lsass-access-credential-dump.kql](kql/identity/lsass-access-credential-dump.kql), [credential-access-sweep.kql](kql/process/credential-access-sweep.kql) |
+| OS credential dumping — LSASS memory | T1003.001 | lsass.exe accessed by non-Windows process | Query | [lsass-access-credential-dump.kql](kql/identity/lsass-access-credential-dump.kql), [credential-access-sweep.kql](kql/process/credential-access-sweep.kql), [lolbin-sweep.kql](kql/process/lolbin-sweep.kql) |
 | OS credential dumping — SAM | T1003.002 | SAM hive read by non-system process | Query | [credential-access-sweep.kql](kql/process/credential-access-sweep.kql) |
 | OS credential dumping — NTDS | T1003.003 | NTDS.dit accessed by non-system process | Query | [credential-access-sweep.kql](kql/process/credential-access-sweep.kql) |
 | OS credential dumping — DCSync | T1003.006 | DCSync, drsuapi, DrsGetNCChanges in command lines | Query | [credential-access-sweep.kql](kql/process/credential-access-sweep.kql) |
@@ -193,5 +193,5 @@ Status: **Query** = a linked `.kql` file implements the detection. **Guidance** 
 | Technique | ID | Detection | Status | Detection / reference |
 |-----------|-----|-----------|--------|-----------------------|
 | Data encrypted for impact (ransomware) | T1486 | Mass file renames, new extensions across filesystem | Query | [mass-file-renames.kql](kql/ransomware/mass-file-renames.kql) |
-| Inhibit system recovery | T1490 | VSS deletion, bcdedit recovery disabled | Query | [vss-shadow-copy-deletion.kql](kql/ransomware/vss-shadow-copy-deletion.kql) |
+| Inhibit system recovery | T1490 | VSS deletion, bcdedit recovery disabled | Query | [vss-shadow-copy-deletion.kql](kql/ransomware/vss-shadow-copy-deletion.kql), [lolbin-sweep.kql](kql/process/lolbin-sweep.kql) |
 | Service stop | T1489 | Services stopped for impact (net stop / sc stop); killing security tools is under T1685 | Gap | — |

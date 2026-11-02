@@ -21,7 +21,7 @@ Each query's second header line says where it runs (`// Runs in:`). Defender tab
 |------|----------------|-------|
 | [suspicious-powershell.kql](process/suspicious-powershell.kql) | Encoded commands, download cradles, fileless execution, evasion flags | T1059.001, T1027 |
 | [office-spawning-shells.kql](process/office-spawning-shells.kql) | Office applications spawning cmd, PowerShell, mshta, or LOLBins | T1566.001, T1204.002 |
-| [lolbin-sweep.kql](process/lolbin-sweep.kql) | All LOLBin abuse in one query — certutil, mshta, regsvr32, rundll32, wmic, bitsadmin | T1218.005, T1218.010, T1218.011, T1059.001, T1059.007, T1105, T1140, T1047, T1197 |
+| [lolbin-sweep.kql](process/lolbin-sweep.kql) | All LOLBin abuse in one query — certutil, mshta, regsvr32, rundll32, wmic, bitsadmin | T1218.005, T1218.010, T1218.011, T1059.001, T1059.007, T1105, T1140, T1047, T1197, T1003.001, T1490 |
 | [processes-in-time-window.kql](process/processes-in-time-window.kql) | All process events on a device within a specific time window | n/a (triage) |
 | [credential-access-sweep.kql](process/credential-access-sweep.kql) | Mimikatz, DCSync, Kerberoasting, AS-REP roasting, token manipulation | T1003.001, T1003.002, T1003.003, T1003.006, T1558.003, T1558.004 |
 | [clickfix-lolbin-from-browser-explorer.kql](process/clickfix-lolbin-from-browser-explorer.kql) | LOLBin spawned from explorer.exe/browser with encoded/hidden command line, correlated to browser activity | T1204.004 |

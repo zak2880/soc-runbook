@@ -143,7 +143,7 @@ DeviceProcessEvents
 ```kql
 // LOLBin abuse — master sweep across all known Living Off the Land binaries
 // Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
-// MITRE: T1218.005, T1218.010, T1218.011, T1059.001, T1059.007, T1105, T1140, T1047, T1197
+// MITRE: T1218.005, T1218.010, T1218.011, T1059.001, T1059.007, T1105, T1140, T1047, T1197, T1003.001, T1490
 // Covers: certutil, PowerShell, mshta, regsvr32, rundll32, wmic, bitsadmin
 // Run estate-wide as a daily hunt (set T0 to now()) or scope to a specific device
 // "has" matches whole terms, so "http" does not match https:// URLs; both are listed
