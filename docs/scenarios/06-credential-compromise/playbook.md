@@ -11,6 +11,7 @@ T0 = first malicious activity, in UTC. Advanced Hunting holds 30 days of native 
 1. **Record T0, the device FQDN, and the alert account's SAM name and UPN.**
    - Expect: all four known.
    - If not: take T0 from the earliest related alert or process event and mark it as an estimate.
+   - If the alert has no device (a cloud sign-in alert): go to step 3, then step 9.
 
 2. **Check the device for lsass access or a dump.** Run the lsass access query, the credential sweep and the lolbin sweep (it covers comsvcs `MiniDump`).
    - Rule: any process opening `lsass.exe` that is not a verified security product, any lsass dump command or tool, or an lsass dump file = go to step 4 now and escalate. A verified security product runs from the vendor's install folder and shows the vendor as `Signer`, with `IsTrusted` true, in `DeviceFileCertificateInfo`.
@@ -20,7 +21,7 @@ T0 = first malicious activity, in UTC. Advanced Hunting holds 30 days of native 
 
 3. **Check Entra ID Protection for the account** (Risky users, Risk detections).
    - Expect: no risk detections since T0.
-   - If not: High risk, "Attacker in the Middle", "Anomalous token" or "Suspicious MFA authentication approval" = escalate, then continue from step 9.
+   - If not: any detection puts the account in scope for steps 9 to 20. High risk, "Attacker in the Middle", "Anomalous token" or "Suspicious MFA authentication approval" = also escalate now.
 
 ---
 
@@ -85,7 +86,7 @@ Order: capture evidence, then disable, then revoke, then remove what the attacke
     - Why: "Require re-register MFA" deletes the user's phone numbers, Authenticator apps and software OATH tokens. Afterwards you can't see which one the attacker added.
     - Expect: exports attached to the ticket.
 
-14. **Stop before acting on privileged or service accounts.** Service account, admin, or an account a production system uses: don't disable or reset it yourself. Disabling it may stop the service. Escalate; the IR lead decides.
+14. **Stop before acting on privileged or service accounts.** Service account, admin, or an account a production system uses: don't disable or reset it yourself. Disabling it may stop the service. Escalate; the IR lead decides. Do the same if a dump exposed many accounts (for example on a shared or terminal server): the IR lead sets the order.
 
 15. **Disable the account.** Synced from AD: disable it in AD. Cloud-only: in the Entra admin center, clear Account enabled.
     - Expect: new sign-ins blocked. This is reversible; you re-enable it in step 20.

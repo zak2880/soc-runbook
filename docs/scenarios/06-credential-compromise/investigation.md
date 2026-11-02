@@ -45,7 +45,7 @@ Don't look for a "SAM read" or "NTDS.dit accessed" event. Microsoft describes `D
 
 - `reg save HKLM\SAM`, `HKLM\SYSTEM` or `HKLM\SECURITY`: in the credential sweep below.
 - `ntdsutil` or `ntds.dit` in a command line: in the credential sweep below.
-- Shadow-copy routes such as `vssadmin create shadow`, `esentutl`, or copies from `HarddiskVolumeShadowCopy`: in no query here. Search the device timeline by hand.
+- Shadow-copy routes: any `vssadmin` command line is matched by [vss-shadow-copy-deletion.kql](../../../kql/ransomware/vss-shadow-copy-deletion.kql), whose header is about deletion but whose filter matches `vssadmin create shadow` too. `esentutl` and copies from `HarddiskVolumeShadowCopy` are in no query here; search the device timeline by hand.
 - DCSync: `DCSync`, `drsuapi` or `DrsGetNCChanges` in the credential sweep. If Defender for Identity is deployed, also check for its alert "Suspected DCSync attack (replication of directory services)".
 
 Any of these = escalate. NTDS.dit theft or DCSync puts every domain credential at risk.
