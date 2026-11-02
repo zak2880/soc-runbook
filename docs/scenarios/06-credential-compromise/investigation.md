@@ -39,9 +39,20 @@ Credential Guard doesn't change this. Microsoft lists what it doesn't protect, i
 ### SAM and NTDS.dit
 
 - `SAM` — local account password hashes
-- `NTDS.dit` — full Active Directory credential database
+- `NTDS.dit` — full Active Directory credential database (domain controllers)
 
-Either accessed by a non-system process = critical indicator.
+Don't look for a "SAM read" or "NTDS.dit accessed" event. Microsoft describes `DeviceFileEvents` as file creation, modification and other file system events, and documents no read events. Hunt the theft method instead:
+
+- `reg save HKLM\SAM`, `HKLM\SYSTEM` or `HKLM\SECURITY`: in the credential sweep below.
+- `ntdsutil` or `ntds.dit` in a command line: in the credential sweep below.
+- Shadow-copy routes such as `vssadmin create shadow`, `esentutl`, or copies from `HarddiskVolumeShadowCopy`: in no query here. Search the device timeline by hand.
+- DCSync: `DCSync`, `drsuapi` or `DrsGetNCChanges` in the credential sweep. If Defender for Identity is deployed, also check for its alert "Suspected DCSync attack (replication of directory services)".
+
+Any of these = escalate. NTDS.dit theft or DCSync puts every domain credential at risk.
+
+### Kerberoasting and AS-REP roasting
+
+The credential sweep matches `GetUserSPNs`, `Invoke-Kerberoast`, `GetNPUsers` and `ASREPRoast`. A hit means the targeted accounts' tickets may already be off the network for offline cracking; isolating the device doesn't undo that. Record every account named in the command line and treat it as exposed. If Defender for Identity is deployed, check for "Suspected Kerberos SPN exposure" and "Suspected AS-REP Roasting attack".
 
 ---
 
@@ -49,14 +60,16 @@ Either accessed by a non-system process = critical indicator.
 
 ### Account on new devices post-infection
 
-After T0, does the account appear on devices it doesn't normally access? Advanced Hunting holds 30 days of native data; activity older than that needs Sentinel retention.
+After T0, does any exposed account appear on devices it has no documented reason to access? Check every account from "Who is exposed after a dump", not only the one in the alert. Advanced Hunting holds 30 days of native data; activity older than that needs Sentinel retention.
+
+An account seen on many devices is a reason to scope wider, never a reason to close. A service account that was a Kerberoasting or AS-REP target, or had a logon on the dumped host, is the attacker's until you prove otherwise.
 
 ### Remote execution tools
 
 | Tool | What to look for |
 |------|-----------------|
-| PsExec | `psexec.exe` / `psexesvc.exe`, `ADMIN$` share access |
-| WMI remote | `wmic.exe /node:"IP" process call create` |
+| PsExec | `psexec.exe` on the source; a new service and `ADMIN$` share access on the target. PsExec's `-r` option sets the service name, so don't rely on the name `psexesvc.exe` alone |
+| WMI remote | Source: `wmic.exe /node:"IP" process call create`. Target: processes started by the WMI provider host `WmiPrvSE.exe` around that time. VERIFY (tenant): that remote WMI shows this parent in your data. Remote WMI doesn't need `wmic.exe`, so no `wmic.exe` command line doesn't clear the account |
 | WinRM | `wsmprovhost.exe` as parent on the remote host |
 | RDP | `LogonType = RemoteInteractive` from unusual source IP |
 
@@ -66,10 +79,15 @@ After T0, does the account appear on devices it doesn't normally access? Advance
 
 | Indicator | What to look for |
 |-----------|-----------------|
+| Entra ID Protection | Check first: Risky users and Risk detections for the account. Relevant detections include "Suspicious MFA authentication approval", "Attacker in the Middle", "Anomalous token", "Password spray" and "Unfamiliar sign-in properties". Without Entra ID P2, most appear only as "Additional risk detected" |
 | New location | Country/city the user has never used |
 | Impossible travel | Two countries within minutes of each other |
-| MFA fatigue | Many MFA push prompts in a short window |
-| Legacy auth | Sign-in via IMAP/POP3/SMTP — bypasses MFA |
+| MFA fatigue | Many MFA push prompts in a short window, then whether one was approved (see the success check under the MFA fatigue query) |
+| Legacy auth | Sign-in via IMAP/POP3/SMTP. Legacy protocols don't support MFA, so the password alone is enough. In the Entra sign-in logs, filter on the Client App column, on both the interactive and the non-interactive tabs |
+
+No row firing doesn't clear the account. A stolen session token replayed from the user's usual country trips none of the location rows; the ID Protection token detections are the check for that.
+
+The two Entra queries below run tenant-wide. Filter the results to the account under investigation by `AccountUpn` (the full UPN, not the SAM name).
 
 ---
 
@@ -229,3 +247,7 @@ AADSignInEventsBeta
 | where MFAPrompts >= 5
 | order by MFAPrompts desc
 ```
+
+**Success check.** The query keeps only failed sign-ins, so it shows the attempt, not the outcome. Then open the Entra sign-in logs (interactive and non-interactive), filter to the user, and look for a successful sign-in from the first failed prompt to now. A success from an IP or country in the burst's `SourceIPs` or `Countries`, or one the user doesn't recognise = the account is compromised.
+
+No success still isn't a clear. Treat the password as known to the attacker unless the sign-in details show the first factor failed. VERIFY (tenant): where your sign-in logs show the result of each authentication step.

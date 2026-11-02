@@ -15,8 +15,8 @@
 ### Credential access
 - Any process opening `lsass.exe` that is not a verified security product (Windows binaries such as `rundll32.exe` included), or an lsass dump file on disk
 - `rundll32.exe comsvcs.dll, MiniDump [PID]`
-- `NTDS.dit` accessed by a non-system process
-- SAM hive read by a non-system process
+- `NTDS.dit` copied (`ntdsutil`, shadow copy, `esentutl`) or DCSync seen; MDE documents no file-read events, so hunt the method
+- SAM, SYSTEM or SECURITY hive saved (`reg save HKLM\SAM`)
 - Mimikatz binary or `sekurlsa::` commands
 
 ### Active C2 session
