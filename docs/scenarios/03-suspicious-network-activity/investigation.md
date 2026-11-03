@@ -295,4 +295,4 @@ These tests don't separate benign software from C2, so don't close on them:
 - **A signed `svchost.exe` behind a download.** BITS downloads run there.
 - **An internal scan from an address that looks like the scanner.** Confirm the scanner's source device and the scan window with the customer.
 
-To close as a false positive, every condition in Closing as a false positive in the [playbook](playbook.md) must hold.
+To close as a false positive, every condition in [Closing as a false positive](playbook.md#closing-as-a-false-positive) in the playbook must hold.
