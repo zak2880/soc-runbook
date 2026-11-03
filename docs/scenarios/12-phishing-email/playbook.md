@@ -16,7 +16,7 @@ If you don't hold the rights for a step in 1 to 7 (Explorer read access; the Pre
 
 1. **Find the message and open its email entity page.** Record the Network message ID, Internet message ID, From and MAIL FROM addresses, Directionality, Time received, Latest delivery location, Detection technology, DMARC, DKIM, SPF and Composite authentication, Cluster ID, and recipient Tags (investigation, Step 1).
    - Expect: all recorded.
-   - If you can't find it in Explorer (it searches up to 30 days back): check Message trace, record what you searched, and escalate (copies can't be removed).
+   - If you can't find it in Explorer (it searches up to 30 days back): check Message trace, record what you searched and the recipients it lists, and continue with the steps you can do. Do steps 12 to 15 for those recipients. Escalate (message not found in Explorer) if any recipient interacted or any recipient is a priority account; otherwise record it as a ticket note.
 
 2. **Check the incident's other alerts and each recipient's user page.**
    - Expect: email alerts only.
@@ -201,6 +201,7 @@ Internal mailbox compromised (BEC): the message came from the customer's own dom
 Partner mailbox compromised: a known partner's authenticated mailbox sent it (thread hijacking)
 Priority or admin recipient interacted (clicked, opened the attachment, or entered credentials)
 Remote-access tool after a call (callback phishing)
-Copies can't be removed: message not found, Plan 1 only, On-premises/External, older than 30 days, or remediation Failed and the customer can't remove them
+Message not found in Explorer, and any recipient interacted or any recipient is a priority account (otherwise a ticket note)
+Copies can't be removed: Plan 1 only, On-premises/External, older than 30 days, or remediation Failed and the customer can't remove them
 Business domain can't be blocked: a malicious URL is on a domain the customer uses and its path can't be blocked
 ```
