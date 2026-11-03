@@ -115,7 +115,7 @@ If you don't hold the rights for a step here (Collect file, Live Response), requ
 
 18. **Work out what was sent** ([investigation, Step 7](investigation.md#step-7--work-out-what-was-sent)). MDE has no byte counts; ask the customer for proxy or firewall logs if volume matters.
     - Expect: no class C or D connection to a webhook service, the Telegram Bot API, Microsoft Graph, or a storage host outside the customer's tenant.
-    - If there is one, or a stealer or unknown payload ran (steps 13 and 14): escalate. Treat the browser-saved passwords and signed-in web sessions of every user who logged on to the device (06 playbook step 8) as exposed. Follow 06 playbook steps 13 to 18 for each of those users (capture evidence, revoke sessions, reset passwords). Tell the customer which users need resets for other sites they saved in the browser.
+    - If there is one, or a stealer or unknown payload ran (steps 13 and 14): escalate. Treat the browser-saved passwords and signed-in web sessions of every user who logged on to the device (06 playbook step 8) as exposed. Follow 06 playbook steps 13 to 20 for each of those users (capture evidence, disable, revoke sessions, remove what the attacker added, reset passwords from a clean device, re-enable). Re-enabling is step 20: you do it, or the customer's IT contact if you don't hold the right, once that step's conditions hold. Tell the customer which users need resets for other sites they saved in the browser.
     - Upload to the customer's own SharePoint or OneDrive: record the account and site, and ask the customer to review what was shared from it.
 
 ---
