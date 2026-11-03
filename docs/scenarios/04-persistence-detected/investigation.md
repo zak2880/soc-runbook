@@ -117,7 +117,7 @@ C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup
 
 A WMI event subscription runs a command when an event fires (the clock, a user logon, the computer's uptime). It has three objects: **EventFilter** (trigger), **EventConsumer** (action) and **FilterToConsumerBinding** (links them). All three must be removed. Execution runs through `WmiPrvSE.exe` and may run as SYSTEM.
 
-- It doesn't show in Task Manager or the Startup folders. Sysinternals Autoruns has a "WMI entries" category; whether Live Response `persistence` lists it is VERIFY (tenant).
+- It isn't a Run key, task, service or startup file, so those checks don't find it. Sysinternals Autoruns has a "WMI entries" category; whether Live Response `persistence` lists it is VERIFY (tenant).
 - ASR rule "Block persistence through WMI event subscription" writes `AsrPersistenceThroughWmiAudited` or `AsrPersistenceThroughWmiBlocked` in `DeviceEvents`. `Blocked` means the attempt was stopped; `Audited` means it went through.
 - The WMI query's action type names are not on Microsoft Learn; read its VERIFY note before trusting an empty result.
 - The execution side is visible even when creation isn't: ATT&CK advises looking for `mofcomp.exe` and unusual child processes of `WmiPrvSE.exe`.
