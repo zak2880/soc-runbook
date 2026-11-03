@@ -34,19 +34,19 @@ T0 = the first malicious event in the chain (the document opened, the command pa
    - PsExec, `psexesvc` or WMI execution to or from another host
    - Defender or EDR tampered with or stopped
    - Expect: none.
-   - If any: escalate now and go to step 8. For a credential item, also run step 2 of the [credential compromise playbook](../06-credential-compromise/playbook.md) for this device.
+   - If any: escalate now and go to step 8. Do step 6 after step 11. For a credential item, also run step 2 of the [credential compromise playbook](../06-credential-compromise/playbook.md) for this device.
    - WMI to another host includes `wmic /node:` and `-ComputerName` on `Invoke-CimMethod` or `Invoke-WmiMethod`. Defender tampering includes `Set-MpPreference` changes and new exclusions.
 
 6. **Decode any encoded content** ([Decode before you judge](investigation.md#decode-before-you-judge)): `-e`, `-ec`, `-enc`, `-EncodedCommand`, `FromBase64String`, `certutil -decode` input, script arguments to `mshta`. Decode PowerShell as UTF-16LE on your analysis machine. Never run the result.
    - Expect: readable text whose action you can name. Record every URL, IP, domain and file name it contains.
    - If it contains a step 5 item: escalate now and go to step 8.
-   - If the decoded command downloads or runs code from an external host, or loads an assembly from memory, and its parent is not the customer's confirmed management agent: escalate and go to step 8.
+   - If the decoded command downloads or runs code from an external host, or loads an assembly from memory, and its parent is not the customer's confirmed management agent: escalate and go to step 8. Confirmed means a named product that the customer's asset list or a change record shows is their own installation.
    - If the encoded content can't be decoded to readable text: escalate and go to step 8.
    - The switches alone (`-nop`, `-w h`, `-enc`) are not a verdict. Management tools use them too.
 
 7. **Decide the path.**
    - It looks like sanctioned activity (a named management tool or a documented script): do steps 12 to 14. Close only if every condition in Closing as a false positive holds; otherwise go to step 8.
-   - Detection status Prevented or Blocked, no ASR event ends in `Audited`, and the Device timeline shows nothing else from the chain ran after T0 (no other child processes, connections or file writes): do steps 12 to 14, then steps 18 and 19, without containing. If they find anything, come back to step 8.
+   - Detection status Prevented or Blocked, no ASR event ends in `Audited`, and the Device timeline shows nothing else from the chain ran after T0 (no other child processes, connections, file writes or registry changes): you don't need to isolate. Do steps 10 to 19. If any of them finds something, go to step 8. If not: do steps 20 to 24 for the file that started the chain (for example the document), and close out as a true positive.
    - Anything else, or you can't tell: go to step 8. Don't wait to see whether the process is still running. A downloader can exit within seconds of fetching its next stage.
 
 ---
@@ -83,7 +83,7 @@ If you don't hold the rights for a step here (isolation, investigation package, 
 
 12. **Trace the whole chain** in the alert's process tree and the Device timeline from T0: grandparent, parent, process, children and grandchildren. Link each child to its parent on PID plus creation time ([Follow the process](investigation.md#follow-the-process)).
     - Expect: every process recorded with path, SHA1 and command line, and a parent that explains it.
-    - If an Office app or `WmiPrvSE.exe` started PowerShell, cmd, mshta or a script host, and ASR didn't block it: escalate.
+    - If an Office app or `WmiPrvSE.exe` started PowerShell, cmd, mshta or a script host, ASR didn't block it, and the caller is not the customer's confirmed management agent or application (step 6): escalate.
     - If the parent is `WmiPrvSE.exe`: find what called WMI ([Hidden parents](investigation.md#hidden-parents)). A call from another device is WMI execution to or from another host (step 5): escalate. Use step 9 of the [credential compromise playbook](../06-credential-compromise/playbook.md) to scope it.
     - If the parent is `explorer.exe` and the command has a URL or encoded arguments: it may be a Run-dialog paste. Use the [ClickFix investigation](../13-clickfix/investigation.md) for scope, and continue here.
     - If an Office app is the parent: record the document it had open; it is the delivery file for step 19.
@@ -138,12 +138,12 @@ Only after step 10 is done (or recorded as failed) and step 11 is done on every 
 
 20. **Stop what is still running** (step 15).
     - Nothing from the chain running: go to step 21.
-    - A payload not signed by Microsoft or a trusted non-Microsoft publisher (an EXE, DLL or script from steps 11 and 14): file page → Stop and Quarantine File. It stops its running processes, quarantines the file and deletes persistent data such as registry keys, on every device where it was seen in the last 30 days.
+    - A payload not signed by Microsoft or a trusted non-Microsoft publisher (an EXE or DLL from steps 11 and 14, or a script if its file page offers the action): file page → Stop and Quarantine File. It stops its running processes, quarantines the file and deletes persistent data such as registry keys, on every device where it was seen in the last 30 days.
       - Expect: the Action center shows Success for each device.
       - If Failed: record the reason. If Pending: the device is offline; the action times out after three days.
       - If Defender warns that the file is widely used in the organization: cancel and escalate. It may be a business application.
       - A quarantined file can be restored if it turns out to be clean.
-    - A Windows binary or another file signed by Microsoft or a trusted publisher (for example `powershell.exe`, `mshta.exe`, `rundll32.exe`, or a remote management agent): Stop and Quarantine File can't be used on it. Don't use Live Response `remediate` on the process either: on a process it stops the process and deletes the image file. Escalate; the IR lead decides how to stop it. The device stays isolated meanwhile. Quarantine the script, HTA or DLL it ran as above.
+    - A Windows binary or another file signed by Microsoft or a trusted publisher (for example `powershell.exe`, `mshta.exe`, `rundll32.exe`, or a remote management agent): Stop and Quarantine File can't be used on it. Don't use Live Response `remediate` on the process either: on a process it stops the process and deletes the image file. Escalate; the IR lead decides how to stop it. The device stays isolated meanwhile. The script, HTA or DLL it ran: Stop and Quarantine File as above if the file page offers it; otherwise it is removed in step 22.
 
 21. **Block the IOCs** with Defender for Endpoint indicators (Settings → Endpoints → Indicators). Block the SHA1 of each malicious non-Windows file from steps 11 and 14, and the external IPs, URLs and domains from steps 6 and 14.
     - Never add a block indicator for the hash of a Windows binary or another legitimate signed tool. A file indicator stops the file being read, written or executed on every device in its scope.
@@ -230,7 +230,7 @@ Event logs cleared (wevtutil cl)
 PsExec, psexesvc or WMI execution to or from another host
 Defender or EDR tampered with or stopped
 Any hit in step 2 of the credential compromise playbook (step 17)
-Office app or WmiPrvSE.exe started PowerShell, cmd, mshta or a script host, and ASR didn't block it
+Office app or WmiPrvSE.exe started PowerShell, cmd, mshta or a script host, ASR didn't block it, and the caller is not the customer's confirmed management agent or application
 Decoded command downloads or runs code from an external host, or loads an assembly from memory, and its parent is not the customer's confirmed management agent
 Encoded content that can't be decoded to readable text
 Windows binary name running from a folder other than its usual Windows folder, or a renamed copy of a Windows binary
