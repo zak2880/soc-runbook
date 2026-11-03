@@ -20,7 +20,7 @@ T0 = the first malicious event in the chain (the command pasted, or the first su
 2. **Record the device, the user and the process.** Device FQDN, OS and role (workstation, server, jump host); the user's SAM name and UPN, and whether the account is privileged; for the process the paste started: name, full path, SHA1, full command line, PID and creation time; the parent's name and command line; the grandparent's name. Take them from the alert's process tree or the Device timeline.
    - Expect: all known.
    - If the PID or creation time is missing: identify the process in the Device timeline. Don't match on the process name alone; PIDs are reused.
-   - If the user is privileged, or the device is a server or jump host: escalate now (privileged user, server or jump host) and continue.
+   - If the user is privileged or a service account, or the device is a server or jump host: escalate now (privileged user, service account, server or jump host) and continue.
    - If the device is a Mac: escalate (macOS device). This playbook covers Windows.
 
 3. **Set T0** from the Device timeline: the earliest event in the chain.
@@ -103,7 +103,7 @@ If you don't hold the rights for a step here (isolation, investigation package, 
     - If other values hold a LOLBin, a URL, a lure comment or an encoded string: each is another paste. Decode it (step 6), add it to step 12, and move T0 if it is earlier.
     - If there is no value: this doesn't clear the device. A command that failed leaves no value, and a paste anywhere else never touches the key.
 
-14. **Ask the user, through the customer contact:** what page were you on, how did you get there, what did it tell you to do, where did you paste, how many times, what happened next, and did anyone tell you to do this? Ask them not to reopen the page and not to sign in on this device.
+14. **Ask the user, through the customer contact:** what page were you on, how did you get there, what did it tell you to do, where did you paste, how many times, what happened next, and did anyone tell you to do this? Ask them not to reopen the page, not to sign in on this device, and to leave it switched on: a shutdown or restart ends what is running and stops the Defender actions reaching it.
     - Expect: the answers in the ticket. Step 22 uses them.
     - If they saw a "verify you're human" check, a CAPTCHA, or a "fix this error" prompt before pasting: escalate (user reports a verification or fix-an-error prompt before pasting). This is the lure; never a false positive.
     - If someone told them to paste, by phone, chat or remote session: ask the customer contact, not the user, for the helpdesk ticket. Attackers pose as IT support. If the customer's helpdesk can't confirm it: escalate (user was told to paste by someone the helpdesk can't confirm).
@@ -148,7 +148,7 @@ A stolen session stays valid until it is revoked, so do this before you scope th
     - If a browser credential theft signal appears: also escalate (browser credential theft signal).
 
 20. **Contain every exposed account.** Do this when step 19 can't rule out a stealer, and for any account whose password was typed into the page (step 14). Otherwise go to step 21. There is one threshold: don't wait for a suspicious sign-in.
-    - List the users: the user who pasted first, then every user who logged on to the device (step 8 of the [credential compromise playbook](../06-credential-compromise/playbook.md)). Their browser-saved passwords and signed-in web sessions are exposed.
+    - List the users: the user who pasted first, then every user who logged on to the device (step 8 of the [credential compromise playbook](../06-credential-compromise/playbook.md)). Their browser-saved passwords and signed-in web sessions are exposed. If the list holds a privileged or service account: escalate (privileged user, service account, server or jump host).
     - For each user, in the 06 playbook: do steps 9 and 11, then steps 13 to 20 in order. That captures evidence, disables, revokes sessions, removes what the attacker added, resets the password from a clean device and re-enables. Its step 14 stops you on privileged and service accounts, and when many accounts are exposed at once.
     - Also run the sign-in query ([Identity and browser credentials](investigation.md#identity-and-browser-credentials)) for each user, and rerun it with a later T0 until the sessions are revoked. A stolen session can be used days after the paste.
     - If a sign-in comes from an IP, country or device the user doesn't recognise, or Entra ID Protection has a detection: escalate (suspicious sign-in for an exposed account since T0).
@@ -170,7 +170,7 @@ A stolen session stays valid until it is revoked, so do this before you scope th
     - If a phishing email: use the [phishing email playbook](../12-phishing-email/playbook.md) for the other recipients.
     - If none is found: record the vector as unknown.
 
-23. **Check for EtherHiding** ([Special case: EtherHiding](investigation.md#special-case-etherhiding)) if the lure sat on a compromised legitimate site, or if any process in steps 15 or 22 reached a blockchain RPC host. Otherwise go to step 24. Look at browser connections to RPC hosts just before T0, then run the EtherHiding query for non-browser processes.
+23. **Check for EtherHiding** ([Special case: EtherHiding](investigation.md#special-case-etherhiding)) if the lure sat on a compromised legitimate site, or if any process in steps 15 or 22 reached a blockchain RPC host. Otherwise skip this step. Look at browser connections to RPC hosts just before T0, then run the EtherHiding query for non-browser processes.
     - Expect: nothing. Record the incident as a standard domain-based lure.
     - If a non-browser process reached an RPC host, or a browser reached one just before the lure and the customer has no web3 use: escalate (EtherHiding variant confirmed: flag for TI; standard domain blocklists won't catch it). Record the RPC host. The contract address comes from TI or the IR lead; don't visit the page to find it.
     - An empty query doesn't rule it out: it excludes browsers and its host list is illustrative.
@@ -284,7 +284,7 @@ Event logs cleared (wevtutil cl)
 PsExec, psexesvc or WMI execution to or from another host
 Defender or EDR tampered with or stopped
 Any hit in step 2 of the credential compromise playbook (step 18)
-Privileged user, server or jump host
+Privileged user, service account, server or jump host
 macOS device
 Command, decoded if it was encoded, downloads or runs code from an external host, or loads an assembly from memory, and no ticket from the customer's helpdesk names that exact command
 Encoded content that can't be decoded to readable text
