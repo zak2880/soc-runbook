@@ -230,7 +230,7 @@ Only after step 9 is done (or recorded as failed) and step 10 is done on every d
     - If the persistence is a changed legitimate entry, not a new one (for example Winlogon `Userinit`, `Shell` or `Notify`, or an existing service's `ImagePath`): don't delete the value or the key. Escalate; the IR lead restores the original data.
     - Accounts the attacker created: disable them; delete only with the IR lead's agreement.
 
-34. **Finish the accounts from step 11.** Run steps 17 to 20 of the [credential compromise playbook](../06-credential-compromise/playbook.md): remove what the attacker added, reset from a clean device, block legacy auth if it was used, re-enable.
+34. **Finish the accounts from step 11.** Run steps 17 to 20 of the [credential compromise playbook](../06-credential-compromise/playbook.md): remove what the attacker added, reset from a clean device, block legacy auth if it was used, re-enable. Re-enabling is step 20: you do it, or the customer's IT contact if you don't hold the right, once that step's conditions hold.
     - Local account: ask the customer's IT contact to reset it from a clean device, and to leave it disabled if nobody needs it.
     - Expect: every account from steps 11, 19 and 24 reset or recorded as not yet reset, with the reason.
 
