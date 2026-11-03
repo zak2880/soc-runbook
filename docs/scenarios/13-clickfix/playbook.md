@@ -138,7 +138,7 @@ If you don't hold the rights for a step here (isolation, investigation package, 
 A stolen session stays valid until it is revoked, so do this before you scope the estate. If you don't hold the rights for a step here (disable, revoke, reset), request it from the customer's IT contact, record the time of the request, and continue with the steps you can do.
 
 19. **Decide whether the credentials on this device are exposed.** Microsoft calls an infostealer the most prolific ClickFix final payload. A stealer reads the browser, so the lsass check in step 18 doesn't cover this. Treat the credentials as exposed unless one of these holds:
-    - Detection status Prevented or Blocked, no ASR event ends in `Audited`, and nothing ran (the test in step 7).
+    - Detection status Prevented or Blocked, no ASR event ends in `Audited`, and nothing else from the chain ran (the test in step 7).
     - The decoded command is word for word the one a ticket from the customer's helpdesk names (steps 6 and 14).
     - Expect: the decision and the reason in the ticket.
     - Anything else, or you can't tell: an infostealer can't be ruled out. No connection or no written file isn't enough on its own. Escalate (infostealer or unknown payload executed, or one can't be ruled out) and do step 20. Don't wait for proof of a stealer: it can run in memory and leave no file.
