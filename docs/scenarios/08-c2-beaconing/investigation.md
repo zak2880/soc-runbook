@@ -77,6 +77,60 @@ Irregular to the eye, but every gap is within a few seconds of 100. The interval
 
 ---
 
+## Investigate the alerted beacon
+
+### 1. Which process is it?
+
+From the alert evidence, or the network events to the destination in the Device timeline, record `InitiatingProcessFileName`, `InitiatingProcessFolderPath`, `InitiatingProcessSHA1`, `InitiatingProcessId`, `InitiatingProcessCreationTime`, `InitiatingProcessParentFileName` and the account. Look up the SHA1 in `DeviceFileCertificateInfo`: `Signer` and `IsTrusted`.
+
+Treat it as suspicious if it:
+- isn't signed, has `IsTrusted` false, or is signed by someone other than the vendor of the product it claims to be;
+- runs from a user-writable folder (`AppData`, `Temp`, `Downloads`, `C:\Users\Public`);
+- is a Windows binary that loads DLLs (`rundll32.exe`, `dllhost.exe`, `regsvr32.exe`) and makes the connections itself;
+- is an RMM tool (AnyDesk, ScreenConnect and similar) that the customer doesn't list as approved. ATT&CK T1219: "An adversary may use legitimate remote access tools to establish an interactive command and control channel".
+
+### 2. Is it still connecting?
+
+The logs show the past. Live Response `connections` lists the device's active connections and `processes` the running processes. The investigation package records the same at collection time (Network connections and Processes folders). Isolation keeps the device connected to the Defender service, so you can collect these after isolating.
+
+### 3. Is someone driving it?
+
+- **Child processes of the beaconing process:** `DeviceProcessEvents` on this device where `InitiatingProcessId` is the beacon PID and `InitiatingProcessCreationTime` is its start time (PIDs are reused, so match both). Shells (`cmd.exe`, `powershell.exe`) or recon commands (`whoami`, `net`, `nltest`, `ipconfig`, `systeminfo`) mean someone is working through the beacon.
+- **Reverse shell:** `cmd.exe` or `powershell.exe` itself making outbound connections.
+- **Named pipes:** a pipe name that matches the Cobalt Strike defaults above, in the alert or the Device timeline. Pipe names are configurable, so not finding one proves nothing. The hunting `ActionType` for named-pipe events is VERIFY (tenant).
+- **Connection rate:** a sudden rise in connections to the same destination can mean the operator shortened the sleep to work interactively. This is a pattern to look for, not a documented rule.
+
+### 4. Is it hiding in a legitimate program?
+
+A signed process is no proof that the traffic is benign. ATT&CK T1574.001: "Adversaries may execute their own malicious payloads by side-loading DLLs." If the beaconing process is signed (a vendor app or a Windows binary):
+- Check `DeviceImageLoadEvents` for that process on this device since T0. Look for DLLs not signed by the vendor or Microsoft (look up each `SHA1` in `DeviceFileCertificateInfo`) and DLLs loaded from the program's own folder or a user-writable folder.
+- Check the device's alerts for process injection.
+
+### 5. How did it get there, and what keeps it there?
+
+- Process chain: the [process guide](../02-suspicious-process/investigation.md). The implant file's creation event in `DeviceFileEvents` carries `FileOriginUrl` for a web download; see "How did it arrive?" in the [malware alert investigation](../01-malware-alert/investigation.md#step-4--check-for-spread).
+- RMM tool: when, and by which account, was it installed? Find the installer in `DeviceFileEvents` and `DeviceProcessEvents` and compare with the customer's change record.
+- Persistence: the [persistence playbook](../04-persistence-detected/playbook.md), the package's Autoruns, Scheduled tasks and Services, or Live Response `persistence`, `scheduledtasks` and `services`.
+
+### 6. What is the destination?
+
+- Search the IP or domain in the Defender portal. The IP page shows related alerts and which devices connected to it. The URL/domain page also shows the Microsoft verdict.
+- Enrich it with the [threat intel enrichment guide](../../reference/threat-intel-enrichment.md). Look the IP and domain up; don't upload the implant or submit internal URLs to public services.
+- A clean reputation or an old domain doesn't clear it. ATT&CK T1102: cloud services used for C2 "may give a significant amount of cover". If the C2 runs over a cloud or web service, use the [LOTS & cloud C2 investigation](../09-lots-cloud-c2/investigation.md).
+
+---
+
+## Scope
+
+Spread is a reason to scope wider, never evidence that the traffic is benign.
+
+- **Other devices talking to the destination.** IP page: "IP prevalence in the organization" (how many devices, first and last seen; default 30 days) and "IP activity observed in the organization" (up to 100 devices). URL/domain page: the Devices tab (first and last event per device; default 30 days, up to six months). The high connection count query below also runs estate-wide, but only shows pairs above its threshold.
+- **The implant on other devices.** Run the hash sweep in the [malware alert investigation](../01-malware-alert/investigation.md#step-4--check-for-spread) with the implant's SHA1, and with any DLL SHA1 from step 4. Zero rows doesn't prove no spread.
+- **T0.** The earliest first event for this device on the IP or domain page. If it is before your T0, move T0 and link it to how the implant arrived (step 5).
+- **After a block.** Network protection blocks appear in `DeviceEvents` with `ActionType` `ExploitGuardNetworkProtectionBlocked`. A device in those events is still trying to reach the destination: it is in scope.
+
+---
+
 ## KQL queries
 
 These are estate-wide hunts over the 24 hours before T0, and each ends in a threshold. They can't give you a score for the alerted device: a device and destination pair below the threshold returns nothing, and that doesn't mean it isn't beaconing. Use them to find other devices and destinations, not to clear one.
@@ -201,6 +255,17 @@ DeviceNetworkEvents
 ```
 
 Read this score as a connection count. `PortScore` is 2 for almost any HTTPS destination (one port), and the score has no regularity, path or signer term. A score of 5 or more therefore means more than 50 connections in 24 hours, or more than 5 between 00:00 and 06:59 UTC. Busy SaaS endpoints score high; slow beacons score low. The night window is UTC, not the customer's local time. Like the regularity query, it has no `ActionType` filter.
+
+---
+
+## What these queries can't see
+
+- **Internal beacons.** Cobalt Strike's SMB Beacon "uses named pipes to communicate through a parent Beacon" and "also works across the network"; the TCP Beacon listens on a port (default 4444). Every query here drops private destinations, so device-to-device C2 is invisible to them. It looks like lateral movement: see [lateral movement network signals](../03-suspicious-network-activity/investigation.md#lateral-movement--network-signals).
+- **Slow beacons.** Sleeps longer than about 45 to 60 minutes fall under the thresholds (see each query's limits).
+- **C2 spread over several IPs** (CDN or fronted domains): per-IP counts and gaps break up.
+- **DNS and DNS-over-HTTPS C2.** These queries don't look at DNS. DNS over HTTPS hides lookups inside HTTPS. For DNS signals see [DNS beaconing](../03-suspicious-network-activity/investigation.md#dns-beaconing).
+- **C2 over cloud services** (Graph API, cloud storage, code hosting): see [LOTS & cloud C2](../09-lots-cloud-c2/investigation.md).
+- **Explicit proxies.** If clients send web traffic through an explicit proxy, `RemoteIP` may be the proxy rather than the C2, and a private proxy address is filtered out (VERIFY (tenant)). Use the proxy logs to find the real destination.
 
 ---
 
