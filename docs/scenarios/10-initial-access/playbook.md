@@ -87,7 +87,7 @@ Do step 11 when an account was used to get in (RDP, VPN, a sign-in the user does
     - Expect: exports in the ticket; each account disabled, and its Entra sessions revoked if it has a cloud identity.
     - If 06 step 14 stops you (privileged or service account): escalate (privileged, admin or service account used for access). The IR lead decides.
     - Local account on the device: 06 steps 15 and 16 don't cover it, but its step 14 stop still applies. Record its groups (package, Users and Groups folder), then ask the customer's IT contact to disable it. Don't delete it.
-    - Don't reset any password yet. Disabling stops new logons and can be undone. Resets come in step 34, after persistence is recorded.
+    - Don't reset any password yet. Disabling stops new logons and can be undone. Resets come in step 34, after persistence is recorded. The exceptions are steps 24 and 25, which come after persistence is recorded too.
 
 ---
 
@@ -116,6 +116,7 @@ Do every step whose vector is still possible, and change nothing yet. A proven v
 16. **Check for an email** ([Email delivery](investigation.md#email-delivery)): find the message by recipient, time, attachment name or URL domain.
     - Expect: the message found, or "no delivering email found" recorded.
     - If found: run the [phishing email playbook](../12-phishing-email/playbook.md) for the message and every other recipient, then come back to step 17. It uses its own T0 (delivery of the first message in the campaign); if that is earlier than yours, move yours. It preserves the message before removing it, so don't remove anything from here.
+    - Where 12 runs 06 step 20 for an account, hold that step until step 34.
     - This device stays in this playbook, or in the one that sent you here. Where 12 sends it to the malware playbook, still escalate as 12 says, but skip the hand-off. Any other device goes to the [malware playbook](../01-malware-alert/playbook.md) from its step 7.
 
 17. **Check for a macro** ([Macros](investigation.md#macros)) if an Office file is in the chain: run Office spawning shells with T0.
@@ -163,10 +164,10 @@ If you don't hold the Live Response role, request it from the customer's IT cont
 
 24. **Check identity:** lsass access, credential-tool keywords, new accounts and lateral movement. Use step 2 of the [credential compromise playbook](../06-credential-compromise/playbook.md), and its step 12 for accounts the attacker created.
     - Expect: no hits.
-    - If any hit: escalate (any hit in step 2 of the credential compromise playbook), and follow the 06 playbook from step 2 for this device.
+    - If any hit: escalate (any hit in step 2 of the credential compromise playbook), and follow the 06 playbook from step 2 for this device. Hold 06 step 20 until step 34.
     - New local accounts: record them. Don't remove anything yet; that is step 33.
 
-25. **If an unknown payload or stealer ran:** escalate (infostealer or unknown payload executed), and run steps 11 and 17 of the [malware alert playbook](../01-malware-alert/playbook.md) for it.
+25. **If an unknown payload or stealer ran:** escalate (infostealer or unknown payload executed), and run steps 11 and 17 of the [malware alert playbook](../01-malware-alert/playbook.md) for it. In its step 17, do 06 steps 13 to 19 only, and hold 06 step 20 until step 34: the way in must be closed first (step 32).
 
 ---
 
@@ -230,9 +231,9 @@ Only after step 9 is done (or recorded as failed) and step 10 is done on every d
     - If the persistence is a changed legitimate entry, not a new one (for example Winlogon `Userinit`, `Shell` or `Notify`, or an existing service's `ImagePath`): don't delete the value or the key. Escalate; the IR lead restores the original data.
     - Accounts the attacker created: disable them; delete only with the IR lead's agreement.
 
-34. **Finish the accounts from step 11.** Run steps 17 to 20 of the [credential compromise playbook](../06-credential-compromise/playbook.md): remove what the attacker added, reset from a clean device, block legacy auth if it was used, re-enable. Re-enabling is step 20: you do it, or the customer's IT contact if you don't hold the right, once that step's conditions hold.
+34. **Finish the accounts from step 11.** Run steps 17 to 20 of the [credential compromise playbook](../06-credential-compromise/playbook.md): remove what the attacker added, reset from a clean device, block legacy auth if it was used, re-enable. An account held at 06 step 20 from steps 16, 24 or 25 needs only that step here. Re-enabling is step 20: you do it, or the customer's IT contact if you don't hold the right, once that step's conditions hold.
     - Local account: ask the customer's IT contact to reset it from a clean device, and to leave it disabled if nobody needs it.
-    - Expect: every account from steps 11, 19 and 24 reset or recorded as not yet reset, with the reason.
+    - Expect: every account from steps 11, 16, 19, 24 and 25 reset or recorded as not yet reset, with the reason.
 
 35. **Confirm every action in the Action center** (History tab): isolation, package, quarantine, Live Response actions.
     - Expect: every action Success.
@@ -255,7 +256,7 @@ If you don't hold the rights to release the device, request it from the customer
 
 38. **Release only when all of these hold:**
     - Steps 30 to 36 done, every action Success.
-    - Credentials handled (steps 11, 24, 25 and 34).
+    - Credentials handled (steps 11, 16, 24, 25 and 34).
     - Indicators in place (step 31), and the way in closed (step 32).
     - No new alerts and no connections to the IOCs while isolated, for the period the IR lead sets.
     - For High and above, the IR lead approves the release.
