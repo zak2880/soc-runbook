@@ -77,8 +77,9 @@ Only after steps 5 and 6. Block first, so new copies and clicks on copies still 
    - If not listed: add it again on the Tenant Allow/Block Lists page and record the error.
    - These entries act on mail and on clicks through Safe Links only. They don't stop a file already on a device, or a URL opened outside Safe Links. That is step 10.
 
-9. **Block the sender only if it is attacker-owned** (step 3).
+9. **Block the sender only if it is attacker-owned** (step 3), and only if step 4 found evidence that the message is malicious (not when you treated it as malicious because you couldn't tell).
    - Attacker-owned address or domain: block it on Domains & addresses. Users in the organization then can't send mail to it either: the whole message is blocked for every recipient, with a bounce. The entry matches the From address, not MAIL FROM.
+   - Block the address, not the domain, when the domain is a public mail provider or one the customer's users write to for business.
    - Spoofed From: don't block the address; that blocks its real owner. Block the domain pair on the Spoofed senders tab. Spoofed sender entries never expire; record the entry for review (step 20).
    - Internal or partner mailbox: don't block. A block applies to internal senders too, and it would stop the customer's users mailing the partner. The account is handled in steps 2, 3 and 18.
    - Expect: the decision and any entry recorded.
@@ -88,9 +89,10 @@ Only after steps 5 and 6. Block first, so new copies and clicks on copies still 
     - File hashes: PE files only, and Defender Antivirus must be in active mode. A document, script or archive can't be blocked by hash; its URLs are blocked instead.
     - The same business-domain rule as step 8 applies.
     - Expect: each indicator listed with its expiry.
+    - If you can't create one: record why and tell the customer. The Tenant Allow/Block List entries from step 8 still apply to mail and Safe Links clicks.
     - A blocked connection can still appear as `ConnectionSuccess` in network events. Check the alerts queue for the block.
 
-11. **Soft delete every copy from step 7.** First check Action center → Pending: an automated investigation may already have proposed a soft delete for these messages. Approve it if its scope matches step 7. Otherwise, in Threat Explorer select the messages → Take action → Move or delete → Soft deleted items, and give the remediation a name. If the sender is internal (step 3), also select Delete sender's copy.
+11. **Soft delete every copy from step 7.** First check Action center → Pending: an automated investigation may already have proposed a soft delete for these messages. Approve it if its scope matches step 7. Leave any other pending action on these users (for example turning off forwarding) until step 17 has recorded what it changes. Otherwise, in Threat Explorer select the messages → Take action → Move or delete → Soft deleted items, and give the remediation a name. If the sender is internal (step 3), also select Delete sender's copy.
     - Without the Search and Purge role: Take action → Propose remediation → Create new. Someone with the role approves it in Action center → Pending.
     - Expect: Action center → History shows the remediation, and its action log shows Success or Already in destination for every message.
     - If Failed: retry. A remediation can stay In progress for a few hours.
@@ -117,7 +119,7 @@ If you don't hold the rights for a step in 12 to 15 (Entra sign-in logs and ID P
 
 14. **Check each clicker's account from the click time on** (investigation, Step 7): Entra ID Protection risk detections, sign-ins (interactive and non-interactive, and Authentication protocol Device code), authentication methods added, app consents, inbox rules and forwarding, and mail the user sent.
     - Expect: none of these after the click.
-    - If any, or the user says they entered credentials, approved an MFA prompt or typed a code: escalate (recipient account compromised) and run steps 13 to 20 of the [credential compromise playbook](../06-credential-compromise/playbook.md) for that user. Then do step 17 here.
+    - If any, or the user says they entered credentials, approved an MFA prompt or typed a code: escalate (recipient account compromised) and run steps 13 to 20 of the [credential compromise playbook](../06-credential-compromise/playbook.md) for that user. Then do step 17 for that user straight away; don't leave it for the end.
     - No detection doesn't clear the user: Attacker in the Middle needs Microsoft 365 E5 with EMS E5 and is calculated offline.
     - If the user is a priority account or admin: escalate (priority or admin recipient interacted).
 
