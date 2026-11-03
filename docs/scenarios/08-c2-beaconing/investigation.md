@@ -57,14 +57,14 @@ Default profile values from the Cobalt Strike Malleable C2 reference (Fortra). O
 
 The IPs below are documentation addresses, not real C2.
 
-**Classic 60s beacon** (Device timeline network events, one process):
+**Classic 60s beacon** (network events for one process):
 ```
 Timestamp  RemoteIP      RemotePort  Process path
 02:00:00   203.0.113.45  443         C:\Users\jsmith\AppData\Local\Temp\svchost.exe
 02:01:00   203.0.113.45  443         C:\Users\jsmith\AppData\Local\Temp\svchost.exe
 02:02:00   203.0.113.45  443         C:\Users\jsmith\AppData\Local\Temp\svchost.exe
 ```
-The real `svchost.exe` runs from `C:\Windows\System32`. Same name, wrong folder.
+The real `svchost.exe` lives in the Windows folder, not in a user profile. Same name, wrong folder.
 
 **Jittered beacon (~100s mean, 20% jitter):**
 ```
@@ -87,7 +87,7 @@ Treat it as suspicious if it:
 - isn't signed, has `IsTrusted` false, or is signed by someone other than the vendor of the product it claims to be;
 - runs from a user-writable folder (`AppData`, `Temp`, `Downloads`, `C:\Users\Public`);
 - is a Windows binary that loads DLLs (`rundll32.exe`, `dllhost.exe`, `regsvr32.exe`) and makes the connections itself;
-- is an RMM tool (AnyDesk, ScreenConnect and similar) that the customer doesn't list as approved. ATT&CK T1219: "An adversary may use legitimate remote access tools to establish an interactive command and control channel".
+- is an RMM tool (AnyDesk, ScreenConnect and similar) that isn't on the customer's approved list, or was installed outside a change record. ATT&CK T1219: "An adversary may use legitimate remote access tools to establish an interactive command and control channel".
 
 ### 2. Is it still connecting?
 
@@ -125,8 +125,8 @@ A signed process is no proof that the traffic is benign. ATT&CK T1574.001: "Adve
 Spread is a reason to scope wider, never evidence that the traffic is benign.
 
 - **Other devices talking to the destination.** IP page: "IP prevalence in the organization" (how many devices, first and last seen; default 30 days) and "IP activity observed in the organization" (up to 100 devices). URL/domain page: the Devices tab (first and last event per device; default 30 days, up to six months). The high connection count query below also runs estate-wide, but only shows pairs above its threshold.
-- **The implant on other devices.** Run the hash sweep in the [malware alert investigation](../01-malware-alert/investigation.md#step-4--check-for-spread) with the implant's SHA1, and with any DLL SHA1 from step 4. Zero rows doesn't prove no spread.
-- **T0.** The earliest first event for this device on the IP or domain page. If it is before your T0, move T0 and link it to how the implant arrived (step 5).
+- **The implant on other devices.** Run the hash sweep in the [malware alert investigation](../01-malware-alert/investigation.md#step-4--check-for-spread) with the implant's SHA1, and with any DLL SHA1 from section 4 above. Zero rows doesn't prove no spread.
+- **T0.** This device's first event on the URL/domain page (Devices tab), or its earliest event to the IP in the Device timeline. The IP page's first-seen time covers the whole organization. If it is before your T0, move T0 and link it to how the implant arrived (section 5 above).
 - **After a block.** Network protection blocks appear in `DeviceEvents` with `ActionType` `ExploitGuardNetworkProtectionBlocked`. A device in those events is still trying to reach the destination: it is in scope.
 
 ---

@@ -18,9 +18,9 @@ Don't wait for proof of an interactive session before you contain. Beaconing fro
    - Expect: all known.
    - If the process is unknown: record the destination and use the Device timeline from the alert time backwards to find it.
 
-3. **Set T0.** Search the destination IP or domain in the Defender portal. Take this device's first event time from the IP page (IP prevalence in the organization) or the URL/domain page (Devices tab).
+3. **Set T0.** Search the destination domain in the Defender portal and take this device's first event time from the URL/domain page (Devices tab). If you only have an IP: search the Device timeline for the IP and take the earliest event. The IP page's first-seen time is for the whole organization, so use it as a lower bound only.
    - Expect: T0 at or before the alert time.
-   - If the first event sits at the start of the time range: widen the range. The IP page defaults to 30 days; the domain page goes back up to six months. If you still can't find the start, mark T0 as an estimate.
+   - If the first event sits at the start of the time range: widen the range (the domain page goes back up to six months; Advanced Hunting holds 30 days). If you still can't find the start, mark T0 as an estimate.
 
 4. **Check the process.** Look up its SHA1 in `DeviceFileCertificateInfo` (`Signer`, `IsTrusted`) and note its folder path. Check what it started: `DeviceProcessEvents` on this device where `InitiatingProcessId` is the beacon PID and `InitiatingProcessCreationTime` is its start time. Check the alert evidence and the Device timeline for named pipes (the hunting `ActionType` for pipe events is VERIFY (tenant)).
    - Expect: a signed product (`IsTrusted` true, `Signer` = the product's vendor) running from its install folder, that started nothing unexpected.
@@ -49,7 +49,7 @@ Don't wait for proof of an interactive session before you contain. Beaconing fro
 If you don't hold the rights for a step here, request it from the customer's IT contact, record the time of the request, and continue with the steps you can do.
 
 7. **Check the device type and network before isolating.**
-   - Domain controller, other Tier 0 server, or Hyper-V host: don't isolate it yourself. Escalate now. Isolating a Hyper-V host blocks network traffic to every VM on it.
+   - Domain controller, other Tier 0 server, or Hyper-V host: don't isolate it yourself. Escalate now (device can't be isolated). Isolating a Hyper-V host blocks network traffic to every VM on it.
    - Production server: tell the customer contact you are isolating it, and record the time.
    - Full-tunnel VPN: Microsoft says the device can't reach the Defender service once isolated. Do step 9 first, then step 8.
    - Behind a web proxy (PAC, WPAD or static): use selective isolation. Microsoft warns such devices might not recover from full isolation.
@@ -57,7 +57,7 @@ If you don't hold the rights for a step here, request it from the customer's IT 
 
 8. **Isolate the device** (device page → Isolate device). Isolation cuts the C2 channel and keeps the device connected to the Defender service.
    - Expect: the Action center shows the isolation as completed.
-   - If not (pending or offline): Defender retries for up to three days. Escalate and report the device as not isolated.
+   - If not (pending or offline): Defender retries for up to three days. Escalate (device can't be isolated) and report the device as not isolated.
    - Microsoft states isolation is lifted automatically after seven days (VERIFY (tenant)). Put the date in the ticket and re-check it.
 
 9. **Collect the investigation package** (device page → Collect investigation package). It records autoruns, running processes, network connections, DNS cache, prefetch, scheduled tasks, services and the Security event log.
@@ -125,7 +125,7 @@ Only after step 9 is done (or recorded as failed) and step 10 is done, on every 
     - Expect: the Action center shows Success for each device.
     - If Failed: record the reason. If Pending: the device is offline; the action times out after three days.
     - If Defender warns that the file is widely used in the organization: cancel and escalate (Stop and Quarantine File can't be used, or Defender warns the file is widely used). It may be a business application.
-    - If the beacon runs inside a signed or Microsoft process (step 13), or the file is signed by Microsoft or a trusted publisher: Stop and Quarantine File can't be used on it. Don't use Live Response `remediate` on that process either: it stops the process and deletes the image file. Escalate; the IR lead decides how to stop it. The device stays isolated meanwhile.
+    - If the beacon runs inside a signed or Microsoft process (step 13), or the file is signed by Microsoft or a trusted publisher: Stop and Quarantine File can't be used on it. Don't use Live Response `remediate` on that process either: it stops the process and deletes the image file. Escalate (Stop and Quarantine File can't be used); the IR lead decides how to stop it. The device stays isolated meanwhile.
     - A quarantined file can be restored if it turns out to be clean.
 
 20. **Block the IOCs** with Defender for Endpoint indicators (Settings → Endpoints → Indicators). Block every external IP and domain the beacon used (steps 2, 4 and 17), and the SHA1 of each malicious file (steps 11 and 13).
