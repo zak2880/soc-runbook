@@ -128,7 +128,7 @@ Only after step 9 is done (or recorded as failed) and step 10 is done, on every 
     - If the beacon runs inside a signed or Microsoft process (step 13), or the file is signed by Microsoft or a trusted publisher: Stop and Quarantine File can't be used on it. Don't use Live Response `remediate` on that process either: it stops the process and deletes the image file. Escalate (Stop and Quarantine File can't be used); the IR lead decides how to stop it. The device stays isolated meanwhile.
     - A quarantined file can be restored if it turns out to be clean.
 
-20. **Block the IOCs** with Defender for Endpoint indicators (Settings → Endpoints → Indicators). Block every external IP and domain the beacon used (steps 2, 4 and 17), and the SHA1 of each malicious file (steps 11 and 13).
+20. **Block the IOCs** with Defender for Endpoint indicators (Settings → Endpoints → Indicators). Block every external IP and domain the beacon used (steps 2, 10, 16 and 17), and the SHA1 of each malicious file (steps 11 and 13).
     - IPs: external IPs only, one address per indicator (no ranges). C2 that rotates across several IPs or a CDN isn't covered by one IP indicator; block the domain too.
     - Domains and URLs: outside Microsoft Edge, blocking needs Network Protection in block mode. For HTTPS, Network Protection reads the host name from the TLS handshake, so the connection must use TCP (not QUIC) with an unencrypted ClientHello. A full URL path can be blocked only in Edge. Blocks can take up to 48 hours; most apply within 2 hours.
     - File hashes: PE files only (`.exe`, `.dll`), and Defender Antivirus must be in active mode. Blocks typically apply within 15 minutes, 30 on average, and can take over 2 hours.
