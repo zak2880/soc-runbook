@@ -68,7 +68,7 @@ If you don't hold the Live Response role, request it from the customer's IT cont
    - If Live Response isn't available (not enabled, no role, session fails): record why and use the package.
    - Any other unexplained entry: add it to the list and record it in step 10.
 
-9. **Run the queries with T0** ([KQL queries](investigation.md#kql-queries)): Run keys, scheduled tasks, services, WMI and startup folders. Then check the other autostart keys and the three Winlogon values ([Registry Run keys](investigation.md#registry-run-keys), [Winlogon](investigation.md#winlogon)).
+9. **Run the queries with T0** ([KQL queries](investigation.md#kql-queries)); replace `PASTE_TIME_UTC` and `HOSTNAME` in each. Run keys, scheduled tasks, services, WMI and startup folders. Then check the other autostart keys and the three Winlogon values ([Registry Run keys](investigation.md#registry-run-keys), [Winlogon](investigation.md#winlogon)).
    - Expect: only items already on your list.
    - An empty result is not a clean result ([What the queries don't show](investigation.md#what-the-queries-dont-show)). If the services query has no rows: run the check in its VERIFY note, and record "services not covered by telemetry" if this device has none in 30 days.
    - New items: add them and record them in step 10.
@@ -87,6 +87,7 @@ If you don't hold the Live Response role, request it from the customer's IT cont
     - Remote-access (RMM) tool: ask the customer whether it is on their approved list and was installed under a change record. If not, or no answer: escalate (remote-access (RMM) tool not on the customer's approved list, or installed outside a change record).
     - Task or service that runs as SYSTEM (read the run-as account in the task XML, the package CSVs or the Live Response output; for a service, LocalSystem): if its target is unsigned or in a user-writable folder, escalate (SYSTEM-context task or service whose target is unsigned or in a user-writable folder).
     - New service whose image file is a Windows binary (for example `cmd.exe` or `svchost.exe`): escalate (new service whose image file is a Windows binary). Step 19 can't remove it safely: `remediate` on a service deletes its image file.
+    - Created from another device (the creating process in step 10 is `psexesvc`, or the other device ran `schtasks` with `/s`): escalate (persistence created from another device). Step 16 scopes it.
     - Target is a Windows binary (`powershell.exe`, `rundll32.exe`, `mshta.exe`): the payload is its script, DLL, URL or encoded argument. Record that file; never the Windows binary.
     - Expect: a class for each item in the ticket.
 
@@ -125,6 +126,7 @@ Only after step 7 is done (or recorded as failed) and steps 10 and 11 are done f
 
 17. **Stop what is still running** (step 12).
     - Nothing running: go to step 18.
+    - If a changed legitimate entry from step 11 (for example Winlogon `Userinit`) points to the target: don't run Stop and Quarantine File yourself. Microsoft doesn't say which registry data it deletes. Ask the IR lead first.
     - A target not signed by Microsoft or a trusted non-Microsoft publisher: file page → Stop and Quarantine File. It stops its running processes, quarantines the file and deletes persistent data such as registry keys, on every device where it was seen in the last 30 days. Step 10 must be done first; afterwards, record which items it removed.
       - Expect: the Action center shows Success for each device.
       - If Failed: record the reason. If Pending: the device is offline; the action times out after three days.
@@ -143,7 +145,7 @@ Only after step 7 is done (or recorded as failed) and steps 10 and 11 are done f
 19. **Remove each new entry** classed in step 11. Only items recorded as in step 10, with their files preserved.
     - First check whether Stop and Quarantine File already removed it (Action center, then Live Response `registry`, `scheduledtasks`, `services` or `startupfolders`). If it is gone: record that and move to the next item.
     - Run key value: remove the value only, never the key; other programs' entries share it. Use Live Response `remediate` on the registry entry (`help remediate` shows the syntax). VERIFY (tenant) on a test device that it removes only the named value before you use it on a Run key. A per-user (HKCU) value: Microsoft lists the `HKEY_USERS` hive as not supported by `remediate`, and whether a Live Response session sees the user's HKCU is VERIFY (tenant). Request removal of that one value from the customer's IT contact.
-    - Scheduled task: Live Response `remediate` on the task removes it. Then check step 12 again: a running instance doesn't stop with the task.
+    - Scheduled task: Live Response `remediate` on the task removes it. Then check step 12 again: a running instance doesn't stop with the task. If it still runs, go back to step 17.
     - New service: Live Response `remediate` on the service stops it and deletes its image file. Use it only when the image file is the attacker's file from step 10 (step 11 escalates a Windows binary image). Microsoft doesn't say it deletes the service entry; check `services` afterwards, and if the entry remains, request its deletion from the customer's IT contact.
     - Startup folder item: Live Response `remediate` on it deletes the file. Remove the file a shortcut started too.
     - Each target file not already quarantined (script, DLL, EXE): Live Response `remediate file` with its full path deletes it. Never point `remediate` at a Windows binary.
