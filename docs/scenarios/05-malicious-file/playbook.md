@@ -41,7 +41,7 @@ If you came back here after containing the device (step 11 done), read each "go 
    - If `RequestProtocol` is `SMB` and `RequestSourceIP` is an internal device: the file arrived over SMB from another internal device. Escalate and go to step 7.
    - If it is a remote-access, remote-management or file-transfer tool: do step 14 now. Then go to step 7 unless the customer confirmed it.
    - If a script host, LOLBin or unknown binary wrote it: go to step 7.
-   - Nothing ran, and a normal application (browser, mail client, archive tool) wrote it: containment isn't needed yet. Do steps 10 to 15, then steps 19 and 20, then steps 21 to 25 if the file is malicious. Close only per Closing or Closing as a false positive below; if anything else turns up, come back to step 7.
+   - Nothing ran, and a normal application (browser, mail client, archive tool) wrote it: containment isn't needed yet. Do steps 10 to 15, then steps 17, 19 and 20, then steps 21 to 25 if the file is malicious. Close only per Closing or Closing as a false positive below; if anything else turns up, come back to step 7.
    - Anything else, or you can't tell: go to step 7.
 
 ---
@@ -110,9 +110,9 @@ If you don't hold the rights for a step here (isolation, investigation package, 
     - If C2 looks live (connections to those IPs or domains still happening): escalate now.
     - A blocked connection can still show as `ConnectionSuccess`. Check the alerts queue for the block.
 
-17. **If it ran: check persistence** with the [persistence playbook](../04-persistence-detected/playbook.md): run keys, scheduled tasks, services, startup folders and WMI. Compare with the package's Autoruns, Scheduled tasks and Services.
+17. **If it ran, or step 6 sent you here: check persistence** with the [persistence playbook](../04-persistence-detected/playbook.md): run keys, scheduled tasks, services, startup folders and WMI. Compare with the package's Autoruns, Scheduled tasks and Services. From step 6 there is no package yet: use Live Response `persistence`, `scheduledtasks`, `services` and `startupfolders`.
     - Expect: nothing the attacker added.
-    - If found: record each item. Don't remove anything yet; that is step 23.
+    - If found: record each item. Don't remove anything yet; that is step 23. From step 6: go to step 7 first.
 
 18. **If it ran, or it is a credential dumper (step 12): check identity:** lsass access, credential-tool keywords, new accounts, lateral movement. Use step 2 of the [credential compromise playbook](../06-credential-compromise/playbook.md).
     - Expect: no hits.
