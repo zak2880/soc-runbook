@@ -55,8 +55,8 @@ If you don't hold the rights for a step here, request it from the customer's IT 
    - Domain controller, other Tier 0 server, or Hyper-V host: don't isolate it yourself. Escalate now. Isolating a Hyper-V host blocks network traffic to every VM on it.
    - Production server: tell the customer contact you are isolating it, and record the time.
    - Full-tunnel VPN: Microsoft says the device can't reach the Defender service once isolated. Do step 9 first, then step 8.
-   - Behind a web proxy (PAC, WPAD or static): Microsoft warns such devices might not recover from full isolation and says to use selective isolation.
-   - Selective isolation lets excluded processes and destinations through (for example Outlook and Teams), and Microsoft warns that any exclusion weakens isolation. If the C2 or upload runs over Microsoft 365 (Graph, OneDrive, SharePoint, Teams) or through an excluded process, and the device needs selective isolation: isolate selectively, then escalate. The channel may still be open.
+   - C2 or upload over Microsoft 365 or Graph (Graph, OneDrive, SharePoint, Teams, Outlook): use full isolation in step 8 and leave Outlook and Microsoft Teams connectivity off. Escalate (C2 over Microsoft 365).
+   - Behind a web proxy (PAC, WPAD or static): Microsoft warns such devices might not recover from full isolation and says to use selective isolation. This is the only case for selective isolation. Selective isolation lets excluded processes and destinations through, and Microsoft warns that any exclusion weakens isolation. If the C2 runs over Microsoft 365 or through an excluded process, the channel may still be open: escalate.
    - Expect: an ordinary workstation or member server. Go to step 8 and use full isolation.
 
 8. **Isolate the device** (device page → Isolate device). Isolation keeps the device connected to the Defender service.
@@ -245,7 +245,8 @@ C2 that looks live
 Same client (SHA1, URL or command line) on more than one device
 lsass access, credential-tool keywords or new accounts on the device (06 playbook step 2)
 URL content must be fetched to understand it
-Device can't be isolated (pending, offline, domain controller, Tier 0 server, Hyper-V host), or only selective isolation is possible while C2 runs over Microsoft 365 or an excluded process
+Device can't be isolated (pending, offline, domain controller, Tier 0 server, Hyper-V host)
+C2 over Microsoft 365: C2 or upload runs over Microsoft 365 or Graph, whether isolation is full or selective
 Stop and Quarantine not possible or the process still runs (Microsoft-signed or trusted-publisher file, scripting engine), or Defender warns the file is widely used
 Containment needs a shared service host blocked whole
 Remediation failed and can't be completed
