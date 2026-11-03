@@ -6,7 +6,7 @@ T0 = delivery time of the first message in the campaign, in UTC. Advanced Huntin
 
 Licence: Defender for Office 365 Plan 2 has Threat Explorer, which can move and delete mail. Plan 1 has Real-time detections, which can submit to Microsoft and add Tenant Allow/Block List entries but can't move or delete mail. Record which the customer has.
 
-If you came here from the [malware playbook](../01-malware-alert/playbook.md) (step 20): that device is already in hand there. Use this playbook for the email and for every other recipient.
+If you came here from the [malware playbook](../01-malware-alert/playbook.md) (step 20) or the [initial access playbook](../10-initial-access/playbook.md) (step 16): that device is already in hand there. Use this playbook for the email and for every other recipient.
 
 ---
 
