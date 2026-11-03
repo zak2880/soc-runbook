@@ -38,10 +38,10 @@ If another playbook sent you here to find how the attacker got in (09 step 21): 
    - If the access came through a supplier's or service provider's account or tool: escalate now (access through a supplier's or service provider's account or tool) and go to step 7. Don't contact the supplier yourself.
 
 6. **Decide the path.** Take the first line that matches.
-   - Success from a public IP after failed attempts from that IP: escalate now (RDP exposed to the internet with a successful brute force) and go to step 7. Don't finish tracing first. An attacker with a session already has other ways back in.
+   - Success from a public IP after failed attempts from that IP: escalate now (RDP exposed to the internet with a successful brute force) and go to step 7. Don't finish tracing first. An attacker with a session may already have other ways back in.
    - Success from a public IP with a documented reason (a named user and source in a ticket or customer documentation): check Closing as a false positive. Otherwise go to step 7.
    - Any other success from a public IP, or a session you can't explain: go to step 7.
-   - Failed public-IP logons only, and nothing else on the Device timeline: you don't need to isolate. Do step 28. Tell the customer the host is exposed and ask them to do step 32 for it. Close out as a true positive.
+   - Failed public-IP logons only, and nothing else on the Device timeline: you don't need to isolate. Do step 28. Tell the customer the host is exposed, and ask them to block the source IPs and close the port or restrict it (step 32). Close out as a true positive.
    - It looks like sanctioned activity (a named product or a documented change): do steps 12 to 20. Close only if every condition in Closing as a false positive holds; otherwise go to step 7.
    - Detection status Prevented or Blocked, no ASR event ends in `Audited`, and the Device timeline shows nothing else from the chain ran after T0 (no other child processes, connections, file writes or registry changes): you don't need to isolate. Do steps 9, 10 and 12 to 29. If any of them finds something, go to step 7. If not: do steps 30 to 36 for the file that started the chain, and close out as a true positive.
    - Anything else, or you can't tell: go to step 7.
@@ -53,7 +53,7 @@ If another playbook sent you here to find how the attacker got in (09 step 21): 
 If you don't hold the rights for a step here (isolation, investigation package, Live Response), request it from the customer's IT contact, record the time of the request, and continue with the steps you can do.
 
 7. **Check the device type and network before isolating.**
-   - Domain controller, other Tier 0 server, or Hyper-V host: don't isolate it yourself. Escalate now (device can't be isolated). Isolating a Hyper-V host blocks network traffic to every VM on it.
+   - Domain controller, other Tier 0 server, or Hyper-V host: don't isolate it yourself. Escalate now (device can't be isolated), then go to step 9. Isolating a Hyper-V host blocks network traffic to every VM on it.
    - An attacker session may be live on a device you can't isolate: also ask the customer's IT contact now to log the session off and block the source IP on their firewall. Live Response has no built-in command to end a session.
    - Production server: tell the customer contact you are isolating it, and record the time. They lose remote access to it too.
    - Full-tunnel VPN: Microsoft says the device can't reach the Defender service once isolated. Do step 9 first, then step 8.
@@ -86,14 +86,14 @@ Do step 11 when an account was used to get in (RDP, VPN, a sign-in the user does
 11. **Contain each account used to get in.** Run steps 13 to 16 of the [credential compromise playbook](../06-credential-compromise/playbook.md): capture evidence, stop on privileged or service accounts, disable, revoke sessions.
     - Expect: exports in the ticket; each account disabled, and its Entra sessions revoked if it has a cloud identity.
     - If 06 step 14 stops you (privileged or service account): escalate (privileged, admin or service account used for access). The IR lead decides.
-    - Local account on the device: 06 doesn't cover it. Record its groups (package, Users and Groups folder), then ask the customer's IT contact to disable it. Don't delete it.
+    - Local account on the device: 06 steps 15 and 16 don't cover it, but its step 14 stop still applies. Record its groups (package, Users and Groups folder), then ask the customer's IT contact to disable it. Don't delete it.
     - Don't reset any password yet. Disabling stops new logons and can be undone. Resets come in step 34, after persistence is recorded.
 
 ---
 
 ## 4. Find the way in
 
-Do every step whose vector is still possible, and change nothing yet. If you don't hold the rights for a step here (Explorer, Entra sign-in logs), request it from the customer's IT contact, record the time of the request, and continue with the steps you can do.
+Do every step whose vector is still possible, and change nothing yet. A proven vector rules out the rest: a confirmed RDP brute force needs only steps 12, 18, 19 and 21, so you reach the persistence check (step 23) quickly. If you don't hold the rights for a step here (Explorer, Entra sign-in logs), request it from the customer's IT contact, record the time of the request, and continue with the steps you can do.
 
 12. **Trace back to T0** ([investigation, Steps 1 and 2](investigation.md#tracing-back-to-t0)): the Device timeline from the alert backwards, and the files query.
     - Expect: each event from the first one to the alert recorded, with path, SHA1 and command line.
@@ -116,7 +116,7 @@ Do every step whose vector is still possible, and change nothing yet. If you don
 16. **Check for an email** ([Email delivery](investigation.md#email-delivery)): find the message by recipient, time, attachment name or URL domain.
     - Expect: the message found, or "no delivering email found" recorded.
     - If found: run the [phishing email playbook](../12-phishing-email/playbook.md) for the message and every other recipient, then come back to step 17. It uses its own T0 (delivery of the first message in the campaign); if that is earlier than yours, move yours. It preserves the message before removing it, so don't remove anything from here.
-    - This device stays in this playbook, or in the one that sent you here. Where 12 sends it to the malware playbook, skip that. Any other device goes to the [malware playbook](../01-malware-alert/playbook.md) from its step 7.
+    - This device stays in this playbook, or in the one that sent you here. Where 12 sends it to the malware playbook, still escalate as 12 says, but skip the hand-off. Any other device goes to the [malware playbook](../01-malware-alert/playbook.md) from its step 7.
 
 17. **Check for a macro** ([Macros](investigation.md#macros)) if an Office file is in the chain: run Office spawning shells with T0.
     - Expect: no shell or script host from Office, or an ASR event ending in `Blocked`.
@@ -204,7 +204,7 @@ Only after step 9 is done (or recorded as failed) and step 10 is done on every d
     - A payload not signed by Microsoft or a trusted non-Microsoft publisher: file page → Stop and Quarantine File. It stops its running processes, quarantines the file and deletes persistent data such as registry keys, on every device where it was seen in the last 30 days.
       - Expect: the Action center shows Success for each device.
       - If Failed: record the reason. If Pending: the device is offline; the action times out after three days.
-      - If Defender warns that the file is widely used in the organization: cancel and escalate (Stop and Quarantine File can't be used on a running process, or Defender warns the file is widely used). It may be a business application.
+      - If Defender warns that the file is widely used in the organization: cancel and escalate (Stop and Quarantine File can't be used on a running process (Microsoft or trusted-publisher signed), or Defender warns the file is widely used). It may be a business application.
       - A quarantined file can be restored if it turns out to be clean.
     - A Windows binary or another file signed by Microsoft or a trusted publisher (for example `powershell.exe`, or a remote management agent): Stop and Quarantine File can't be used on it. Don't use Live Response `remediate` on the process either: on a process it stops the process and deletes the image file. Escalate (Stop and Quarantine File can't be used on a running process); the IR lead decides how to stop it. The device stays isolated meanwhile.
 
