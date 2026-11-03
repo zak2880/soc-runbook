@@ -9,7 +9,7 @@ The [playbook](playbook.md) gives the order of actions. This page explains what 
 - A paste that ran and whose payload you can't name counts as "infostealer or unknown payload executed": escalate and run steps 11 and 17 of the [malware alert playbook](../01-malware-alert/playbook.md), as 02 step 14 and 07 step 15 say. Don't wait for a file: a stealer can run in memory.
 - Then go back to the step that sent you (02 step 12 or 19; 07 step 13 or 21).
 
-**Sent here from the false-positive guide?** A paste is closed only under Closing as a false positive in the [playbook](playbook.md).
+**Sent here from the false-positive guide?** A paste is closed only under [Closing as a false positive](playbook.md#closing-as-a-false-positive).
 
 ---
 
