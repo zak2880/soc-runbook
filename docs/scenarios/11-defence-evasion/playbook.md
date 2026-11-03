@@ -27,7 +27,7 @@ T0 = the first malicious event in the chain (the evasion event, or whatever ran 
 4. **Record the protection state before anything changes** ([Check the real state first](investigation.md#check-the-real-state-first)). These are read-only. Put each reading and its time in the ticket: Sensor health state; the newest events in the Device timeline; the Device health status card (top message, Defender Antivirus mode); Effective settings (antivirus settings and every exclusion, with the source of each). Then Live Response `processes` (`MsMpEng.exe`, `MsSense.exe`) and `services` (`WinDefend`, `Sense`, `EventLog`). Use `Get-MpComputerStatus` and `Get-MpPreference` if your team has an approved library script.
    - Expect: sensor Active with events up to now; Defender in the mode the customer expects; `MsMpEng.exe` and `MsSense.exe` running; no exclusion you can't explain.
    - If Live Response or the script isn't available: record why, and ask the customer's IT contact for the output of `Get-MpComputerStatus` and `Get-MpPreference`. Don't wait for it; continue.
-   - If the sensor is Inactive or Misconfigured, or the timeline stops while the device is on: escalate (sensor stopped reporting or lost health during the incident) and go to step 8. Active doesn't prove the sensor is working now: Microsoft marks a device Inactive only after seven days without signals.
+   - If the sensor is Inactive or Misconfigured, or the timeline stops while the device is on: escalate (sensor stopped reporting or lost health during the incident) and go to step 8. Active doesn't prove the sensor is working now: Microsoft marks a device Inactive only after more than seven days without signals.
    - A device that is simply switched off, or a timeline event showing the EDR client in Critical mode, is not this trigger. Confirm the first with the customer and record the gap.
    - Keep this record. Step 28 restores from it. Change nothing now.
 
@@ -41,7 +41,7 @@ T0 = the first malicious event in the chain (the evasion event, or whatever ran 
    - Audit policy or event logging turned off (`auditpol /clear`, `/remove` or `/set` with `disable`; `wevtutil sl` with `/e:false`; EventLog service stopped or disabled)
    - Defender or EDR tampered with or stopped: protection off or weakened with no change record, a tamper alert, a `TamperingAttempt` event, or a security service stopped or killed
    - Defender exclusion with no change record
-   - Defender change from central policy (Group Policy, Intune, Configuration Manager) with no change record
+   - Defender change from central policy with no change record (Group Policy, Intune, Configuration Manager)
    - Unknown or vulnerable driver written or loaded
    - Sensor stopped reporting or lost health during the incident
    - Firewall turned off, or a rule allowing inbound connections added, with no change record
@@ -53,7 +53,7 @@ T0 = the first malicious event in the chain (the evasion event, or whatever ran 
    - No change record means the customer's contact can't name one now. No answer counts as no record. Don't wait for an answer before you contain.
 
 7. **Decide the path.**
-   - No trigger, and it looks like a named change or normal behaviour (a change record, a product the customer runs, `eventvwr.exe` starting `mmc.exe`): read the matching row in [Closing as a false positive](#closing-as-a-false-positive) and do the checks it needs from steps 13 to 22. Close only if every condition holds; otherwise go to step 8.
+   - No trigger, and it looks like a named change or normal behaviour (a change record, a product the customer runs, `eventvwr.exe` starting `mmc.exe`): read the matching row in [Closing as a false positive](#closing-as-a-false-positive) and do the checks it names from steps 13 to 22, leaving out the parts that need the package or the logs from step 11. Close only if every condition holds; otherwise go to step 8.
    - Anything else, or you can't tell: go to step 8. Evasion means something already ran on the device. Prevented or Blocked doesn't change that.
 
 ---
@@ -78,9 +78,9 @@ If you don't hold the rights for a step here (isolation, investigation package, 
 10. **Collect the investigation package** (device page → Collect investigation package). It records autoruns, running processes, network connections, prefetch, scheduled tasks, services and the Security event log. It holds no process memory.
     - Expect: the package is downloadable from the Action center.
     - If not: collection can fail on low battery or a metered connection, and a damaged sensor may not complete it. Retry once, then record the failure and continue.
-    - Don't restart the device, run an antivirus scan, Stop and Quarantine File, Live Response `remediate`, or request any change back until this step is done or recorded as failed. Those actions remove or change what the package would have recorded.
+    - Don't restart the device, run an antivirus scan, Stop and Quarantine File, Live Response `remediate`, or ask anyone to restore a setting until this step is done or recorded as failed. Those actions remove or change what the package would have recorded.
 
-11. **Preserve the logs the package doesn't hold.** Live Response `getfile` with the full path, from `C:\Windows\System32\winevt\Logs\`: `System.evtx`, `Microsoft-Windows-Windows Defender%4Operational.evtx` and `Microsoft-Windows-PowerShell%4Operational.evtx`.
+11. **Preserve the logs the package doesn't hold.** Live Response `getfile` with the full path in quotes, from `C:\Windows\System32\winevt\Logs\`: `System.evtx`, `Microsoft-Windows-Windows Defender%4Operational.evtx` and `Microsoft-Windows-PowerShell%4Operational.evtx`.
     - Expect: each file downloaded and listed in the ticket.
     - VERIFY (tenant) that `getfile` can read a log file the Event Log service has open. If it fails: ask the customer's IT contact to export the log as an administrator, for example `wevtutil epl System PASTE_FILE_PATH_HERE`, and send it to you.
     - Whoever signs in to the device exposes their credentials to it. They must not use a domain admin or other privileged domain account. If a credential dump ran, the IR lead decides how this is done.
@@ -104,14 +104,15 @@ If you don't hold the Live Response role, request it from the customer's IT cont
     - Expect: no change, or a change that a named change record covers.
     - The query can miss `-ExclusionPath` and `-DisableRealtimeMonitoring`. An empty result isn't the answer; use the timeline search.
     - If an exclusion has no change record: escalate (Defender exclusion with no change record). A setting with none: escalate (Defender or EDR tampered with or stopped).
-    - If the source is Group Policy, Intune or Configuration Manager with no change record: escalate (Defender change from central policy). The management system itself may be compromised.
+    - If the source is Group Policy, Intune or Configuration Manager and there is no change record: escalate (Defender change from central policy with no change record). The management system itself may be compromised.
     - If the timeline shows troubleshooting mode (`AntivirusTroubleshootModeEvent`) and the customer can't name who started it: escalate (Defender or EDR tampered with or stopped).
     - Change nothing yet; that is step 28.
 
-14. **Check whether a security tool was stopped or a driver used** ([Security tools stopped or killed](investigation.md#security-tools-stopped-or-killed), [Vulnerable drivers](investigation.md#vulnerable-drivers)): the taskkill query; a Device timeline search for `sc`, `net stop`, `Stop-Process` and `Set-Service` against `WinDefend`, `Sense` or the customer's other security products; `.sys` files written outside `C:\Windows\`; `AsrVulnerableSignedDriver` events; Live Response `drivers`.
-    - Expect: nothing. A driver list with nothing the customer can't name.
+14. **Check whether a security tool was stopped or a driver used** ([Security tools stopped or killed](investigation.md#security-tools-stopped-or-killed), [Vulnerable drivers](investigation.md#vulnerable-drivers)): the taskkill query; a Device timeline search for `sc.exe`, `net stop`, `Stop-Process` and `Set-Service` against `WinDefend`, `Sense` or the customer's other security products; `.sys` files written outside `C:\Windows\`; `AsrVulnerableSignedDriver` events.
+    - Expect: nothing aimed at a security tool, no ASR driver event, and no `.sys` file outside `C:\Windows\` that a named product doesn't explain.
     - If a tool was stopped or attacked: compare with step 4 to record whether it took effect. Escalate (Defender or EDR tampered with or stopped).
     - If a driver was written or loaded and isn't one the customer can name: escalate (unknown or vulnerable driver written or loaded). Preserve it (step 12). Treat the device's telemetry after that time as unreliable.
+    - Save Live Response `drivers` output in the ticket for the IR lead. It lists every driver on the device, so it isn't a check you can finish alone.
 
 15. **Check for an AMSI bypass** ([AMSI bypass](investigation.md#amsi-bypass)): Defender alerts first, then the AMSI query. Decode anything encoded on your analysis machine ([Decode before you judge](../02-suspicious-process/investigation.md#decode-before-you-judge)). Never run the result.
     - Expect: nothing. `-ExecutionPolicy Bypass` on its own isn't an AMSI bypass.
@@ -200,12 +201,13 @@ Only after steps 10, 11 and 12 are done (or recorded as failed) on every device 
       - Intune or Defender security settings management: an Intune admin with Endpoint Security Manager rights or equivalent.
       - A command on the device, no policy: a local administrator on the device.
       - Tamper protection: the Intune policy; or the Defender portal's Advanced features toggle, which needs Core security settings (manage), held by Security Administrator or Security Operator. That toggle covers the whole organization, so it is the customer's decision. The Windows Security app works only on a device no security team manages.
+      - A non-Microsoft security product: the admin of that product's console.
     - Fix it at the source. If a policy set the value and the policy stays as it is, the change comes back.
     - An isolated device may not receive policy from Intune or a domain controller (VERIFY (tenant)). Then it needs someone at the device or an approved Live Response library script. Whoever signs in must not use a domain admin or other privileged domain account. If a credential dump ran, the IR lead decides how.
     - Don't start troubleshooting mode yourself. It lets local administrators change protected settings for up to four hours. Only the IR lead decides to use it.
-    - Expect: repeat step 4. Every reading matches the customer's expected state, and `IsTamperProtected` is `True`. Record who made each change and when.
+    - Expect: repeat step 4. Every reading matches the customer's expected state. Record who made each change and when. If tamper protection was never on at this customer, record that and recommend it.
     - If a value won't stay, or comes back changed: escalate (protection can't be restored, or it is turned off again). Something is still changing it. Keep the device isolated.
-    - If protection can't be restored at all (for example a damaged sensor): escalate the same way. Steps 29, 30 and 33 may not work. The IR lead decides; go to step 34.
+    - If protection can't be restored at all (for example a damaged sensor): escalate (protection can't be restored, or it is turned off again). Steps 29, 30 and 33 may not work. The IR lead decides; go to step 34.
 
 29. **Stop what is still running** (step 23).
     - Nothing from the chain running: go to step 30.
@@ -227,7 +229,7 @@ Only after steps 10, 11 and 12 are done (or recorded as failed) on every device 
 
 31. **Remove persistence and remaining files** found in steps 16, 22 and 24, using the [persistence playbook](../04-persistence-detected/playbook.md). A tool or script Stop and Quarantine didn't cover: Live Response `remediate file` with its full path deletes it. Do this only once step 12 holds a copy.
     - Expect: each item removed and recorded.
-    - UAC hijack key (step 16): it sits in the user's hive, so it follows the per-user rule in step 19 of the persistence playbook: request removal of that one value from the customer's IT contact.
+    - UAC hijack key (step 16): it sits in the user's hive, so the per-user rule in step 19 of the persistence playbook applies. Request removal of what step 16 recorded from the customer's IT contact.
     - Never point `remediate` at a Windows binary.
     - A driver file: don't delete it yourself. The IR lead decides.
     - An lsass dump file: don't delete it yourself. Follow step 7 of the [credential compromise playbook](../06-credential-compromise/playbook.md).
@@ -311,7 +313,7 @@ Event logs cleared or deleted (wevtutil cl, Clear-EventLog, Remove-EventLog, Eve
 Audit policy or event logging turned off (auditpol /clear, /remove or /set with disable; wevtutil sl with /e:false; EventLog service stopped or disabled)
 Defender or EDR tampered with or stopped: protection off or weakened with no change record, a tamper alert, a TamperingAttempt event, or a security service stopped or killed
 Defender exclusion with no change record
-Defender change from central policy (Group Policy, Intune, Configuration Manager) with no change record
+Defender change from central policy with no change record (Group Policy, Intune, Configuration Manager)
 Unknown or vulnerable driver written or loaded
 Sensor stopped reporting or lost health during the incident
 Firewall turned off, or a rule allowing inbound connections added, with no change record
