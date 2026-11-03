@@ -36,9 +36,11 @@ Never browse to, call or submit a URL from this incident to a public scanner (st
    - Expect: one class recorded, with the folder and signer that support it.
 
 6. **Decide the path.** Take the first line that matches.
-   - C or D contacting the Telegram Bot API, Discord (CDN or webhook), a paste site, a webhook service or Microsoft Graph: escalate now and go to step 7.
+   - C or D contacting the Telegram Bot API, Discord (CDN or webhook), a paste site, a webhook service or Microsoft Graph: escalate now and go to step 7. Isolate first.
+   - D, whatever the destination: go to step 7. Isolate first.
    - C running a script the customer has documented (named script path, change record or scheduled job) against GitHub, SharePoint, OneDrive, Google Drive, Dropbox or object storage: check Closing as a false positive now. If every condition holds, close there. Otherwise go to step 7.
-   - Any other C or D: go to step 7.
+   - C against GitHub, SharePoint, OneDrive, Google Drive, Dropbox or object storage with no documented script: do steps 11 to 14 now, before isolating. They only read; change nothing on the device. Go to step 7 at once on any red flag: a dead-drop follow-on (step 12), an unexpected parent, child or DLL (step 13), a file written from the service (step 14), a URL that points to a payload (step 11), or any line in Escalate if. If the customer names and documents the script by the end of step 14, check Closing as a false positive (documented script row). If it isn't explained by then: go to step 7. After step 10, continue from step 15.
+   - C against any other destination: go to step 7.
    - A: do steps 13 and 14 now. If a file from a cloud service ran, or the browser started a script host, LOLBin or unknown binary: go to step 7. Otherwise check Closing as a false positive (browser row).
    - B: check Closing as a false positive (sync client row). If any condition fails, treat it as D and go to step 7.
    - You can't tell: go to step 7.
