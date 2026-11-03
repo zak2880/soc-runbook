@@ -42,7 +42,7 @@ Never browse to, download from or submit a URL from this incident to a public sc
    - If D fits as well as A or B: continue here; step 20 tells you what to add.
 
 6. **Check the process and decide the path.** Look up its SHA1 in `DeviceFileCertificateInfo` (`Signer`, `IsTrusted`), note its folder path and command line, and check what it started: `DeviceProcessEvents` on this device where `InitiatingProcessId` is its PID and `InitiatingProcessCreationTime` is its start time. These checks only read; change nothing on the device.
-   - Go to step 7 now and escalate if any of the following. Don't finish this step first. For the first six items the Escalate if line is "network activity from a process that isn't a named, sanctioned product, a documented script or an approved scanner"; the others are their own lines.
+   - As soon as you see any of the following, go to step 7 and escalate; don't finish the other checks first. For the first six items the Escalate if line is "network activity from a process that isn't a named, sanctioned product, a documented script or an approved scanner"; the others are their own lines.
      - The process isn't signed, `IsTrusted` is false, or the signer isn't the vendor of the product it claims to be.
      - It runs from a user-writable folder (`AppData`, `Temp`, `Downloads`, `C:\Users\Public`).
      - It is a Windows binary that loads DLLs (`rundll32.exe`, `dllhost.exe`, `regsvr32.exe`) and makes the connections itself.
@@ -68,6 +68,7 @@ If you don't hold the rights for a step here, request it from the customer's IT 
    - Production server, or a management server or scanner other systems depend on: tell the customer contact you are isolating it, and record the time.
    - Full-tunnel VPN: Microsoft says the device can't reach the Defender service once isolated. Do step 9 first, then step 8.
    - Behind a web proxy (PAC, WPAD or static): use selective isolation. Microsoft warns such devices might not recover from full isolation.
+   - If the activity also runs over Microsoft 365 or Microsoft Graph (step 5, B together with D): choose the isolation type with step 7 of the [LOTS & cloud C2 playbook](../09-lots-cloud-c2/playbook.md).
    - Expect: an ordinary workstation or member server. Go to step 8.
 
 8. **Isolate the device** (device page → Isolate device). Isolation disconnects it from the network, which cuts C2, downloads and connections to other internal devices, and keeps it connected to the Defender service.
@@ -150,7 +151,7 @@ If you don't hold the rights for a step here (Collect file, Live Response), requ
     - If other devices: escalate (same destination or malicious SHA1 on more than one device). Run steps 2 to 20 for each. The earliest first event is the patient-zero candidate; if it is before T0, move T0 and rerun steps 21 and 22.
     - The IP page lists up to 100 devices, and the query only shows pairs above 30 connections. Many devices is a reason to scope wider, never to close.
 
-22. **Search for each malicious file across the estate** with the [hash sweep](../01-malware-alert/investigation.md#step-4--check-for-spread): the SHA1 of the connecting process if it isn't a Windows binary, and of each file from steps 10, 12 and 14.
+22. **Search for each malicious file across the estate** with the [hash sweep](../01-malware-alert/investigation.md#step-4--check-for-spread): the SHA1 of the connecting process if it isn't a Windows binary, and of each file from steps 10, 11, 12 and 14.
     - Expect: only this device.
     - If other devices: escalate (same destination or malicious SHA1 on more than one device). Run steps 2 to 20 for each.
     - Zero rows doesn't prove no spread.
@@ -161,7 +162,7 @@ If you don't hold the rights for a step here (Collect file, Live Response), requ
 
 Only after step 9 is done (or recorded as failed) and step 10 is done, on every device in scope. If you don't hold the rights for a step here, request it from the customer's IT contact, record the time of the request, and continue with the steps you can do.
 
-23. **Stop and quarantine each malicious non-Microsoft file** from steps 10, 12 and 14 (file page → Stop and Quarantine File). This stops its running processes, quarantines the file and deletes persistent data such as registry keys, on every device where it was seen in the last 30 days.
+23. **Stop and quarantine each malicious non-Microsoft file** from steps 10, 11, 12 and 14 (file page → Stop and Quarantine File). This stops its running processes, quarantines the file and deletes persistent data such as registry keys, on every device where it was seen in the last 30 days.
     - Expect: the Action center shows Success for each device.
     - If Failed: record the reason. If Pending: the device is offline; the action times out after three days.
     - If Defender warns that the file is widely used in the organization: cancel and escalate (Stop and Quarantine File can't be used or the process still runs, or Defender warns the file is widely used). It may be a business application.
@@ -169,7 +170,7 @@ Only after step 9 is done (or recorded as failed) and step 10 is done, on every 
     - A quarantined script or DLL is no evidence that the process running it stopped. Run Live Response `processes` again. If it still runs: escalate (Stop and Quarantine File can't be used or the process still runs, or Defender warns the file is widely used); the IR lead decides how to stop it. The device stays isolated meanwhile.
     - A quarantined file can be restored if it turns out to be clean.
 
-24. **Block the IOCs** with Defender for Endpoint indicators (Settings → Endpoints → Indicators). Block every external IP and domain from steps 2, 10, 12, 16, 20 and 21, and the SHA1 of each malicious PE from steps 10, 12 and 14.
+24. **Block the IOCs** with Defender for Endpoint indicators (Settings → Endpoints → Indicators). Block every external IP and domain from steps 2, 10, 11, 12, 16 and 20, and the SHA1 of each malicious PE from steps 10, 11, 12 and 14.
     - IPs: external IPs only, one address per indicator (no ranges). Internal addresses can't be added; isolating each device in scope is the control. C2 that rotates across several IPs or a CDN isn't covered by one IP indicator; block the domain too.
     - Domains and URLs: outside Microsoft Edge, blocking needs Network Protection in block mode. For HTTPS, Network Protection reads the host name from the TLS handshake, so the connection must use TCP (not QUIC) with an unencrypted ClientHello. A full URL path can be blocked only in Edge. Blocks can take up to 48 hours; most apply within 2 hours.
     - A DNS tunnel's parent domain: Microsoft's indicator pages describe blocking connections, not DNS lookups, so don't rely on an indicator to stop the tunnel. Isolation (step 8) is the control.
@@ -178,13 +179,13 @@ Only after step 9 is done (or recorded as failed) and step 10 is done, on every 
     - Expect: each indicator listed with its expiry.
     - Check that blocks work in the alerts queue and in `DeviceEvents` with `ActionType` `ExploitGuardNetworkProtectionBlocked`. A blocked connection can still appear as `ConnectionSuccess` in network events. Any other device in those block events is still trying to reach the destination: escalate (same destination or malicious SHA1 on more than one device) and run steps 2 to 20 for it.
 
-25. **Remove persistence and remaining files** found in steps 12, 14 and 17, using the [persistence playbook](../04-persistence-detected/playbook.md).
+25. **Remove persistence and remaining files** found in steps 11, 12, 14 and 17, using the [persistence playbook](../04-persistence-detected/playbook.md).
     - Expect: each item removed and recorded.
     - Accounts the attacker created: disable them; delete only with the IR lead's agreement.
 
 26. **Confirm every action in the Action center** (History tab): isolation, package, quarantine, antivirus remediation, Live Response actions.
     - Expect: every action Success.
-    - If an action failed or an item from steps 12, 14 and 17 has no action: do it from the device or file page, or with Live Response `remediate` (not on Windows binaries or signed programs). Record each.
+    - If an action failed or an item from steps 11, 12, 14 and 17 has no action: do it from the device or file page, or with Live Response `remediate` (not on Windows binaries or signed programs). Record each.
     - If it still fails: escalate (remediation failed and can't be completed). Don't release the device.
 
 27. **Run a full antivirus scan** (device page → Run antivirus scan → Full). Since 1 September 2026, automated investigation (AIR) no longer runs as a separate investigation in Defender for Endpoint and can't be triggered manually; Microsoft says to run a full antivirus scan for on-demand investigations.
@@ -204,7 +205,7 @@ If you don't hold the rights for a step here (reimage, release from isolation), 
 29. **Release only when all of these hold:**
     - Steps 23 to 27 done, every action Success.
     - Every internal target from step 15 checked, and every device in scope from steps 21 and 22 handled.
-    - Credentials handled (steps 13, 18 and 19).
+    - Credentials handled (steps 13, 15, 18 and 19).
     - Indicators in place (step 24), or the IR lead has accepted that a destination can't be blocked.
     - No new alerts, and no network events from the process or to the destination in the Device timeline after step 25, for the period the IR lead sets.
     - For High and above, the IR lead approves the release.
@@ -235,7 +236,7 @@ Beaconing (class A) and cloud services (class B) close only per their own playbo
 
 | Activity | Close only if all of these hold |
 |----------|---------------------------------|
-| Named, sanctioned product (unusual port, management traffic, RMM) | The product is named, and the customer's asset list, approved-software list or a change record covers it on this device. For an RMM tool, its install time and installing account match that record. `DeviceFileCertificateInfo` for its SHA1 shows the vendor as `Signer` with `IsTrusted` true, and it runs from the vendor's install folder. It started no shells or recon commands, and `DeviceImageLoadEvents` shows no DLL that isn't signed by the vendor or Microsoft. The destination is infrastructure the vendor documents for that product, and the Defender IP or URL/domain page shows no malicious verdict and no related alerts. The device has no other alerts since T0 |
+| Named, sanctioned product reaching an external destination (unusual port, RMM) | The product is named, and the customer's asset list, approved-software list or a change record covers it on this device. For an RMM tool, its install time and installing account match that record. `DeviceFileCertificateInfo` for its SHA1 shows the vendor as `Signer` with `IsTrusted` true, and it runs from the vendor's install folder. It started no shells or recon commands, and `DeviceImageLoadEvents` shows no DLL that isn't signed by the vendor or Microsoft. The destination is infrastructure the vendor documents for that product, and the Defender IP or URL/domain page shows no malicious verdict and no related alerts. The device has no other alerts since T0 |
 | Documented script or download job (class C) | The customer names the script or job, its path and owner, with a change record or documented scheduled job. The command line matches that record. The download host belongs to the customer or a named vendor. Every downloaded file is identified (name, SHA1, what it is) and is what the record says. Not for paste sites, webhook services, Telegram or Discord. The device has no other alerts since T0 |
 | Approved internal scanner or management server (class D) | The customer names the product and its source device, and confirms the scan or job window (ticket or schedule). The connections come from that device, inside that window, from that product's process (vendor `Signer`, `IsTrusted` true, vendor install folder). No logon or remote execution on any target beyond what the customer confirms the product does (for example authenticated scanning). The device has no other alerts since T0 |
 
