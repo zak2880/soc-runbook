@@ -21,12 +21,12 @@ If you don't hold the rights for a step in 1 to 7 (Explorer read access; the Pre
 2. **Check the incident's other alerts and each recipient's user page.**
    - Expect: email alerts only.
    - If an endpoint alert shows a payload ran on a device: escalate (payload ran) and contain that device now with steps 7 to 10 of the [malware playbook](../01-malware-alert/playbook.md). Then come back here.
-   - If a recipient has any Entra ID Protection risk detection since T0, or an alert for a suspicious inbox rule or forwarding: escalate (recipient account compromised) and do steps 13 to 16 of the [credential compromise playbook](../06-credential-compromise/playbook.md) for that user now. Then come back here. The account path in step 14 takes that user on to 06 step 20.
+   - If a recipient has any Entra ID Protection risk detection since T0, or an alert for a suspicious inbox rule or forwarding: escalate (recipient account compromised) and do steps 13 to 16 of the [credential compromise playbook](../06-credential-compromise/playbook.md) for that user now. Then come back here. The account path in step 14 finishes that user: 06 steps 17 to 19, step 17 here, then 06 step 20.
    - If a "potentially malicious URL click" alert names a user: do step 14 for that user before you continue.
 
 3. **Classify the sender** (investigation, Step 1, "Who sent it?"): attacker-owned, spoofed From, partner, or internal.
    - Expect: attacker-owned or spoofed.
-   - If internal (the customer's own domain, Directionality Intra-org, not spoofed): escalate (internal mailbox compromised) and do steps 13 to 16 of the credential compromise playbook for the sender now. The account path in step 14 takes the sender on to 06 step 20. Step 18 scopes what the account sent. Don't block the sender (step 9).
+   - If internal (the customer's own domain, Directionality Intra-org, not spoofed): escalate (internal mailbox compromised) and do steps 13 to 16 of the credential compromise playbook for the sender now. The account path in step 14 finishes the sender: 06 steps 17 to 19, step 17 here, then 06 step 20. Step 18 scopes what the account sent. Don't block the sender (step 9).
    - If a known partner's mailbox (authentication passes, a reply inside an existing thread): escalate (partner mailbox compromised). Don't block the sender (step 9).
 
 4. **Decide whether the message is malicious.** Any one of these is enough: Original or Latest threats show Phish or Malware; a URL or attachment has a threat verdict or a malicious detonation; the From address is spoofed and the message asks for credentials, payment or a call; enrichment of a URL or attachment (step 6) is malicious.
@@ -119,7 +119,10 @@ If you don't hold the rights for a step in 12 to 15 (Entra sign-in logs and ID P
 
 14. **Check each clicker's account from the click time on** (investigation, Step 7): Entra ID Protection risk detections, sign-ins (interactive and non-interactive, and Authentication protocol Device code), authentication methods added, app consents, inbox rules and forwarding, and mail the user sent.
     - Expect: none of these after the click.
-    - If any, or the user says they entered credentials, approved an MFA prompt or typed a code: escalate (recipient account compromised) and run steps 13 to 20 of the [credential compromise playbook](../06-credential-compromise/playbook.md) for that user. A user or sender from steps 2 and 3 comes here too, clicked or not: steps 13 to 16 are done, so continue from 06 step 17. Re-enabling is 06 step 20: you do it, or the customer's IT contact if you don't hold the right, once that step's conditions hold. Then do step 17 for that user straight away; don't leave it for the end.
+    - If any, or the user says they entered credentials, approved an MFA prompt or typed a code: escalate (recipient account compromised), then do these for that user in this order, straight away; don't leave them for the end. A user or sender from steps 2 and 3 comes here too, clicked or not: 06 steps 13 to 16 are done, so start at 06 step 17.
+      - Steps 13 to 19 of the [credential compromise playbook](../06-credential-compromise/playbook.md).
+      - Step 17 of this playbook: inbox rules, forwarding and app consents.
+      - 06 step 20. Re-enabling is 06 step 20: you do it, or the customer's IT contact if you don't hold the right, once that step's conditions hold.
     - No detection doesn't clear the user: Attacker in the Middle needs Microsoft 365 E5 with EMS E5 and is calculated offline.
     - If the user is a priority account or admin: escalate (priority or admin recipient interacted).
 
@@ -137,6 +140,7 @@ If you don't hold the rights for a step in 16 to 20, request it from the custome
     - Expect: each device listed in the ticket with its malware playbook status.
 
 17. **Remove the mailbox changes the attacker made** (step 14), only after each one is recorded in the ticket: inbox rules, forwarding, and app consents. The customer's Exchange or identity admin does this if you don't hold the rights.
+    - Step 14 brings each compromised account here straight away, after 06 step 19. Don't re-enable the account (06 step 20) until this is done.
     - Expect: each item removed and recorded.
 
 18. **Internal sender only (step 3): scope what the sender's account sent** since its first suspicious sign-in (investigation, Step 8). Add those messages and their recipients to step 7's scope, and do steps 5 to 15 for any message not already covered.
