@@ -161,6 +161,7 @@ Only after step 10 is done (or recorded as failed), step 11 is done on every dev
 
 22. **Stop what is still running** (step 16) **and cancel the BITS jobs** (step 12).
     - Nothing from the chain running and no BITS job to cancel: go to step 23.
+    - If a changed legitimate entry recorded in step 17 (for example Winlogon `Userinit`, or an existing service's `ImagePath`) points to the file: don't run Stop and Quarantine File yourself. Microsoft doesn't say which registry data it deletes. Ask the IR lead first.
     - A payload not signed by Microsoft or a trusted non-Microsoft publisher (an EXE or DLL from steps 11 and 15, or a script if its file page offers the action): file page → Stop and Quarantine File. It stops its running processes, quarantines the file and deletes persistent data such as registry keys, on every device where it was seen in the last 30 days.
       - Expect: the Action center shows Success for each device.
       - If Failed: record the reason. If Pending: the device is offline; the action times out after three days.

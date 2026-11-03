@@ -122,6 +122,7 @@ If you don't hold the rights for a step here, request it from the customer's IT 
 Only after step 9 is done (or recorded as failed) and step 10 is done, on every device in scope. If you don't hold the rights for a step here, request it from the customer's IT contact, record the time of the request, and continue with the steps you can do.
 
 19. **Stop and quarantine the implant** (file page → Stop and Quarantine File). This stops its running processes, quarantines the file and deletes persistent data such as registry keys, on every device where it was seen in the last 30 days.
+    - If a changed legitimate entry recorded in step 14 (for example Winlogon `Userinit`, or an existing service's `ImagePath`) points to the file: don't run Stop and Quarantine File yourself. Microsoft doesn't say which registry data it deletes. Ask the IR lead first.
     - Expect: the Action center shows Success for each device.
     - If Failed: record the reason. If Pending: the device is offline; the action times out after three days.
     - If Defender warns that the file is widely used in the organization: cancel and escalate (Stop and Quarantine File can't be used, or Defender warns the file is widely used). It may be a business application.
@@ -216,6 +217,7 @@ Same destination or implant SHA1 on more than one device
 Device can't be isolated (pending, offline, domain controller, Tier 0 server, Hyper-V host)
 Stop and Quarantine File can't be used, or Defender warns the file is widely used
 Destination is a cloud or business service the customer uses
+Persistence is a changed legitimate entry, not a new one (for example Winlogon Userinit, Shell or Notify, or an existing service's ImagePath)
 Remediation failed and can't be completed
 Isolation will auto-lift before the release criteria hold
 ```

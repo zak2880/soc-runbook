@@ -138,6 +138,7 @@ Only after step 10 is done (or recorded as failed) and step 11 is done on every 
 
 20. **Stop what is still running** (step 15).
     - Nothing from the chain running: go to step 21.
+    - If a changed legitimate entry recorded in step 16 (for example Winlogon `Userinit`, or an existing service's `ImagePath`) points to the file: don't run Stop and Quarantine File yourself. Microsoft doesn't say which registry data it deletes. Ask the IR lead first.
     - A payload not signed by Microsoft or a trusted non-Microsoft publisher (an EXE or DLL from steps 11 and 14, or a script if its file page offers the action): file page → Stop and Quarantine File. It stops its running processes, quarantines the file and deletes persistent data such as registry keys, on every device where it was seen in the last 30 days.
       - Expect: the Action center shows Success for each device.
       - If Failed: record the reason. If Pending: the device is offline; the action times out after three days.
@@ -156,7 +157,7 @@ Only after step 10 is done (or recorded as failed) and step 11 is done on every 
 22. **Remove persistence and remaining files** found in steps 14 and 16, using the [persistence playbook](../04-persistence-detected/playbook.md). A script or other payload that Stop and Quarantine didn't cover: Live Response `remediate file` with its full path deletes it. Do this only once step 11 holds a copy.
     - Expect: each item removed and recorded.
     - Never point `remediate` at a Windows binary.
-    - If the persistence is a changed Windows value (for example under Winlogon) rather than a new entry: don't delete it. Escalate; the IR lead restores the original value.
+    - If the persistence is a changed legitimate entry, not a new one (for example Winlogon `Userinit`, `Shell` or `Notify`, or an existing service's `ImagePath`): don't delete the value or the key. Escalate; the IR lead restores the original data.
     - Accounts the attacker created: disable them; delete only with the IR lead's agreement.
 
 23. **Confirm every action in the Action center** (History tab): isolation, package, quarantine, Live Response actions.
@@ -240,7 +241,7 @@ Same malicious file or command pattern on more than one device
 Device can't be isolated (pending, offline, domain controller, other Tier 0 server, Hyper-V host)
 Stop and Quarantine File can't be used on a running process (Microsoft or trusted-publisher signed), or Defender warns the file is widely used
 A domain to block is one the customer uses for business
-Persistence is a changed Windows value (for example under Winlogon), not a new entry
+Persistence is a changed legitimate entry, not a new one (for example Winlogon Userinit, Shell or Notify, or an existing service's ImagePath)
 Remediation failed and can't be completed
 Full antivirus scan after removal finds new detections
 Isolation will auto-lift before the release criteria hold

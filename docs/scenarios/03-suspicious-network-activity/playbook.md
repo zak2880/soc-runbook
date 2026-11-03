@@ -163,6 +163,7 @@ If you don't hold the rights for a step here (Collect file, Live Response), requ
 Only after step 9 is done (or recorded as failed) and step 10 is done, on every device in scope. If you don't hold the rights for a step here, request it from the customer's IT contact, record the time of the request, and continue with the steps you can do.
 
 23. **Stop and quarantine each malicious non-Microsoft file** from steps 10, 11, 12 and 14 (file page → Stop and Quarantine File). This stops its running processes, quarantines the file and deletes persistent data such as registry keys, on every device where it was seen in the last 30 days.
+    - If a changed legitimate entry recorded in step 17 (for example Winlogon `Userinit`, or an existing service's `ImagePath`) points to the file: don't run Stop and Quarantine File yourself. Microsoft doesn't say which registry data it deletes. Ask the IR lead first.
     - Expect: the Action center shows Success for each device.
     - If Failed: record the reason. If Pending: the device is offline; the action times out after three days.
     - If Defender warns that the file is widely used in the organization: cancel and escalate (Stop and Quarantine File can't be used or the process still runs, or Defender warns the file is widely used). It may be a business application.

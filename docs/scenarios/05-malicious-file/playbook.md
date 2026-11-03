@@ -140,6 +140,7 @@ If you don't hold the rights for a step here (isolation, investigation package, 
 Only after step 9 is done (or recorded as failed) on every device where the file ran, and step 11 is done for every file you will remove. If you don't hold the rights for a step here (Stop and Quarantine File, indicators, Live Response `remediate`), request it from the customer's IT contact, record the time of the request, and continue with the steps you can do.
 
 21. **Stop and quarantine the file** (file page → Stop and Quarantine File). This stops its running processes, quarantines the file and deletes persistent data such as registry keys, on every device where it was seen in the last 30 days. For a script or other non-PE file, use it if the file page offers the action; otherwise step 23 removes it.
+    - If a changed legitimate entry recorded in step 17 (for example Winlogon `Userinit`, or an existing service's `ImagePath`) points to the file: don't run Stop and Quarantine File yourself. Microsoft doesn't say which registry data it deletes. Ask the IR lead first.
     - Expect: the Action center shows Success for each device.
     - If Failed: record the reason. If Pending: the device is offline; the action times out after three days.
     - If Defender warns that the file is widely used in the organization: cancel and escalate. It may be a business application.
