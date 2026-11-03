@@ -14,8 +14,8 @@ If you came back here after containing the device (step 11 done), read each "go 
 
 1. **Check for ransomware first.** Run the VSS deletion and mass file renames queries for this device ([Ransomware signals](investigation.md#ransomware-signals)). If you don't have T0 yet, use the alert time. If the alert is more than 4 hours old, run the renames query again with T0 set to one hour ago.
    - Expect: no hits.
-   - If shadow copies or the backup catalog were deleted, `bcdedit` turned off recovery, mass file renames, or ransom-note files created in many folders: escalate now (consider P1) and go to step 7. Don't finish triage first. After step 11, come back to step 2.
-   - If the renames are on a file server and `RequestProtocol` is `SMB`: the device at `RequestSourceIP` is doing the encryption. Escalate, and contain that device (step 7). Don't isolate the file server yourself.
+   - If shadow copies or the backup catalog were deleted, `bcdedit` turned off recovery, mass file renames, or ransom-note files created in many folders: escalate now (consider P1) and go to step 7. Don't finish triage first. After step 11, come back to step 2. Until you have a file, the file for steps 2 to 11 is the process doing the renames or deletions (`InitiatingProcessFileName`).
+   - If the renames are on a file server and `RequestProtocol` is `SMB` (read it on one renamed file's event; the query doesn't show it): the device at `RequestSourceIP` is doing the encryption. Escalate, and contain that device (step 7). Don't isolate the file server yourself.
    - A `vssadmin` or `bcdedit` hit can be read-only (for example `vssadmin list shadows`): read the command line. A deletion that looks like backup software still goes to the IR lead; don't close it yourself.
    - No hits doesn't prove shadow copies are intact; some methods leave no command line.
 
@@ -75,7 +75,7 @@ If you don't hold the rights for a step here (isolation, investigation package, 
 
 11. **Preserve the sample.** On the file page, select Collect file if it is shown. If Download file is shown instead, Defender already holds a copy. If the file page offers neither and the file is still on disk (step 10), use Live Response `getfile` with the full path (3 GB limit).
     - Expect: the sample held by Defender or downloaded, with its path and SHA1 in the ticket.
-    - If Collect file is disabled: the file hasn't been seen in the past 30 days, or you lack the permission. For a script or document, Collect file and Download file need Security Administrator or advanced Live Response rights. Record which, and try `getfile`.
+    - If Collect file is disabled: the file hasn't been seen in the past 30 days, or you lack the permission. For a script or document, Collect file and Download file need Security Administrator or advanced Live Response rights (or the file collection permission in unified RBAC). Record which, and try `getfile`.
     - Don't open or run the file on your own workstation. A document may hold customer data; handle it as confidential.
     - Do the same for every file you find in step 15 before step 23 removes it.
 
@@ -92,11 +92,11 @@ If you don't hold the rights for a step here (isolation, investigation package, 
 
 13. **Get the file's behaviour.** PE file (`.exe`, `.dll`) that Defender holds (step 11): file page → Deep analysis → Submit. The report lists behaviours and observables, including contacted IPs and files created on disk. It takes several minutes.
     - Expect: behaviours, IPs, domains and dropped files recorded for steps 15 and 22.
-    - If Submit isn't available: the sample isn't in Defender's sample collection yet. Record it and continue.
+    - If Submit isn't available: the sample isn't in Defender's sample collection yet; Microsoft notes up to 10 minutes' latency between a file's submission and Deep analysis being available. Try again after that, then record it and continue.
     - Script, shortcut or document: Deep analysis doesn't support it. Read its content only on an analysis machine your team approves, or ask the IR lead. Don't submit it to a public sandbox.
 
 14. **Check whether it is a legitimate tool.** Look up its SHA1 in `DeviceFileCertificateInfo` (`Signer`, `IsTrusted`). Version information (company name) is not a signature.
-    - Expect: unsigned or untrusted, or a vendor the customer deployed.
+    - Expect: the signer and `IsTrusted` recorded, or the file recorded as unsigned.
     - If it is a remote-access, remote-management or file-transfer tool (for example AnyDesk, ScreenConnect, rclone): ask the customer for the change record or approved-software entry. None = a remote-access or admin tool installed with no change record or approved-software entry. Escalate, and contain (step 7) if not done.
     - Signed, widely seen and 0 VirusTotal detections doesn't change this. An attacker-installed remote-access tool passes all three.
 
@@ -148,6 +148,7 @@ Only after step 9 is done (or recorded as failed) on every device where the file
     - A quarantined file can be restored if it turns out to be clean.
 
 22. **Block the IOCs** with Defender for Endpoint indicators (Settings → Endpoints → Indicators). Block the SHA1 of the file and of each malicious file from steps 13 and 15, and the external IPs, URLs and domains from steps 13, 15 and 20.
+    - Never add a block indicator for the hash of a Windows binary. A file indicator stops the file being read, written or executed on every device in its scope.
     - File hashes: PE files only (`.exe`, `.dll`), and Defender Antivirus must be in active mode. A script, shortcut or document can't be blocked by hash; block its delivery URL. Blocks typically apply within 15 minutes, 30 on average, and can take over 2 hours. Microsoft recommends an indicator to keep a file blocked after Stop and Quarantine times out or completes.
     - IPs and URLs: external IPs only, one address per indicator (no ranges). Outside Microsoft Edge, blocking needs Network Protection in block mode. An HTTPS full URL path can be blocked only in Edge; other browsers block by domain, and only with QUIC and Encrypted Client Hello disabled. Blocks can take up to 48 hours; most apply within 2 hours.
     - Don't block the hash of software the customer uses elsewhere (for example a remote-access tool their IT team also runs), or a domain the customer uses for business (for example a cloud storage or code-hosting site). Escalate; for a domain, you can block the full URL (Edge only).
