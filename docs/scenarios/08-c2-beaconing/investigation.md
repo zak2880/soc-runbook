@@ -271,6 +271,12 @@ Read this score as a connection count. `PortScore` is 2 for almost any HTTPS des
 
 ## False positives
 
-Check these before escalating: OneDrive, CrowdStrike/Defender agents, Teams/Zoom, Windows Time (NTP), CRL/OCSP checks, RMM agents.
+Software that commonly beacons on a timer: OneDrive, Defender and other security agents, Teams and Zoom, Windows Time (NTP), CRL/OCSP checks, RMM agents. Being on this list is not enough to close an alert.
 
-Three questions: Is the process a known app from a standard path? Is the destination a known vendor domain registered years ago? Does the same pattern appear on many other devices? All yes → likely FP.
+These tests don't separate benign software from C2, so don't close on them:
+- **A known app from a standard path.** Attackers install real RMM tools, and inject beacons into or side-load them from signed programs. The initiating process then is a known app.
+- **A long-established vendor domain.** C2 can run over cloud services, and attackers can buy expired domains that are already trusted.
+- **A fixed interval.** Cobalt Strike's default jitter is 0%, so a fixed interval fits a default beacon as well as an RMM heartbeat.
+- **The same pattern on many devices.** That can be spread. Scope it as a possible campaign.
+
+To close as a false positive, every condition in [Closing as a false positive](playbook.md#closing-as-a-false-positive) in the playbook must hold.
