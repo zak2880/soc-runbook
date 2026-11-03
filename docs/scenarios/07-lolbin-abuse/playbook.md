@@ -40,7 +40,7 @@ T0 = the first malicious event in the chain (the document opened, the command pa
    - These hold even if ASR blocked the command: a blocked dump command was still run by someone.
    - WMI to another host includes `wmic /node:` and `-ComputerName` on `Invoke-CimMethod` or `Invoke-WmiMethod`. Defender tampering includes `Set-MpPreference` changes and new exclusions.
 
-6. **Decode any encoded content** ([Decode before you judge](../02-suspicious-process/investigation.md#decode-before-you-judge)): `-e`, `-ec`, `-enc`, `-EncodedCommand`, `FromBase64String`, script arguments to `mshta`. Decode PowerShell as UTF-16LE on your analysis machine. Never run the result. For `certutil -decode` or `-decodehex`, find the input file instead; don't run certutil yourself.
+6. **Decode any encoded content** ([Decode before you judge](../02-suspicious-process/investigation.md#decode-before-you-judge)): `-e`, `-ec`, `-enc`, `-EncodedCommand`, `FromBase64String`, script arguments to `mshta`. Decode PowerShell as UTF-16LE on your analysis machine. Never run the result. For `certutil -decode` or `-decodehex`, find the input and output files instead and add both to step 11; don't run certutil yourself.
    - Expect: readable text whose action you can name. Record every URL, IP, domain and file name it contains.
    - If it contains a step 5 item: escalate now and go to step 8.
    - If the decoded command downloads or runs code from an external host, or loads an assembly from memory, and its parent is not the customer's confirmed management agent: escalate and go to step 8. Confirmed means a named product that the customer's asset list or a change record shows is their own installation.
@@ -84,7 +84,8 @@ If you don't hold the rights for a step here (isolation, investigation package, 
     - Don't download an lsass dump file; follow step 7 of the [credential compromise playbook](../06-credential-compromise/playbook.md). Don't open or run any payload on your own workstation.
 
 12. **Record the BITS jobs** if `bitsadmin.exe`, `Start-BitsTransfer`, `-NotifyCmdLine` or a `svchost.exe -k netsvcs -s BITS` parent appears anywhere in the chain. Otherwise go to step 13. Ask the customer's IT contact to run `bitsadmin /list /allusers /verbose` as an administrator on the device and send you the output ([bitsadmin.exe](investigation.md#bitsadminexe)). On an isolated device that needs someone at the device, or a Live Response library script (`run`) if your team has an approved one.
-    - Expect: every job in the ticket with its name, GUID, owner, state, URLs, local files and notify command.
+    - Whoever signs in to the device exposes their credentials to it. They must not use a domain admin or other privileged domain account. If a credential dump ran (step 5), the IR lead decides how the jobs are listed.
+    - Expect: every job in the ticket with its name, GUID, owner, state, URLs, local files and notify command. Jobs that belong to Windows or to a product the customer names are expected; the customer names which.
     - Add each job's local files to step 11.
     - If a job has a notify command, or the customer can't name it: escalate (BITS job with a notify command, or one the customer can't name).
     - If nobody can list the jobs: record it, escalate (BITS jobs can't be listed or cancelled), and keep the device isolated.
@@ -165,7 +166,7 @@ Only after step 10 is done (or recorded as failed), step 11 is done on every dev
       - If Failed: record the reason. If Pending: the device is offline; the action times out after three days.
       - If Defender warns that the file is widely used in the organization: cancel and escalate. It may be a business application.
       - A quarantined file can be restored if it turns out to be clean.
-    - The LOLBin itself, or another file signed by Microsoft or a trusted publisher (for example `powershell.exe`, `certutil.exe`, `rundll32.exe`, `mshta.exe`): Stop and Quarantine File can't be used on it. Don't use Live Response `remediate` on the process either: on a process it stops the process and deletes the image file, which is the Windows binary. Escalate; the IR lead decides how to stop it. The device stays isolated meanwhile. The script, HTA or DLL it ran: Stop and Quarantine File as above if the file page offers it; otherwise it is removed in step 24.
+    - A LOLBin still running, or another running file signed by Microsoft or a trusted publisher (for example `powershell.exe`, `certutil.exe`, `rundll32.exe`, `mshta.exe`): Stop and Quarantine File can't be used on it. Don't use Live Response `remediate` on the process either: on a process it stops the process and deletes the image file, which is the Windows binary. Escalate; the IR lead decides how to stop it. The device stays isolated meanwhile. The script, HTA or DLL it ran: Stop and Quarantine File as above if the file page offers it; otherwise it is removed in step 24.
     - A BITS job the customer can't name: ask the customer's IT contact to run `bitsadmin /cancel PASTE_JOB_ID_HERE` as an administrator on the device for each job, only once step 11 holds the job's files.
       - Expect: `bitsadmin /list /allusers` no longer shows the job.
       - If a job can't be cancelled: escalate (BITS jobs can't be listed or cancelled). The device stays isolated.
