@@ -35,11 +35,11 @@ Never browse to, call or submit a URL from this incident to a public scanner (st
    - D. Anything else: unsigned, an unexpected signer, a known name in an unusual folder, a signed program that loaded a DLL from its own or a user-writable folder, or a non-Microsoft process calling Microsoft Graph.
    - Expect: one class recorded, with the folder and signer that support it.
 
-6. **Decide the path.**
+6. **Decide the path.** Take the first line that matches.
    - C or D contacting the Telegram Bot API, Discord (CDN or webhook), a paste site, a webhook service or Microsoft Graph: escalate now and go to step 7.
    - C running a script the customer has documented (named script path, change record or scheduled job) against GitHub, SharePoint, OneDrive, Google Drive, Dropbox or object storage: check Closing as a false positive now. If every condition holds, close there. Otherwise go to step 7.
    - Any other C or D: go to step 7.
-   - A: do steps 13 and 14 now. If a file from the service ran, or the browser started a script host, LOLBin or unknown binary: go to step 7. Otherwise check Closing as a false positive (browser row).
+   - A: do steps 13 and 14 now. If a file from a cloud service ran, or the browser started a script host, LOLBin or unknown binary: go to step 7. Otherwise check Closing as a false positive (browser row).
    - B: check Closing as a false positive (sync client row). If any condition fails, treat it as D and go to step 7.
    - You can't tell: go to step 7.
 
@@ -67,10 +67,10 @@ If you don't hold the rights for a step here, request it from the customer's IT 
    - If not: collection can fail on low battery or a metered connection. Retry once, then record the failure and continue.
    - Don't run an antivirus scan, Stop and Quarantine File, or Live Response `remediate` until this step is done or recorded as failed. Those actions remove files, processes and registry entries the package would have recorded.
 
-10. **Preserve the client and what it ran.** Copy the client's full command line into the ticket. Then, on the file page, select Collect file for a class D binary, or for the script a class C client ran (path from the command line). If Download file is shown instead, Defender already holds a copy.
+10. **Preserve the client and what it ran.** Copy the client's full command line, and its parent's, into the ticket. Then, on the file page, select Collect file for the malicious file: a class D binary, the script a class C client ran (path from the command line), or the DLL a signed program loaded. Don't collect `powershell.exe` or another Windows binary. If Download file is shown instead, Defender already holds a copy.
     - Expect: the sample is held by Defender, or the script saved with Live Response `getfile`.
     - If Collect file is disabled: the file hasn't been seen in the past 30 days, or you lack the permission. Record which.
-    - For a class C client, don't collect `powershell.exe` or another Windows binary; collect the script or DLL it ran.
+    - If there is no file (the command ran inline or was passed with `-EncodedCommand`, `-ec` or `-e`): the command line in the ticket is the evidence. An encoded command is Base64 of UTF-16LE text: decode it as text, never run it, and record the URLs in it.
     - Don't open or run the file on your own workstation.
 
 ---
@@ -97,7 +97,7 @@ If you don't hold the rights for a step here (Collect file, Live Response), requ
 
 14. **Find what it downloaded or wrote** ([investigation, Step 6](investigation.md#step-6--find-what-it-downloaded-or-wrote)). Record the path and SHA1 of each file. Collect file for each one you'll need (step 10 limits apply). Submit an unknown PE for Deep analysis on the file page.
     - Expect: nothing, or only files that never ran.
-    - If a file from the service ran: escalate (payload downloaded and executed).
+    - If a file from a cloud service ran: escalate (payload downloaded and executed).
 
 15. **Check whether anything is still running or connecting.** Use the package's Processes and Network connections folders, then Live Response `processes` and `connections` for the current state.
     - Expect: nothing from the chain running; no connections to the service or the IOCs from it.
@@ -125,7 +125,7 @@ If you don't hold the rights for a step here (Collect file, Live Response), requ
     - If other devices: escalate (multiple devices affected). Run steps 2 to 18 for each one. Many devices is a reason to scope wider, never to close.
     - Zero rows don't prove no spread: the queries match listed file names and whole terms only (investigation, Queries).
 
-20. **Find the first contact:** rerun the query that hit with its window starting at `T0 - 30d`.
+20. **Find the first contact:** rerun the query that hit with `T0 - 24h` changed to `T0 - 30d` on every `between` line ([investigation, Step 8](investigation.md#step-8--first-contact-and-spread)).
     - Expect: nothing before T0.
     - If earlier: move T0 to the earliest row, record it, and rerun step 19 with the new T0.
 
@@ -145,7 +145,7 @@ Only after step 9 is done (or recorded as failed) on every device in scope. If y
     - Expect: the Action center shows Success for each device.
     - If Failed: record the reason. If Pending: the device is offline; the action times out after three days.
     - If Defender warns that the file is widely used in the organization: cancel and escalate. It may be a business application.
-    - It can't be used on a file signed by Microsoft or by a trusted non-Microsoft publisher. Check the signer in `DeviceFileCertificateInfo` first; expect this for Windows scripting engines and downloaders, and for a signed program hosting a malicious DLL. Quarantine the script or DLL instead. Don't use Live Response `remediate` on the Windows process: on a process it stops the process and deletes the image file.
+    - It can't be used on a file signed by Microsoft or by a trusted non-Microsoft publisher. Check the signer in `DeviceFileCertificateInfo` first; expect this for Windows scripting engines and downloaders, and for a signed program hosting a malicious DLL. Quarantine the script or DLL instead. Don't use Live Response `remediate` on the Windows process: on a process it stops the process and deletes the image file. If the malicious file itself is signed by a trusted publisher: escalate; the IR lead decides.
     - A quarantined script or DLL is no evidence that the process running it stopped. Recheck step 15. If it still runs: escalate; the IR lead decides how to stop it. The device stays isolated meanwhile.
     - A quarantined file can be restored if it turns out to be clean.
 
@@ -208,17 +208,18 @@ If you don't hold the rights for a step here (reimage, release from isolation), 
 Close only with a named, verifiable benign cause, and record it. "Nothing else found", low volume, or "seen on many devices" is never enough; spread means scope wider.
 
 Never close these yourself, even if a test or a business tool is mentioned:
-- A class C or D client contacting the Telegram Bot API, Discord (CDN or webhook), a paste site, a webhook service or Microsoft Graph
+- A class C or D client (step 5) contacting the Telegram Bot API, Discord (CDN or webhook), a paste site, a webhook service or Microsoft Graph
 - Dead-drop resolver confirmed
 - A file from a cloud service that ran
-- Possible exfiltration to a webhook, the Telegram Bot API, Microsoft Graph or a storage host outside the customer's tenant
+- Possible exfiltration to a webhook service, the Telegram Bot API, Microsoft Graph or a storage host outside the customer's tenant
+- Stealer or unknown payload ran
 - C2 that looks live
 
 Escalate; the IR lead confirms any authorised test.
 
 | Client | Close only if all of these hold |
 |--------|---------------------------------|
-| A. Browser | It runs from the browser's normal install folder. Nothing was downloaded from the host, or every downloaded file is identified (name, SHA1, what it is) and none ran or was opened by a script host. It started nothing but its own processes. No other alert on the device or user since T0 |
+| A. Browser | It runs from the browser's normal install folder. The visit is explained: the user confirms it, or the page that linked to it is a known business site. Nothing was downloaded from the host, or every downloaded file is identified (name, SHA1, what it is) and none ran or was opened by a script host. It started nothing but its own processes. No other alert on the device or user since T0 |
 | B. Sync or collaboration client | It runs from the vendor's install folder, and `DeviceFileCertificateInfo` for its SHA1 shows the vendor as `Signer` with `IsTrusted` true. The product is deployed at this customer (asset list or ticket). It loaded no DLL from a user-writable folder and started nothing unexpected. For SharePoint or OneDrive, the host belongs to the customer's own tenant |
 | C. Documented script or tool | The customer names the script or tool, its path and owner, with a change record or documented scheduled job. The command line and script content match that record. The destination repo, account or bucket belongs to the customer or a named vendor. Not for Telegram, Discord, paste sites, webhook services or Microsoft Graph |
 
@@ -233,10 +234,10 @@ If any condition can't be confirmed: don't close. Escalate.
 See also [escalation triggers](../../reference/escalation-triggers.md).
 
 ```
-Class C or D client contacting the Telegram Bot API, Discord (CDN or webhook), a paste site, a webhook service or Microsoft Graph
+Class C or D client (step 5) contacting the Telegram Bot API, Discord (CDN or webhook), a paste site, a webhook service or Microsoft Graph
 Dead-drop resolver confirmed
 A file from a cloud service that ran (payload downloaded and executed)
-Possible exfiltration to a webhook, the Telegram Bot API, Microsoft Graph or a storage host outside the customer's tenant
+Possible exfiltration to a webhook service, the Telegram Bot API, Microsoft Graph or a storage host outside the customer's tenant
 Stealer or unknown payload ran
 C2 that looks live
 Same client (SHA1, URL or command line) on more than one device

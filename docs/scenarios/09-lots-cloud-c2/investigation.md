@@ -126,7 +126,7 @@ For HTTPS the network event has the host only. The rest comes from:
 
 ## Step 8 — first contact and spread
 
-- **First contact:** rerun the query that hit with its first `between` line starting at `T0 - 30d` (the 30-day Advanced Hunting limit). The earliest row for the same process SHA1 or host on this device is the T0 candidate.
+- **First contact:** rerun the query that hit with `T0 - 24h` changed to `T0 - 30d` on every `between` line (the 30-day Advanced Hunting limit). This changes your copy for this run only. The earliest row for the same process SHA1 or host on this device is the T0 candidate.
 - **Other devices:** the three queries below have no device filter, so they already cover the estate; read `DeviceName`. Run the hash sweep for each SHA1 from Steps 1, 5 and 6.
 - Spread is a reason to scope wider, never evidence that the activity is benign.
 - **Delivery:** check email ([phishing email](../12-phishing-email/investigation.md)) and other vectors ([initial access](../10-initial-access/investigation.md)).
