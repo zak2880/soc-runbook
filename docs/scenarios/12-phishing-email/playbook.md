@@ -38,12 +38,12 @@ If you don't hold the rights for a step in 1 to 7 (Explorer read access; the Pre
 
 ## 2. Preserve evidence
 
-Do steps 5 and 6 before step 11 removes any copy. After a soft or hard delete the entity page can no longer download the message.
+Do steps 5 and 6 before step 11 removes any copy. Download email isn't available once a message is soft deleted or hard deleted, so the download in step 5 must come before the soft delete in step 11.
 
 5. **Preserve the message.** On the email entity page: Analysis → Plain-text email header → Copy message header, and paste it into the ticket. Export the Timeline, Attachments and URL views. Then More options → Download email.
    - Expect: the header, the three exports and the downloaded message attached to the ticket.
    - If Latest delivery location is Quarantine: download the password-protected copy from Quarantine instead.
-   - If you can't download it (no Preview role, or the message is already soft deleted): record why. A soft-deleted message stays recoverable by admins, so the header and exports are enough to continue. No hard delete until the message has been downloaded.
+   - If you can't download it (no Preview role, or the message is already soft or hard deleted): record why. Don't move a malicious message back to an inbox to download it. A soft-deleted message stays recoverable by admins, so the header and exports are enough to continue to step 11. A hard delete then needs the IR lead to accept not having the download (step 11).
    - Don't open the downloaded message or its attachments on your workstation.
 
 6. **Record the attachments and URLs.** Attachments view: the Attachment SHA256 of each file; export the Deep analysis detonation chain and behaviour details if shown. URL view: every URL, including URLs from QR codes (investigation, Steps 4 and 5).
@@ -92,13 +92,13 @@ Only after steps 5 and 6. Block first, so new copies and clicks on copies still 
     - If you can't create one: record why and tell the customer. The Tenant Allow/Block List entries from step 8 still apply to mail and Safe Links clicks.
     - A blocked connection can still appear as `ConnectionSuccess` in network events. Check the alerts queue for the block.
 
-11. **Soft delete every copy from step 7.** First check Action center → Pending: an automated investigation may already have proposed a soft delete for these messages. Approve it if its scope matches step 7. Leave any other pending action on these users (for example turning off forwarding) until step 17 has recorded what it changes. Otherwise, in Threat Explorer select the messages → Take action → Move or delete → Soft deleted items, and give the remediation a name. If the sender is internal (step 3), also select Delete sender's copy.
+11. **Soft delete every copy from step 7.** Only after step 5 has downloaded the message or recorded why it couldn't: Download email isn't available once a message is soft deleted. First check Action center → Pending: an automated investigation may already have proposed a soft delete for these messages. Approve it if its scope matches step 7. Leave any other pending action on these users (for example turning off forwarding) until step 17 has recorded what it changes. Otherwise, in Threat Explorer select the messages → Take action → Move or delete → Soft deleted items, and give the remediation a name. If the sender is internal (step 3), also select Delete sender's copy.
     - Without the Search and Purge role: Take action → Propose remediation → Create new. Someone with the role approves it in Action center → Pending.
     - Expect: Action center → History shows the remediation, and its action log shows Success or Already in destination for every message.
     - If Failed: retry. A remediation can stay In progress for a few hours.
     - Explorer takes up to 200,000 messages per selection; Microsoft advises batches of 50,000 or fewer.
     - Plan 1 only, copies On-premises/External, or older than 30 days: ask the customer's mail admin to remove them, and record the request. If they can't: escalate (copies can't be removed).
-    - Soft delete moves the message to Recoverable Items\Deletions; the user and admins can recover it, and Move to inbox in Explorer undoes it. Don't hard delete yourself. The IR lead decides on hard delete (for example if users keep restoring the message), and only after step 5's download. Admins can recover a hard-deleted message only through single-item recovery.
+    - Soft delete moves the message to Recoverable Items\Deletions; the user and admins can recover it, and Move to inbox in Explorer undoes it. Don't hard delete yourself. The IR lead decides on hard delete (for example if users keep restoring the message), and only if step 5's download was done or the IR lead accepts not having it. Don't move a message back to an inbox to download it. Admins can recover a hard-deleted message only through single-item recovery.
     - Don't wait for ZAP: it only searches the last 48 hours of delivered mail.
 
 ---
