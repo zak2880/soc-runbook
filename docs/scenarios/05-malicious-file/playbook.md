@@ -12,7 +12,7 @@ T0 = first malicious event (the file's delivery, creation or first run), in UTC.
 
 If you came back here after containing the device (step 11 done), read each "go to step 7" below as "continue from step 12".
 
-1. **Check for ransomware first.** Run the VSS deletion and mass file renames queries for this device ([Ransomware signals](investigation.md#ransomware-signals)). If you don't have T0 yet, use the alert time. If the alert is more than 4 hours old, run the renames query again with T0 set to one hour ago.
+1. **Check for ransomware first.** Run the VSS deletion query (it runs estate-wide) and the mass file renames query for this device ([Ransomware signals](investigation.md#ransomware-signals)). If you don't have T0 yet, use the alert time. If the alert is more than 4 hours old, run the renames query again with T0 set to one hour ago.
    - Expect: no hits.
    - If shadow copies or the backup catalog were deleted, `bcdedit` turned off recovery, mass file renames, or ransom-note files created in many folders: escalate now (consider P1) and go to step 7. Don't finish triage first. After step 11, come back to step 2. Until you have a file, the file for steps 2 to 11 is the process doing the renames or deletions (`InitiatingProcessFileName`).
    - If the renames are on a file server and `RequestProtocol` is `SMB` (read it on one renamed file's event; the query doesn't show it): the device at `RequestSourceIP` is doing the encryption. Escalate, and contain that device (step 7). Don't isolate the file server yourself.
