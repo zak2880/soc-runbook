@@ -63,7 +63,7 @@ Trigger:         which item above caused escalation
 
 | Scenario | Severity |
 |----------|----------|
-| Detected and quarantined, no execution evidence | Low — review and close |
+| Remediation confirmed, nothing executed, the writing process benign, no other alerts ([malware playbook, Closing at Low](../scenarios/01-malware-alert/playbook.md#closing-at-low)) | Low — record each check and close |
 | Executed, no persistence, no spread, no C2 | Medium — full investigation, confirm contained |
 | C2 beaconing confirmed (live) | High — isolate, escalate |
 | Credential dumping detected | Critical — escalate immediately |
