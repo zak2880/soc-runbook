@@ -137,19 +137,17 @@ If you don't hold the rights for a step here (isolation, investigation package, 
 
 A stolen session stays valid until it is revoked, so do this before you scope the estate. If you don't hold the rights for a step here (disable, revoke, reset), request it from the customer's IT contact, record the time of the request, and continue with the steps you can do.
 
-19. **Decide whether the credentials on this device are exposed.** Microsoft calls an infostealer the most prolific ClickFix final payload. A stealer reads the browser, so the lsass check in step 18 doesn't cover this. The credentials count as not exposed only if all of these hold:
-    - The pasted command is known and fully decoded (step 6).
-    - Step 15 shows no connection from the chain, or only connections an alert shows as blocked.
-    - The chain wrote and ran nothing beyond the pasted command (steps 12 and 15).
-    - Nothing from the chain is running (step 16).
-    - No browser credential theft signal ([Identity and browser credentials](investigation.md#identity-and-browser-credentials)).
+19. **Decide whether the credentials on this device are exposed.** Microsoft calls an infostealer the most prolific ClickFix final payload. A stealer reads the browser, so the lsass check in step 18 doesn't cover this. Treat the credentials as exposed unless one of these holds:
+    - Detection status Prevented or Blocked, no ASR event ends in `Audited`, and nothing ran (the test in step 7).
+    - The decoded command is word for word the one a ticket from the customer's helpdesk names (steps 6 and 14).
     - Expect: the decision and the reason in the ticket.
-    - Anything else, or you can't tell: an infostealer can't be ruled out. Escalate (infostealer or unknown payload executed, or one can't be ruled out) and do step 20. Don't wait for proof of a stealer: it can run in memory and leave no file.
-    - If a browser credential theft signal appears: also escalate (browser credential theft signal).
+    - Anything else, or you can't tell: an infostealer can't be ruled out. No connection or no written file isn't enough on its own. Escalate (infostealer or unknown payload executed, or one can't be ruled out) and do step 20. Don't wait for proof of a stealer: it can run in memory and leave no file.
+    - If a browser credential theft signal appears ([Identity and browser credentials](investigation.md#identity-and-browser-credentials)): escalate (browser credential theft signal) and do step 20, even if one of the two above holds.
 
 20. **Contain every exposed account.** Do this when step 19 can't rule out a stealer, and for any account whose password was typed into the page (step 14). Otherwise go to step 21. There is one threshold: don't wait for a suspicious sign-in.
-    - List the users: the user who pasted first, then every user who logged on to the device (step 8 of the [credential compromise playbook](../06-credential-compromise/playbook.md)). Their browser-saved passwords and signed-in web sessions are exposed. If the list holds a privileged or service account: escalate (privileged user, service account, server or jump host).
-    - For each user, in the 06 playbook: do steps 9 and 11, then steps 13 to 20 in order. That captures evidence, disables, revokes sessions, removes what the attacker added, resets the password from a clean device and re-enables. Its step 14 stops you on privileged and service accounts, and when many accounts are exposed at once.
+    - List the accounts with step 8 of the [credential compromise playbook](../06-credential-compromise/playbook.md). An account is exposed if that list shows it signed in to this device with a user session, at the device or over RDP: its browser-saved passwords and signed-in web sessions may be here. If the list holds a privileged or service account: escalate (privileged user, service account, server or jump host).
+    - The user who pasted, any account whose password was typed into the page, and each exposed account, in the 06 playbook: do steps 9 and 11, then steps 13 to 20 in order. That captures evidence, disables, revokes sessions, removes what the attacker added, resets the password from a clean device and re-enables. Re-enabling is step 20: you do it, or the customer's IT contact if you don't hold the right, once that step's conditions hold. Its step 14 stops you on privileged and service accounts, and when many accounts are exposed at once.
+    - Any other account on the list: record it in the ticket for the IR lead, who decides what it needs.
     - Also run the sign-in query ([Identity and browser credentials](investigation.md#identity-and-browser-credentials)) for each user, and rerun it with a later T0 until the sessions are revoked. A stolen session can be used days after the paste.
     - If a sign-in comes from an IP, country or device the user doesn't recognise, or Entra ID Protection has a detection: escalate (suspicious sign-in for an exposed account since T0).
     - If an account logged on to a device it has no documented reason to use: escalate (exposed account logged on to a device it has no documented reason to use), and run this playbook from step 2 for that device.
