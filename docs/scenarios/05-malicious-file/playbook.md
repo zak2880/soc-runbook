@@ -14,8 +14,8 @@ If you came back here after containing the device (step 11 done), read each "go 
 
 1. **Check for ransomware first.** Run the VSS deletion query (it runs estate-wide) and the mass file renames query for this device ([Ransomware signals](investigation.md#ransomware-signals)). If you don't have T0 yet, use the alert time. If the alert is more than 4 hours old, run the renames query again with T0 set to one hour ago.
    - Expect: no hits.
-   - If shadow copies or the backup catalog were deleted, `bcdedit` turned off recovery, mass file renames, or ransom-note files created in many folders: escalate now (consider P1) and go to step 7. Don't finish triage first. After step 11, come back to step 2. Until you have a file, the file for steps 2 to 11 is the process doing the renames or deletions (`InitiatingProcessFileName`).
-   - If the renames are on a file server and `RequestProtocol` is `SMB` (read it on one renamed file's event; the query doesn't show it): the device at `RequestSourceIP` is doing the encryption. Escalate, and contain that device (step 7). Don't isolate the file server yourself.
+   - If shadow copies or the backup catalog were deleted, `bcdedit` turned off recovery, mass file renames, or ransom-note files created in many folders: escalate now (consider P1) and call the IR lead before anything else, before the package (step 9), so they can tell you to stop the encrypting process sooner. Then go to step 7. Don't finish triage first. After step 11, come back to step 2. Until you have a file, the file for steps 2 to 11 is the process doing the renames or deletions (`InitiatingProcessFileName`).
+   - If the renames are on a file server and `RequestProtocol` is `SMB` (read it on one renamed file's event; the query doesn't show it): the device at `RequestSourceIP` is doing the encryption. Escalate, and contain that device (step 7). Don't isolate the file server yourself. If `RequestSourceIP` is blank, or the source device isn't onboarded or can't be identified: escalate at once (source of the encryption can't be identified).
    - A `vssadmin` or `bcdedit` hit can be read-only (for example `vssadmin list shadows`): read the command line. A deletion that looks like backup software still goes to the IR lead; don't close it yourself.
    - No hits doesn't prove shadow copies are intact; some methods leave no command line.
 
@@ -52,7 +52,7 @@ If you don't hold the rights for a step here (isolation, investigation package, 
 
 7. **Check the device type and network before isolating.**
    - Domain controller, other Tier 0 server, or Hyper-V host: don't isolate it yourself. Escalate now. Isolating a Hyper-V host blocks network traffic to every VM on it.
-   - File server whose files are being renamed over SMB (step 1): isolate the device at `RequestSourceIP`, not the server. Escalate.
+   - File server: never isolate it yourself, whatever the cause; do it only with the IR lead. If its files are being renamed over SMB (step 1): isolate the device at `RequestSourceIP`, not the server, and escalate. If `RequestSourceIP` is blank, or the source device isn't onboarded or can't be identified: escalate at once (source of the encryption can't be identified).
    - Production server: tell the customer contact you are isolating it, and record the time.
    - Full-tunnel VPN: Microsoft says the device can't reach the Defender service once isolated. Do step 9 first, then step 8.
    - Behind a web proxy (PAC, WPAD or static): use selective isolation. Microsoft warns such devices might not recover from full isolation.
@@ -66,7 +66,7 @@ If you don't hold the rights for a step here (isolation, investigation package, 
 9. **Collect the investigation package** (device page → Collect investigation package). It records autoruns, running processes, network connections, DNS cache, prefetch, scheduled tasks, services and the Security event log.
    - Expect: the package is downloadable from the Action center.
    - If not: collection can fail on low battery or a metered connection. Retry once, then record the failure and continue.
-   - Don't run an antivirus scan, Stop and Quarantine File, or Live Response `remediate` until this step is done or recorded as failed. Those actions remove files, processes and registry entries the package would have recorded.
+   - Don't run an antivirus scan, Stop and Quarantine File, or Live Response `remediate` until this step is done or recorded as failed, unless the IR lead tells you to stop an encrypting process sooner (step 1). Those actions remove files, processes and registry entries the package would have recorded.
 
 10. **Check whether the file is still on disk** ([Is it still on disk?](investigation.md#is-it-still-on-disk)). Live Response `fileinfo` with the full path; if it isn't there, `findfile` with the file name.
     - Expect: the file at the recorded path.
@@ -137,7 +137,7 @@ If you don't hold the rights for a step here (isolation, investigation package, 
 
 ## 5. Stop, block, remove
 
-Only after step 9 is done (or recorded as failed) on every device where the file ran, and step 11 is done for every file you will remove. If you don't hold the rights for a step here (Stop and Quarantine File, indicators, Live Response `remediate`), request it from the customer's IT contact, record the time of the request, and continue with the steps you can do.
+Only after step 9 is done (or recorded as failed) on every device where the file ran, and step 11 is done for every file you will remove. The one exception is an encrypting process the IR lead tells you to stop sooner (step 1). If you don't hold the rights for a step here (Stop and Quarantine File, indicators, Live Response `remediate`), request it from the customer's IT contact, record the time of the request, and continue with the steps you can do.
 
 21. **Stop and quarantine the file** (file page → Stop and Quarantine File). This stops its running processes, quarantines the file and deletes persistent data such as registry keys, on every device where it was seen in the last 30 days. For a script or other non-PE file, use it if the file page offers the action; otherwise step 23 removes it.
     - If a changed legitimate entry recorded in step 17 (for example Winlogon `Userinit`, or an existing service's `ImagePath`) points to the file: don't run Stop and Quarantine File yourself. Microsoft doesn't say which registry data it deletes. Ask the IR lead first.
@@ -238,6 +238,8 @@ See also [escalation triggers](../../reference/escalation-triggers.md).
 Shadow copies or the backup catalog deleted, or bcdedit turned off recovery
 Mass file renames
 Ransom-note files created in many folders
+Source of the encryption can't be identified (RequestSourceIP blank, or the source device isn't onboarded or can't be identified)
+File server needs isolating (only with the IR lead)
 The file arrived over SMB from another internal device
 A remote-access or admin tool installed with no change record or approved-software entry
 A known credential dumper (for example Mimikatz), or any hit in step 2 of the credential compromise playbook
