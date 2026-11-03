@@ -183,7 +183,7 @@ Only after step 10 is done (or recorded as failed), step 11 is done on every dev
     - Expect: each item removed and recorded.
     - Never point `remediate` at a Windows binary.
     - An lsass dump file: don't delete it yourself. Follow step 7 of the [credential compromise playbook](../06-credential-compromise/playbook.md); the IR lead decides when it is collected and removed.
-    - If the persistence is a changed Windows value (for example under Winlogon) rather than a new entry: don't delete it. Escalate; the IR lead restores the original value.
+    - If the persistence is a changed legitimate entry, not a new one (for example Winlogon `Userinit`, `Shell` or `Notify`, or an existing service's `ImagePath`): don't delete the value or the key. Escalate; the IR lead restores the original data.
     - Accounts the attacker created: disable them; delete only with the IR lead's agreement.
 
 25. **Confirm every action in the Action center** (History tab): isolation, package, quarantine, Live Response actions. BITS cancellations are done on the device and won't appear there; record the customer's confirmation in the ticket.
@@ -276,7 +276,7 @@ Same malicious file or command pattern on more than one device
 Device can't be isolated (pending, offline, domain controller, other Tier 0 server, Hyper-V host)
 Stop and Quarantine File can't be used on a running process (Microsoft or trusted-publisher signed), or Defender warns the file is widely used
 A domain to block is one the customer uses for business
-Persistence is a changed Windows value (for example under Winlogon), not a new entry
+Persistence is a changed legitimate entry, not a new one (for example Winlogon Userinit, Shell or Notify, or an existing service's ImagePath)
 Remediation failed and can't be completed
 Full antivirus scan after removal finds new detections
 Isolation will auto-lift before the release criteria hold

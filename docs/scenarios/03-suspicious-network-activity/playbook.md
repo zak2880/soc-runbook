@@ -181,6 +181,7 @@ Only after step 9 is done (or recorded as failed) and step 10 is done, on every 
 
 25. **Remove persistence and remaining files** found in steps 11, 12, 14 and 17, using the [persistence playbook](../04-persistence-detected/playbook.md).
     - Expect: each item removed and recorded.
+    - If the persistence is a changed legitimate entry, not a new one (for example Winlogon `Userinit`, `Shell` or `Notify`, or an existing service's `ImagePath`): don't delete the value or the key. Escalate; the IR lead restores the original data.
     - Accounts the attacker created: disable them; delete only with the IR lead's agreement.
 
 26. **Confirm every action in the Action center** (History tab): isolation, package, quarantine, antivirus remediation, Live Response actions.
@@ -273,6 +274,7 @@ Device can't be isolated (pending, offline, domain controller, Tier 0 server, Hy
 Stop and Quarantine File can't be used or the process still runs, or Defender warns the file is widely used
 Destination is a cloud or business service the customer uses
 URL content must be fetched to understand it
+Persistence is a changed legitimate entry, not a new one (for example Winlogon Userinit, Shell or Notify, or an existing service's ImagePath)
 Remediation failed and can't be completed
 Isolation will auto-lift before the release criteria hold
 ```

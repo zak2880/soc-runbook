@@ -158,7 +158,7 @@ Only after step 9 is done (or recorded as failed) on every device where the file
 23. **Remove persistence and remaining files** found in steps 15 and 17, using the [persistence playbook](../04-persistence-detected/playbook.md). A script or other file Stop and Quarantine didn't cover, a copy at another path (step 10), or a copy on a device where the file was last seen more than 30 days ago: Live Response `remediate file` with its full path deletes it. Do this only once step 11 holds a copy or records why it couldn't.
     - Expect: each item removed and recorded.
     - Never point `remediate` at a Windows binary.
-    - If the persistence is a changed Windows value (for example under Winlogon) rather than a new entry: don't delete it. Escalate; the IR lead restores the original value.
+    - If the persistence is a changed legitimate entry, not a new one (for example Winlogon `Userinit`, `Shell` or `Notify`, or an existing service's `ImagePath`): don't delete the value or the key. Escalate; the IR lead restores the original data.
     - Accounts the attacker created: disable them; delete only with the IR lead's agreement.
 
 24. **Confirm every action in the Action center** (History tab): isolation, package, quarantine, antivirus remediation, Live Response actions, on every device from step 19.
@@ -248,7 +248,7 @@ Device can't be isolated (pending, offline, domain controller, other Tier 0 serv
 Stop and Quarantine File can't be used (file signed by Microsoft or a trusted publisher), or Defender warns the file is widely used
 More than 1,000 devices have the file
 A hash or domain to block is software or a site the customer uses for business
-Persistence is a changed Windows value (for example under Winlogon), not a new entry
+Persistence is a changed legitimate entry, not a new one (for example Winlogon Userinit, Shell or Notify, or an existing service's ImagePath)
 Remediation failed and can't be completed
 Full antivirus scan after removal finds new detections
 Isolation will auto-lift before the release criteria hold
