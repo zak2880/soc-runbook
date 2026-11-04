@@ -76,9 +76,9 @@ Playbooks: [Suspicious process](../scenarios/02-suspicious-process/playbook.md#c
 
 | Trigger | Legitimate cause | How to confirm |
 |---------|-----------------|----------------|
-| PsExec / PsExecSvc pattern on remote hosts | RMM tools and SCCM deploy agents and run scripts via PsExec-equivalent mechanisms | Parent = RMM agent binary (`ScreenConnect.ClientService.exe`, `NinjaRMMAgent.exe`); binary is signed; activity during a patch or deployment window; the customer confirms the RMM agent is theirs and names the job |
+| PsExec / PsExecSvc pattern on remote hosts | RMM tools and SCCM deploy agents and run scripts via PsExec-equivalent mechanisms | Don't close yourself; the IR lead decides. The customer confirms the RMM agent is theirs and names the job |
 | Same binary executing across multiple devices simultaneously | SCCM or Intune pushing a software update or compliance script | The customer names the deployment job and the package, and the binary matches it |
-| WMI remote execution to internal IPs | SCCM hardware inventory, monitoring agents, IT admin scripting | The customer confirms the agent or script is theirs and names the job; WMI path contains only `SELECT` queries; no file drops follow |
+| WMI remote execution to internal IPs | SCCM hardware inventory, monitoring agents, IT admin scripting | Don't close yourself; the IR lead decides. The customer confirms the agent or script is theirs and names the job |
 | Internal scanning and enumeration | Authorised pen test or vulnerability scan | Source IP on approved scan schedule; cross-reference with client scan ticket |
 
 > **Still escalate if:** execution spreads to hosts the initiating account has no documented reason to access.
