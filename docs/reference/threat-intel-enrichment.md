@@ -82,7 +82,7 @@ Detection ratio, resolved IPs, subdomains, associated files
 Newly registered domains (days/weeks) in phishing or C2 = strong red flag.
 Check: registration date, registrar, name servers.
 
-### Defender Threat Intelligence (built into Defender XDR)
+### Threat intelligence in the Defender portal
 - Threat intelligence → Intel explorer
 - Search any IP, domain, or hash
 - Related infrastructure, WHOIS, passive DNS, attribution articles
@@ -96,7 +96,7 @@ Check: registration date, registrar, name servers.
 Search historical results. Don't submit internal or customer URLs: a fresh submission can be public. Submit only where the playbook allows it, as Unlisted or Private, with addresses and tokens removed.
 
 ### Unshortening links
-Never click shortened links. Use: unshorten.me, expandurl.net, or URLScan.
+Never click shortened links. Don't put customer or internal URLs into public unshortening sites or URLScan. Attacker phishing URLs: only under the URLScan.io rule above.
 
 ---
 
@@ -133,5 +133,5 @@ Assessment: Confirmed malicious / Suspicious / Likely FP
 |----------|---------|-----------|----------|
 | File hash | VirusTotal | MalwareBazaar | Defender XDR file page |
 | IP address | VirusTotal | AbuseIPDB | Shodan |
-| Domain | VirusTotal | URLScan.io | Defender TI |
-| URL | URLScan.io | VirusTotal | Unshortener |
+| Domain | VirusTotal | URLScan.io | Threat intelligence in the Defender portal |
+| URL | URLScan.io | VirusTotal | [Unshortening rule](#unshortening-links) |
