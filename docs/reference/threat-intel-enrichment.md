@@ -86,14 +86,14 @@ Check: registration date, registrar, name servers.
 - Threat intelligence → Intel explorer
 - Search any IP, domain, or hash
 - Related infrastructure, WHOIS, passive DNS, attribution articles
-- No separate subscription needed with Defender XDR P2
+- Publicly available Microsoft Threat Intelligence data comes at no additional cost with an eligible Defender licence. Threat analytics reports also need Defender for Endpoint Plan 2
 
 ---
 
 ## URLs
 
 ### URLScan.io — primary tool
-Submit for fresh scan or search historical. Follows redirects safely.
+Search historical results. Don't submit internal or customer URLs: a fresh submission can be public. Submit only where the playbook allows it, as Unlisted or Private, with addresses and tokens removed.
 
 ### Unshortening links
 Never click shortened links. Use: unshorten.me, expandurl.net, or URLScan.
