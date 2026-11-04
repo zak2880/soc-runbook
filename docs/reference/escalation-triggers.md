@@ -176,11 +176,13 @@ Trigger:         which item above caused escalation
 | Executed, no persistence, no spread, no C2 | Medium — full investigation, confirm contained |
 | Executed with persistence, no spread, no C2 | High — escalate |
 | C2 beaconing confirmed (live) | High — isolate, escalate |
+| Infostealer or unknown payload executed | High — isolate, escalate, treat browser credentials as exposed |
 | Credential dumping detected | Critical — escalate immediately |
 | Lateral movement confirmed | Critical — escalate immediately |
 | Ransomware indicators | Critical — escalate immediately, consider P1 |
 | Multiple devices affected | Critical — escalate immediately |
 | Phishing delivered, nobody clicked | Low |
-| Phishing clicked, no execution, no sign of account compromise | Medium |
+| Phishing clicked by a priority or admin recipient | High — escalate |
+| Phishing clicked by any other recipient, no execution, no sign of account compromise | Medium |
 | Compromised mailbox or account | High — escalate |
-| Priority, admin or privileged account compromised | Critical — escalate immediately |
+| Priority, admin, privileged or service account compromised | Critical — escalate immediately |
