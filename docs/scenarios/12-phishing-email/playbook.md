@@ -178,6 +178,8 @@ If you don't hold the rights for a step in 16 to 20, request it from the custome
 
 ## Closing as not malicious
 
+See also [common false positives](../../reference/common-false-positives.md).
+
 Close only with a named, verifiable benign cause, and record it. None of these is enough on its own: nobody clicked, few recipients, ZAP didn't act, no Entra detection, authentication passed, or the user says it looked fine. Many recipients means scope wider.
 
 Never close yourself if any trigger in [Escalate if](#escalate-if) was hit, even if a test or simulation is mentioned. Escalate; the IR lead decides.

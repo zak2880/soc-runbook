@@ -203,6 +203,8 @@ If you don't hold the rights to release the device, request it from the customer
 
 ## Closing as a false positive
 
+See also [common false positives](../../reference/common-false-positives.md).
+
 Close only with a named, verifiable benign cause, and record it. "Nothing else found", low volume, or "seen on many devices" is never enough; spread means scope wider. A signature or a `Program Files` path isn't enough either: a remote-access tool an attacker installed is signed by its vendor too. All of these must hold:
 
 - The entry belongs to software the customer deployed on purpose: name the product, and the asset list or change record that covers this device.

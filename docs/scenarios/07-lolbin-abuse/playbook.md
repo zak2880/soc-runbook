@@ -231,6 +231,8 @@ If you don't hold the rights to release the device, request it from the customer
 
 ## Closing as a false positive
 
+See also [common false positives](../../reference/common-false-positives.md).
+
 Close only with a named, verifiable benign cause, and record it. "Nothing else found", "this LOLBin is used here every day", "it's a Microsoft-signed binary", low volume, or "seen on many devices" is never enough; spread means scope wider. A signed parent isn't enough either: a remote management tool an attacker installed is signed by its vendor too. All of these must hold:
 
 - The command line, decoded if it was encoded (step 6), is fully readable and does a named, documented thing: name the script, product or change record.

@@ -216,6 +216,8 @@ If any condition fails or can't be confirmed: contain (step 7).
 
 ## Closing as a false positive
 
+See also [common false positives](../../reference/common-false-positives.md).
+
 Close only with a named, verifiable benign cause, and record it. "Nothing else found", low volume, "seen on many devices", a trusted signature, high prevalence or 0 VirusTotal detections is never enough on its own; spread means scope wider. All of these must hold:
 
 - The file is software the customer deployed on purpose: name the product and the asset list, approved-software entry or change record.

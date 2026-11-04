@@ -251,6 +251,8 @@ If you don't hold the rights to release the device, request it from the customer
 
 ## Closing as a false positive
 
+See also [common false positives](../../reference/common-false-positives.md).
+
 Close only with a named, verifiable benign cause, and record it. "Nothing else found", "the user says it was fine", "it's a Microsoft-signed binary", low volume, or "seen on many devices" is never enough; spread means scope wider. A remote session isn't enough either: attackers pose as IT support and use legitimate remote-access tools. All of these must hold:
 
 - The customer's helpdesk confirms, through the customer contact and not through the user, a ticket opened before T0 that names the technician and the command. The remote session, if there was one, is theirs.

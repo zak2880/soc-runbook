@@ -209,6 +209,8 @@ If you don't hold the rights for a step here (reimage, release from isolation), 
 
 ## Closing as a false positive
 
+See also [common false positives](../../reference/common-false-positives.md).
+
 Close only with a named, verifiable benign cause, and record it. "Nothing else found", low volume, or "seen on many devices" is never enough; spread means scope wider.
 
 Never close these yourself, even if a test or a business tool is mentioned:

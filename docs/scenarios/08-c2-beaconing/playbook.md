@@ -185,6 +185,8 @@ Only after step 9 is done (or recorded as failed) and step 10 is done, on every 
 
 ## Closing as a false positive
 
+See also [common false positives](../../reference/common-false-positives.md).
+
 Close only with a named, verifiable benign cause, and record it. A known app name, a standard install path, a long-established domain, a fixed interval, low volume, or "seen on many devices" is never enough: attacker-installed RMM tools, beacons injected into or side-loaded by signed programs, and C2 over cloud services or aged domains all pass those tests. Spread means scope wider. All of these must hold:
 
 - The product is named, and the customer's asset list, approved-software list or a change record covers it on this device. For an RMM tool, its install time and installing account match that record.

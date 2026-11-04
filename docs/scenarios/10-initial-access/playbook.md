@@ -280,6 +280,8 @@ If you don't hold the rights to release the device, request it from the customer
 
 ## Closing as a false positive
 
+See also [common false positives](../../reference/common-false-positives.md).
+
 Close only with a named, verifiable benign cause, and record it. "Nothing else found", low volume, or "seen on many devices" is never enough; spread means scope wider. A vendor signature isn't enough either: a remote-access tool an attacker installed is signed by its vendor too.
 
 Never close these yourself, even if a test or an admin is mentioned: any item in Escalate if below. Escalate; the IR lead confirms any authorised test.

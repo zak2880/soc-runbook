@@ -148,6 +148,8 @@ Order: capture evidence, then disable, then revoke, then remove what the attacke
 
 ## Closing as a false positive
 
+See also [common false positives](../../reference/common-false-positives.md).
+
 Close only with a named, verifiable benign cause, and record it. "Nothing else found", low volume, or "seen on many devices" is never enough; spread means scope wider.
 
 Never close these yourself, even if a pen test is mentioned: an lsass dump command, tool or file; DCSync; NTDS.dit or hive theft; Mimikatz or other credential-tool keywords. Escalate; the IR lead confirms any authorised test.

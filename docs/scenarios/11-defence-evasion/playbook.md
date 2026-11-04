@@ -282,6 +282,8 @@ If you don't hold the rights to release the device, request it from the customer
 
 ## Closing as a false positive
 
+See also [common false positives](../../reference/common-false-positives.md).
+
 Close only with a named, verifiable benign cause, and record it. "Nothing else found", "it was blocked", "an admin account did it", low volume, or "seen on many devices" is never enough; spread means scope wider. A signature or a `Program Files` path isn't enough either: a remote-access tool an attacker installed is signed by its vendor too.
 
 Never add a Defender exclusion to close this, or to stop an alert repeating. Microsoft says an exclusion creates a protection gap. If legitimate activity keeps alerting, tell the customer's security contact; tuning is their decision.
