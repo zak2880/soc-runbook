@@ -232,6 +232,8 @@ If you don't hold the rights for a step here (reimage, release from isolation), 
 
 ## Closing as a false positive
 
+See also [common false positives](../../reference/common-false-positives.md).
+
 Close only with a named, verifiable benign cause, and record it. A known app name, a standard install path, a long-established domain, a CDN, a fixed interval, low volume, or "seen on many devices" is never enough: attacker-installed RMM tools, beacons inside signed programs, downloads by Windows binaries, and C2 over cloud services or aged domains all pass those tests. Spread means scope wider.
 
 Beaconing (class A) and cloud services (class B) close only per their own playbooks: [C2 beaconing](../08-c2-beaconing/playbook.md#closing-as-a-false-positive) and [LOTS & cloud C2](../09-lots-cloud-c2/playbook.md#closing-as-a-false-positive).
