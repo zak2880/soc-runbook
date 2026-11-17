@@ -9,6 +9,13 @@
 // Set IOC to the matched IP, domain, URL fragment, file name or SHA1 from the alert; the IOC rows use a
 // +/-24h window so they show how the indicator arrived. Leave it as the placeholder to skip them
 // Window: 1h before to 4h after T0 (Before / After below). Widen Before if the alert fired late
+// Browser network rows are kept only for file-drop, paste, webhook and tunnel services (a user uploading by hand)
+// IOC file rows also match downloads whose FileOriginUrl / FileOriginReferrerUrl / FileOriginIP is the indicator
+// Credential tools and recon commands use regex where has would need whole terms in order (procdump64.exe,
+// reg.exe save, net.exe group, powershell -ec all miss a has match)
+// VERIFY: ActionType "ConnectionFound" and the DeviceEvents values OpenProcessApiCall, ScheduledTaskCreated and
+// SmartScreenAppWarning are not listed on Microsoft Learn; the lsass target may be in FileName or AdditionalFields.
+//   DeviceEvents | where Timestamp > ago(1d) | summarize count() by ActionType
 // Noisy categories: "Execution from user-writable path" and "Dropped executable/script" fire on per-user
 // installers and updaters; read them last. Everything else is a reason to look, not a verdict
 // To count instead of listing, replace the final line with:
@@ -33,8 +40,8 @@ let Proc = DeviceProcessEvents
 | extend Hit = case(
     ProcessCommandLine has_any ("sekurlsa::", "lsadump::", "kerberos::", "privilege::debug", "mimikatz",
         "ntdsutil", "ntds.dit", "vaultcmd", "GetUserSPNs", "Invoke-Kerberoast", "LaZagne")
-        or (ProcessCommandLine has "lsass" and ProcessCommandLine has_any ("MiniDump", "procdump", "createdump", "comsvcs"))
-        or ProcessCommandLine has_any ("reg save HKLM\\SAM", "reg save HKLM\\SYSTEM", "reg save HKLM\\SECURITY"),
+        or (ProcessCommandLine has "lsass" and ProcessCommandLine matches regex @"(?i)MiniDump|procdump|createdump|comsvcs")
+        or ProcessCommandLine matches regex @"(?i)\breg\S*\s+save\s+\S*(HKLM|HKEY_LOCAL_MACHINE)\\(SAM|SYSTEM|SECURITY)\b",
         "Credential access",
     FileName in~ ("rclone.exe", "megacmd.exe", "megasync.exe", "pscp.exe", "psftp.exe", "winscp.exe", "winscp.com", "azcopy.exe")
         or ProcessCommandLine has_any ("rclone", "mega.nz", "transfer.sh", "file.io", "gofile.io", "webhook.site", "api.telegram.org")
@@ -45,7 +52,7 @@ let Proc = DeviceProcessEvents
         or ProcessCommandLine has "Compress-Archive",
         "Archive staging",
     FileName in~ ("powershell.exe", "pwsh.exe")
-        and ProcessCommandLine matches regex @"(?i)-enc|FromBase64String|DownloadString|DownloadFile|Invoke-Expression|-w\s+hidden|-WindowStyle\s+Hidden",
+        and ProcessCommandLine matches regex @"(?i)-enc|\s[-/]ec?\s|FromBase64String|DownloadString|DownloadFile|Invoke-Expression|-w\w*\s+(hidden|h|1)\b",
         "Encoded / download-cradle PowerShell",
     FileName in~ ("certutil.exe", "mshta.exe", "regsvr32.exe", "rundll32.exe", "bitsadmin.exe", "msiexec.exe", "cmstp.exe")
         and ProcessCommandLine matches regex @"(?i)https?://|urlcache|/transfer|scrobj|javascript:|-decode",
@@ -58,8 +65,8 @@ let Proc = DeviceProcessEvents
         or (ProcessCommandLine has "vssadmin" and ProcessCommandLine has "delete")
         or (ProcessCommandLine has "bcdedit" and ProcessCommandLine has "recoveryenabled"),
         "Defence impairment",
-    ProcessCommandLine has_any ("whoami /all", "nltest", "adfind", "sharphound", "bloodhound")
-        or ProcessCommandLine has "net group" or ProcessCommandLine has "net localgroup",
+    ProcessCommandLine has_any ("nltest", "adfind", "sharphound", "bloodhound")
+        or ProcessCommandLine matches regex @"(?i)\bwhoami\S*\s+/all\b|\bnet1?(\.exe)?\S?\s+(group|localgroup)\b",
         "Recon",
     FolderPath has_any (UserWritable)
         and not(FolderPath has_any ("\\Microsoft\\OneDrive\\", "\\Microsoft\\Teams\\", "\\Microsoft\\Edge\\", "\\Google\\Chrome\\", "\\Google\\Update\\")),
@@ -73,7 +80,6 @@ let Net = DeviceNetworkEvents
 | where DeviceName startswith Device
 | where ActionType in ("ConnectionSuccess", "ConnectionFound")
 | where RemoteIPType == "Public"
-| where InitiatingProcessFileName !in~ (Browsers)
 | where InitiatingProcessFileName !in~ ("teams.exe", "ms-teams.exe", "onedrive.exe", "outlook.exe", "msedgewebview2.exe", "MsMpEng.exe", "MicrosoftEdgeUpdate.exe")
 | extend Hit = case(
     RemoteUrl has_any ("transfer.sh", "file.io", "gofile.io", "pixeldrain.com", "mega.nz", "mega.io", "temp.sh", "catbox.moe", "bashupload.com",
@@ -89,6 +95,7 @@ let Net = DeviceNetworkEvents
         "Network from user-writable path",
     "")
 | where Hit != ""
+| where InitiatingProcessFileName !in~ (Browsers) or Hit == "Exfil / paste / webhook / tunnel service"
 | project Timestamp, Source = "Network", Category = Hit, DeviceName, AccountName = InitiatingProcessAccountName,
     Process = InitiatingProcessFileName,
     Detail = strcat(RemoteIP, ":", RemotePort, " ", RemoteUrl, " | ", InitiatingProcessCommandLine),
@@ -126,7 +133,7 @@ let Reg = DeviceRegistryEvents
 let Ev = DeviceEvents
 | where Timestamp between ((T0 - Before) .. (T0 + After))
 | where DeviceName startswith Device
-| where (ActionType == "OpenProcessApiCall" and AdditionalFields has "lsass"
+| where (ActionType == "OpenProcessApiCall" and (FileName =~ "lsass.exe" or AdditionalFields has "lsass")
         and InitiatingProcessFileName !in~ ("MsMpEng.exe", "MsSense.exe", "SenseIR.exe"))
     or ActionType in ("ScheduledTaskCreated", "UsbDriveMounted", "AntivirusDetection", "SmartScreenAppWarning",
         "SmartScreenUrlWarning", "ExploitGuardNetworkProtectionBlocked")
@@ -163,9 +170,10 @@ let IocHits = union
         | where Timestamp between ((T0 - 24h) .. (T0 + 24h))
         | where DeviceName startswith Device
         | where SHA1 == IOC or InitiatingProcessSHA1 == IOC or FileName =~ IOC
+            or FileOriginIP == IOC or FileOriginUrl contains IOC or FileOriginReferrerUrl contains IOC
         | project Timestamp, Source = "IOC match", Category = "File",
             DeviceName, AccountName = InitiatingProcessAccountName, Process = FileName,
-            Detail = strcat(ActionType, " | ", FolderPath, " | SHA1 ", SHA1),
+            Detail = strcat(ActionType, " | ", FolderPath, " | SHA1 ", SHA1, " | origin ", FileOriginUrl),
             Parent = InitiatingProcessFileName);
 union Proc, Net, Files, Reg, Ev, Alerts, IocHits
 | order by Timestamp asc
