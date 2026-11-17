@@ -12,8 +12,9 @@ DeviceProcessEvents
     "delete shadows",
     "resize shadowstorage",
     "vssadmin",
-    "wmic shadowcopy delete",
-    "bcdedit /set")
+    "shadowcopy delete")
+    // regex: has "bcdedit /set" would miss bcdedit.exe /set
+    or ProcessCommandLine matches regex @"(?i)\bbcdedit\S*\s+/set\b"
 | where Timestamp between ((T0 - 24h) .. (T0 + 24h))
 | project Timestamp, DeviceName, AccountName,
     ProcessCommandLine, InitiatingProcessFileName
