@@ -83,7 +83,7 @@ Each query's second header line says where it runs (`// Runs in:`). Defender tab
 | [browser-credential-theft.kql](identity/browser-credential-theft.kql) | Browser credential/cookie store copied by a non-browser process, stealer tooling, headless browser with remote debugging port | T1555.003, T1539 |
 | [credential-store-and-secret-hunting.kql](identity/credential-store-and-secret-hunting.kql) | Credential Manager, KeePass vaults, passwords searched for in files, cloud/dev tokens and private keys, saved remote-access credentials | T1555.004, T1555.005, T1552.001, T1552.002, T1552.004, T1552.006 |
 | [credential-dump-artefacts.kql](identity/credential-dump-artefacts.kql) | lsass dump tools, ntdsutil IFM, esentutl, shadow-copy copies, and the dump files and hive copies they leave | T1003.001, T1003.002, T1003.003 |
-| [entra-signin-after-endpoint-compromise.kql](identity/entra-signin-after-endpoint-compromise.kql) | Sign-ins for an account after T0 from IPs not seen in the prior 30 days, including non-interactive (Sentinel) | T1078.004, T1550.001 |
+| [entra-signin-after-endpoint-compromise.kql](identity/entra-signin-after-endpoint-compromise.kql) | Sign-ins for an account from 24h before T0 onward, flagging IPs not seen in the 30 days before that, including non-interactive (Sentinel) | T1078.004, T1550.001 |
 
 ---
 
