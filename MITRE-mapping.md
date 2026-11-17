@@ -104,7 +104,7 @@ Status: **Query** = a linked `.kql` file implements the detection. **Guidance** 
 | System binary proxy execution — Rundll32 | T1218.011 | rundll32 command lines containing comsvcs, MiniDump, javascript:, AppData or Temp | Query | [lolbin-sweep.kql](kql/process/lolbin-sweep.kql) |
 | System binary proxy execution — CMSTP | T1218.003 | Child processes launched by cmstp.exe (the cmstp.exe branch of the UAC-bypass query) | Guidance | [11-defence-evasion/investigation.md](docs/scenarios/11-defence-evasion/investigation.md) |
 | BITS jobs | T1197 | bitsadmin /transfer or SetNotifyCmdLine | Query | [lolbin-sweep.kql](kql/process/lolbin-sweep.kql) |
-| Email hiding rules | T1564.008 | Inbox rules that delete, move or mark mail as read (Sentinel OfficeActivity) | Query | [m365-mailbox-forwarding-rules.kql](kql/exfiltration/m365-mailbox-forwarding-rules.kql) |
+| Email hiding rules | T1564.008 | Inbox and transport rules that delete, move or mark mail as read (Sentinel OfficeActivity) | Query | [m365-mailbox-forwarding-rules.kql](kql/exfiltration/m365-mailbox-forwarding-rules.kql) |
 
 ---
 
@@ -175,7 +175,7 @@ Status: **Query** = a linked `.kql` file implements the detection. **Guidance** 
 |-----------|-----|-----------|--------|-----------------------|
 | Archive via utility | T1560.001 | 7-Zip, WinRAR and zip tools run with a password switch or creating archives; Compress-Archive and .NET zip use | Query | [archive-staging.kql](kql/exfiltration/archive-staging.kql) |
 | Local data staging | T1074.001 | Archive files created in Temp, Public, ProgramData, PerfLogs or the Recycle Bin, with file size | Query | [archive-staging.kql](kql/exfiltration/archive-staging.kql) |
-| Email forwarding rule | T1114.003 | Inbox rules and mailbox settings that forward or redirect mail (Sentinel OfficeActivity) | Query | [m365-mailbox-forwarding-rules.kql](kql/exfiltration/m365-mailbox-forwarding-rules.kql) |
+| Email forwarding rule | T1114.003 | Inbox rules (including Outlook-client UpdateInboxRules), transport rules and mailbox settings that forward, redirect or copy mail (Sentinel OfficeActivity) | Query | [m365-mailbox-forwarding-rules.kql](kql/exfiltration/m365-mailbox-forwarding-rules.kql) |
 
 ---
 

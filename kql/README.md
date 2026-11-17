@@ -96,7 +96,7 @@ Each query's second header line says where it runs (`// Runs in:`). Defender tab
 | [exfil-services-and-webhooks.kql](exfiltration/exfil-services-and-webhooks.kql) | Anonymous file drops, paste sites, webhook/messaging APIs and tunnel services (connection counts) | T1567.002, T1567.004, T1572 |
 | [firewall-large-outbound-transfer.kql](exfiltration/firewall-large-outbound-transfer.kql) | Megabytes sent from a device's IPs to public destinations, from firewall logs (Sentinel) | T1041, T1048 |
 | [usb-removable-media.kql](exfiltration/usb-removable-media.kql) | USB mounts and file writes to the mounted drive letters | T1052.001 |
-| [m365-mailbox-forwarding-rules.kql](exfiltration/m365-mailbox-forwarding-rules.kql) | Inbox rules and mailbox settings that forward, redirect or hide mail; added mailbox permissions (Sentinel) | T1114.003, T1564.008, T1098.002 |
+| [m365-mailbox-forwarding-rules.kql](exfiltration/m365-mailbox-forwarding-rules.kql) | Inbox rules (OWA, PowerShell and Outlook client), transport rules and mailbox settings that forward, redirect or hide mail; added mailbox permissions (Sentinel) | T1114.003, T1564.008, T1098.002 |
 
 ---
 
