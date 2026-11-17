@@ -4,6 +4,7 @@
 // Covers: archive utilities run with a password switch, Compress-Archive / .NET zip use, and archive files
 // created in staging paths (Temp, Public, ProgramData, PerfLogs, Recycle Bin) with their size
 // Password-protected archives made by a non-admin tool shortly before outbound transfers are the strongest signal
+// tar matches bundled flags (-czf, -zcvf), --create and dash-less cf; split volumes (.7z.001, .zip.001) are included
 // Sort the file rows by FileSize to find the bulk archive; pair with exfil-tools-and-cli.kql and
 // exfil-services-and-webhooks.kql for the transfer itself
 // Replace HOSTNAME with the short device name (e.g. PC01); startswith matches the FQDN, case-insensitive
@@ -23,7 +24,7 @@ let ProcessHits = DeviceProcessEvents
     FileName in~ ("7z.exe", "7za.exe", "7zG.exe", "rar.exe", "winrar.exe", "wzzip.exe", "zip.exe")
         and ProcessCommandLine contains " a ",
         "Archive tool creating an archive",
-    FileName =~ "tar.exe" and ProcessCommandLine matches regex @"(?i)\s-(c|a)",
+    FileName =~ "tar.exe" and ProcessCommandLine matches regex @"(?i)\s-[a-z]*c|--create|\s[a-z]*c[a-z]*f\s",
         "tar creating an archive",
     ProcessCommandLine has_any ("Compress-Archive", "ZipFile", "CreateFromDirectory"),
         "PowerShell / .NET zip",
@@ -35,9 +36,10 @@ let FileHits = DeviceFileEvents
 | where Timestamp between ((T0 - 24h) .. (T0 + 24h))
 | where DeviceName startswith "HOSTNAME"
 | where ActionType in ("FileCreated", "FileRenamed")
-| where FileName matches regex @"(?i)\.(zip|7z|rar|tar|gz|tgz|cab)$"
+| where FileName matches regex @"(?i)\.(zip|7z|rar|tar|gz|tgz|cab)(\.\d{3})?$"
 | where FolderPath has_any (Staging)
-    or InitiatingProcessFileName in~ ("7z.exe", "7za.exe", "rar.exe", "winrar.exe", "powershell.exe", "pwsh.exe")
+    or InitiatingProcessFileName in~ ("7z.exe", "7za.exe", "7zG.exe", "7zFM.exe", "rar.exe", "winrar.exe", "wzzip.exe", "zip.exe", "tar.exe",
+        "powershell.exe", "pwsh.exe")
 | project Timestamp, Source = "File", Category = "Archive created",
     DeviceName, AccountName = InitiatingProcessAccountName, Process = FileName,
     Detail = strcat(FolderPath, " | SHA1 ", SHA1), Parent = InitiatingProcessFileName, FileSize;

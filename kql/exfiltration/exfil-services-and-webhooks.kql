@@ -9,6 +9,8 @@
 // rows for the webhook/messaging APIs are dropped because those hosts are used legitimately all day
 // Connection counts only: DeviceNetworkEvents has no byte volumes (see firewall-large-outbound-transfer.kql)
 // VERIFY: RemoteUrl is often the host only, so a webhook path such as /api/webhooks is not visible here
+// VERIFY: ActionType "ConnectionFound" is not listed on Microsoft Learn (Learn shows ConnectionSuccess); check
+//   DeviceNetworkEvents | where Timestamp > ago(1d) | summarize count() by ActionType
 // Replace HOSTNAME with the short device name (e.g. PC01); startswith matches the FQDN, case-insensitive
 // Remove the device filter to hunt estate-wide
 // Ref: docs/scenarios/03-suspicious-network-activity/investigation.md, docs/scenarios/09-lots-cloud-c2/investigation.md

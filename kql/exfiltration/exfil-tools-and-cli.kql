@@ -4,6 +4,9 @@
 // Covers: rclone and Mega clients, WinSCP / PuTTY transfer tools / scp / sftp / ftp, curl and wget uploads,
 // PowerShell uploads (Invoke-WebRequest POST, WebClient.Upload*, -InFile), cloud CLI copies
 // (aws s3, azcopy, az storage, gsutil), BITS uploads and Send-MailMessage with attachments
+// curl short flags are case-sensitive (-T upload, -F form, -d data; -t, -f, -D are other options), so they are
+// matched without (?i). Cloud CLI and WebClient.Upload* use regex because has needs whole terms in order and
+// misses aws.exe s3 cp, azcopy.exe copy and UploadFileAsync
 // rclone is renamed often: the command-line terms (remote syntax, --transfers, --config) catch renamed binaries
 // Replace HOSTNAME with the short device name (e.g. PC01); startswith matches the FQDN, case-insensitive
 // Remove the device filter to hunt estate-wide
@@ -23,14 +26,13 @@ DeviceProcessEvents
         or (FileName =~ "ftp.exe" and ProcessCommandLine contains "-s:"),
         "SFTP / SCP / FTP client",
     FileName in~ ("curl.exe", "wget.exe")
-        and ProcessCommandLine matches regex @"(?i)\s-T\s|--upload-file|\s-F\s|--form|--data-binary|--data\s@|\s-d\s@|-X\s+POST",
+        and ProcessCommandLine matches regex @"\s-[TF]\s|\s-d\s?@|(?i:--upload-file|--form|--data(-binary|-raw|-urlencode)?[\s=]@|-X\s*(POST|PUT)|--request\s+(POST|PUT)|--post-file|--post-data|--body-file)",
         "curl / wget upload",
-    ProcessCommandLine has_any ("UploadFile", "UploadData", "UploadString", "-InFile")
+    ProcessCommandLine matches regex @"(?i)Upload(File|Data|String|Values)|-InFile"
         or (ProcessCommandLine has_any ("Invoke-WebRequest", "Invoke-RestMethod", "iwr", "irm")
             and ProcessCommandLine matches regex @"(?i)-Method\s+(Post|Put)|-Body"),
         "PowerShell upload",
-    ProcessCommandLine has_any ("aws s3 cp", "aws s3 sync", "aws s3 mv", "azcopy copy", "azcopy sync", "az storage blob upload",
-        "Set-AzStorageBlobContent", "gsutil cp", "gcloud storage cp"),
+    ProcessCommandLine matches regex @"(?i)\baws\S*\s+s3\s+(cp|sync|mv)\b|\bazcopy\S*\s+(copy|cp|sync)\b|\baz\S*\s+storage\s+blob\s+(upload|sync)|Set-AzStorageBlobContent|\bgsutil\S*\s+(-m\s+)?(cp|mv|rsync)\b|\bgcloud\S*\s+storage\s+(cp|mv|rsync)\b",
         "Cloud CLI copy",
     (ProcessCommandLine has "Start-BitsTransfer" and ProcessCommandLine has "Upload")
         or (FileName =~ "bitsadmin.exe" and ProcessCommandLine has "/upload"),
