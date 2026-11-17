@@ -6,6 +6,8 @@ Malware needs to phone home, download tools, reach other devices or send data ou
 
 What to do, in order, is in the [playbook](playbook.md). This page explains what you are looking at and how to scope it.
 
+Data leaving the network: [archive-staging.kql](../../../kql/exfiltration/archive-staging.kql), [exfil-tools-and-cli.kql](../../../kql/exfiltration/exfil-tools-and-cli.kql), [exfil-services-and-webhooks.kql](../../../kql/exfiltration/exfil-services-and-webhooks.kql) and, for byte volumes from firewall logs, [firewall-large-outbound-transfer.kql](../../../kql/exfiltration/firewall-large-outbound-transfer.kql).
+
 T0 = the first suspicious network event from the device, or the earliest malicious event before it, in UTC. It is not the alert time. Advanced Hunting holds 30 days of native data; older activity needs Sentinel retention.
 
 | What you see | Read |

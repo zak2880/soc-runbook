@@ -50,6 +50,8 @@ Full index with MITRE mappings in [kql/README.md](kql/README.md).
 | [kql/files/](kql/files/) | Suspicious drops, hash sweep across estate |
 | [kql/identity/](kql/identity/) | lsass access, lateral movement, new accounts, Entra ID anomalies |
 | [kql/ransomware/](kql/ransomware/) | VSS deletion, mass renames, Defender disabled, log clearing |
+| [kql/exfiltration/](kql/exfiltration/) | Archive staging, upload tools, file-drop and webhook services, firewall volume, USB, mailbox forwarding rules |
+| [kql/triage/](kql/triage/) | Post-alert quick check on one device (TI file / network match) |
 
 ---
 

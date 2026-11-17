@@ -42,7 +42,9 @@ soc-runbook/
 │   ├── persistence/    Registry, tasks, services, WMI
 │   ├── files/          File artefacts and ransomware signals
 │   ├── identity/       Credential access and lateral movement
-│   └── ransomware/     Ransomware-specific detection
+│   ├── ransomware/     Ransomware-specific detection
+│   ├── exfiltration/   Data staging and exfiltration
+│   └── triage/         Post-alert quick checks
 ├── scripts/            Utility scripts (KQL smoke test runner)
 ├── tests/kql-smoke/    .NET KQL syntax validation harness
 └── scratchpad/         Local working notes — not syntax-checked, not committed

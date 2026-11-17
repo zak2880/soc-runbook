@@ -1,0 +1,29 @@
+// Exfiltration — mailbox forwarding, inbox rules and delegate permissions after account compromise
+// Runs in: Sentinel only (OfficeActivity uses TimeGenerated; needs the Microsoft 365 / Office 365 connector)
+// MITRE: T1114.003, T1564.008, T1098.002
+// Covers: inbox rules that forward, redirect or delete mail, mailbox-level forwarding (Set-Mailbox
+// ForwardingSmtpAddress), and added mailbox or recipient permissions
+// Attackers use these to read and siphon mail after a credential or token theft, and to hide replies
+// Run after a credential-compromise finding; rules set from a new client IP are the ones to read first
+// Replace USERNAME with the SAM account name (e.g. jsmith); the filter matches the UPN prefix, so check the UPN
+// matches the SAM name in your tenant. Remove the user filter to hunt tenant-wide
+// Ref: docs/scenarios/06-credential-compromise/investigation.md, docs/scenarios/12-phishing-email/investigation.md
+
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(PASTE_TIME_UTC);
+OfficeActivity
+| where TimeGenerated between ((T0 - 24h) .. (T0 + 7d))
+| where OfficeWorkload == "Exchange"
+| where UserId startswith "USERNAME@"
+| where Operation in~ ("New-InboxRule", "Set-InboxRule", "UpdateInboxRules", "Set-Mailbox", "Add-MailboxPermission", "Add-RecipientPermission", "New-TransportRule")
+| extend ParamText = tostring(Parameters)
+| extend Hit = case(
+    ParamText has_any ("ForwardTo", "ForwardAsAttachmentTo", "RedirectTo", "ForwardingSmtpAddress", "ForwardingAddress"),
+        "Forwards or redirects mail",
+    ParamText has_any ("DeleteMessage", "MoveToFolder", "MarkAsRead"),
+        "Hides or deletes mail",
+    Operation in~ ("Add-MailboxPermission", "Add-RecipientPermission"),
+        "Mailbox or recipient permission added",
+    "Other rule or mailbox change")
+| project TimeGenerated, UserId, Operation, Category = Hit, ClientIP, ParamText
+| order by TimeGenerated asc

@@ -1,0 +1,35 @@
+// Exfiltration — large outbound transfers from a device, from firewall logs
+// Runs in: Sentinel only (CommonSecurityLog uses TimeGenerated; needs a firewall or proxy connector)
+// MITRE: T1041, T1048
+// DeviceNetworkEvents has no byte counts, so volume has to come from the perimeter. This takes the device's
+// local IPs from Defender, then totals bytes sent to public destinations in the firewall logs
+// Lists destinations by megabytes sent; a sender that dwarfs what it receives is the exfil shape
+// Tune MinSentMB to the environment; backups, cloud sync and video calls will rank high
+// VERIFY: SentBytes / ReceivedBytes and the vendor's field mapping differ per connector; check with
+//   CommonSecurityLog | where DeviceVendor == "<vendor>" | take 10
+// Source addresses are pre-NAT on most firewalls; if nothing returns, the device IP may be translated
+// Replace HOSTNAME with the short device name (e.g. PC01); startswith matches the FQDN, case-insensitive
+// Ref: docs/scenarios/03-suspicious-network-activity/investigation.md
+
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(PASTE_TIME_UTC);
+let MinSentMB = 50;
+let HostIps = toscalar(
+    DeviceNetworkEvents
+    | where Timestamp between ((T0 - 24h) .. (T0 + 24h))
+    | where DeviceName startswith "HOSTNAME"
+    | where LocalIP !startswith "127." and LocalIP != "::1"
+    | summarize make_set(LocalIP));
+CommonSecurityLog
+| where TimeGenerated between ((T0 - 24h) .. (T0 + 24h))
+| where SourceIP in (HostIps)
+| where not(ipv4_is_private(DestinationIP))
+| summarize
+    SentMB = round(sum(todouble(SentBytes)) / 1048576, 1),
+    ReceivedMB = round(sum(todouble(ReceivedBytes)) / 1048576, 1),
+    Sessions = count(),
+    FirstSeen = min(TimeGenerated),
+    LastSeen = max(TimeGenerated)
+    by SourceIP, DestinationIP, DestinationPort, ApplicationProtocol, DeviceVendor
+| where SentMB >= MinSentMB
+| order by SentMB desc

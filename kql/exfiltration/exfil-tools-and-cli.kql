@@ -1,0 +1,44 @@
+// Exfiltration — upload tools and command-line transfers
+// Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// MITRE: T1048, T1567.002
+// Covers: rclone and Mega clients, WinSCP / PuTTY transfer tools / scp / sftp / ftp, curl and wget uploads,
+// PowerShell uploads (Invoke-WebRequest POST, WebClient.Upload*, -InFile), cloud CLI copies
+// (aws s3, azcopy, az storage, gsutil), BITS uploads and Send-MailMessage with attachments
+// rclone is renamed often: the command-line terms (remote syntax, --transfers, --config) catch renamed binaries
+// Replace HOSTNAME with the short device name (e.g. PC01); startswith matches the FQDN, case-insensitive
+// Remove the device filter to hunt estate-wide
+// Ref: docs/scenarios/03-suspicious-network-activity/investigation.md, docs/reference/common-false-positives.md
+
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(PASTE_TIME_UTC);
+DeviceProcessEvents
+| where Timestamp between ((T0 - 24h) .. (T0 + 24h))
+| where DeviceName startswith "HOSTNAME"
+| extend Hit = case(
+    FileName in~ ("rclone.exe", "megacmd.exe", "megasync.exe", "mega-put.exe")
+        or ProcessCommandLine has_any ("rclone", "mega-put", "MEGAclient")
+        or (ProcessCommandLine has_any ("--transfers", "--multi-thread-streams", "--no-check-certificate") and ProcessCommandLine has_any ("copy", "sync", "move")),
+        "rclone / Mega client",
+    FileName in~ ("pscp.exe", "psftp.exe", "winscp.exe", "winscp.com", "scp.exe", "sftp.exe")
+        or (FileName =~ "ftp.exe" and ProcessCommandLine contains "-s:"),
+        "SFTP / SCP / FTP client",
+    FileName in~ ("curl.exe", "wget.exe")
+        and ProcessCommandLine matches regex @"(?i)\s-T\s|--upload-file|\s-F\s|--form|--data-binary|--data\s@|\s-d\s@|-X\s+POST",
+        "curl / wget upload",
+    ProcessCommandLine has_any ("UploadFile", "UploadData", "UploadString", "-InFile")
+        or (ProcessCommandLine has_any ("Invoke-WebRequest", "Invoke-RestMethod", "iwr", "irm")
+            and ProcessCommandLine matches regex @"(?i)-Method\s+(Post|Put)|-Body"),
+        "PowerShell upload",
+    ProcessCommandLine has_any ("aws s3 cp", "aws s3 sync", "aws s3 mv", "azcopy copy", "azcopy sync", "az storage blob upload",
+        "Set-AzStorageBlobContent", "gsutil cp", "gcloud storage cp"),
+        "Cloud CLI copy",
+    (ProcessCommandLine has "Start-BitsTransfer" and ProcessCommandLine has "Upload")
+        or (FileName =~ "bitsadmin.exe" and ProcessCommandLine has "/upload"),
+        "BITS upload",
+    ProcessCommandLine has "Send-MailMessage" and ProcessCommandLine has "-Attachments",
+        "Mail with attachment from script",
+    "")
+| where Hit != ""
+| project Timestamp, DeviceName, AccountName, Category = Hit,
+    FileName, ProcessCommandLine, InitiatingProcessFileName
+| order by Timestamp asc

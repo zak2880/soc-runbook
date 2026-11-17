@@ -1,0 +1,36 @@
+// Exfiltration — USB / removable media mounts and files written to them
+// Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// MITRE: T1052.001
+// Lists USB drive mounts on a device, then file creates and renames on the drive letters those mounts used
+// A mount followed by a burst of writes to that letter is the copy-to-USB shape
+// VERIFY: the DriveLetter key inside AdditionalFields varies by sensor version; check with
+//   DeviceEvents | where ActionType == "UsbDriveMounted" | take 5
+// If DriveLetter is empty, the write rows return nothing; read the mount rows and the device timeline instead
+// Replace HOSTNAME with the short device name (e.g. PC01); startswith matches the FQDN, case-insensitive
+// Remove the device filters to hunt estate-wide
+// Ref: docs/scenarios/03-suspicious-network-activity/investigation.md
+
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(PASTE_TIME_UTC);
+let Mounts = DeviceEvents
+| where Timestamp between ((T0 - 24h) .. (T0 + 24h))
+| where DeviceName startswith "HOSTNAME"
+| where ActionType == "UsbDriveMounted"
+| extend Info = parse_json(AdditionalFields)
+| extend DriveLetter = tolower(substring(tostring(Info.DriveLetter), 0, 1)), Product = tostring(Info.ProductName), Serial = tostring(Info.SerialNumber);
+let Letters = toscalar(Mounts | where isnotempty(DriveLetter) | summarize make_set(DriveLetter));
+let MountRows = Mounts
+| project Timestamp, Source = "Mount", DeviceName, AccountName = InitiatingProcessAccountName,
+    Process = InitiatingProcessFileName,
+    Detail = strcat("Drive ", DriveLetter, ": | ", Product, " | serial ", Serial);
+let WriteRows = DeviceFileEvents
+| where Timestamp between ((T0 - 24h) .. (T0 + 24h))
+| where DeviceName startswith "HOSTNAME"
+| where ActionType in ("FileCreated", "FileRenamed")
+| where tolower(substring(FolderPath, 0, 1)) in (Letters)
+| where FolderPath matches regex @"^[A-Za-z]:\\"
+| project Timestamp, Source = "Write to removable drive", DeviceName, AccountName = InitiatingProcessAccountName,
+    Process = InitiatingProcessFileName,
+    Detail = strcat(FolderPath, "\\", FileName);
+union MountRows, WriteRows
+| order by Timestamp asc
