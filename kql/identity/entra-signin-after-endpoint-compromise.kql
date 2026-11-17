@@ -1,0 +1,38 @@
+// Identity — Entra ID sign-ins after credential or token theft on an endpoint
+// Runs in: Sentinel only (SigninLogs and AADNonInteractiveUserSignInLogs use TimeGenerated)
+// MITRE: T1078.004, T1550.001
+// Run after a credential-theft or infostealer finding to see whether the stolen credentials or tokens were used
+// Compares sign-ins from 24h before T0 onward with the account's successful sign-ins in the 30 days before that
+// The 24h gap (PreT0) keeps sign-ins replayed between the theft and the alert out of the baseline, where they
+// would otherwise mark the attacker's IP as known. Widen PreT0 if the theft happened well before T0
+// Rows with IsNewIp = true are the ones to read first; non-interactive sign-ins from a new IP with a new
+// user agent are the usual shape of token replay (no password or MFA prompt)
+// Replace USERNAME with the SAM account name (e.g. jsmith); the filter matches the UPN prefix, so check the UPN
+// matches the SAM name in your tenant
+// VERIFY: Learn describes AADNonInteractiveUserSignInLogs ResultType as "Success or Failure" but SigninLogs as
+// "0 indicates success"; check the non-interactive values before trusting Successes / Failures or the baseline:
+//   AADNonInteractiveUserSignInLogs | where TimeGenerated > ago(1d) | summarize count() by ResultType
+// Ref: docs/scenarios/06-credential-compromise/investigation.md
+
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(PASTE_TIME_UTC);
+let PreT0 = 24h;
+let BaselineIps = toscalar(
+    union SigninLogs, AADNonInteractiveUserSignInLogs
+    | where TimeGenerated between ((T0 - PreT0 - 30d) .. (T0 - PreT0))
+    | where UserPrincipalName startswith "USERNAME@"
+    | where ResultType == "0"
+    | summarize make_set(IPAddress));
+union SigninLogs, AADNonInteractiveUserSignInLogs
+| where TimeGenerated between ((T0 - PreT0) .. (T0 + 7d))
+| where UserPrincipalName startswith "USERNAME@"
+| extend IsNewIp = not(IPAddress in (BaselineIps))
+| summarize
+    Successes = countif(ResultType == "0"),
+    Failures = countif(ResultType != "0"),
+    Apps = make_set(AppDisplayName, 10),
+    Resources = make_set(ResourceDisplayName, 10),
+    FirstSeen = min(TimeGenerated),
+    LastSeen = max(TimeGenerated)
+    by UserPrincipalName, IPAddress, Location, ClientAppUsed, UserAgent, IsNewIp
+| order by IsNewIp desc, FirstSeen asc

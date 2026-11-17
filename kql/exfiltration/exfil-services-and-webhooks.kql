@@ -1,0 +1,45 @@
+// Exfiltration — anonymous file drops, paste sites, webhook/messaging APIs and tunnel services
+// Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// MITRE: T1567.002, T1567.004, T1572
+// Covers: anonymous file-sharing and drop sites, paste sites, webhook and bot APIs (Discord, Telegram, Slack,
+// webhook.site, Pipedream), and tunnelling services (ngrok, trycloudflare)
+// Complements lots-exfiltration-via-cloud.kql (OneDrive, SharePoint, Drive, Dropbox, S3, Blob) and
+// lots-suspicious-process-to-cloud.kql (Discord CDN, Telegram, Pastebin from non-browser processes); some overlap is expected
+// Browser rows are kept for file-drop and paste sites (a user uploading by hand is a policy question); browser
+// rows for the webhook/messaging APIs are dropped because those hosts are used legitimately all day
+// Connection counts only: DeviceNetworkEvents has no byte volumes (see firewall-large-outbound-transfer.kql)
+// VERIFY: RemoteUrl is often the host only, so a webhook path such as /api/webhooks is not visible here
+// VERIFY: ActionType "ConnectionFound" is not listed on Microsoft Learn (Learn shows ConnectionSuccess); check
+//   DeviceNetworkEvents | where Timestamp > ago(1d) | summarize count() by ActionType
+// Replace HOSTNAME with the short device name (e.g. PC01); startswith matches the FQDN, case-insensitive
+// Remove the device filter to hunt estate-wide
+// Ref: docs/scenarios/03-suspicious-network-activity/investigation.md, docs/scenarios/09-lots-cloud-c2/investigation.md
+
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(PASTE_TIME_UTC);
+let Browsers = dynamic(["chrome.exe", "msedge.exe", "firefox.exe", "brave.exe", "opera.exe", "iexplore.exe"]);
+DeviceNetworkEvents
+| where Timestamp between ((T0 - 24h) .. (T0 + 24h))
+| where DeviceName startswith "HOSTNAME"
+| where ActionType in ("ConnectionSuccess", "ConnectionFound")
+| extend Category = case(
+    RemoteUrl has_any ("transfer.sh", "file.io", "gofile.io", "pixeldrain.com", "temp.sh", "catbox.moe", "0x0.st", "bashupload.com",
+        "filebin.net", "tmpfiles.org", "ufile.io", "sendspace.com", "mega.nz", "mega.io", "mega.co.nz", "wetransfer.com", "we.tl"),
+        "Anonymous file drop / sharing",
+    RemoteUrl has_any ("pastebin.com", "paste.ee", "hastebin.com", "ghostbin.com", "controlc.com"),
+        "Paste site",
+    RemoteUrl has_any ("discord.com", "discordapp.com", "api.telegram.org", "hooks.slack.com", "webhook.site", "pipedream.net", "requestbin.com"),
+        "Webhook / messaging API",
+    RemoteUrl has_any ("ngrok.io", "ngrok-free.app", "ngrok.app", "trycloudflare.com", "serveo.net", "localhost.run", "portmap.io"),
+        "Tunnel / reverse proxy service",
+    "")
+| where Category != ""
+| extend IsBrowser = InitiatingProcessFileName in~ (Browsers)
+| where not(IsBrowser and Category == "Webhook / messaging API")
+| summarize
+    Connections = count(),
+    FirstSeen = min(Timestamp),
+    LastSeen = max(Timestamp),
+    SampleCommandLine = take_any(InitiatingProcessCommandLine)
+    by DeviceName, InitiatingProcessAccountName, Category, RemoteUrl, InitiatingProcessFileName, IsBrowser
+| order by IsBrowser asc, Connections desc

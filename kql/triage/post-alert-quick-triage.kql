@@ -1,0 +1,179 @@
+// Triage — post-alert quick check on one device (TI file match, TI network match, any endpoint alert)
+// Runs in: Defender XDR Advanced Hunting (also works in Sentinel when the table is streamed)
+// MITRE: n/a (triage)
+// One timeline of suspicious activity on one device around T0. Run it straight after an alert such as
+// "Device match TI File" or "Device match network connection" to see whether anything followed the hit
+// Covers: credential access, exfil/transfer tools, archive staging, encoded PowerShell, LOLBin network use,
+// persistence, defence impairment, user-writable-path execution, suspicious network destinations,
+// dropped files and credential-dump artefacts, lsass access, AV/SmartScreen/ASR events, other alerts on the device
+// Set IOC to the matched IP, domain, URL fragment, file name or SHA1 from the alert; the IOC rows use a
+// +/-24h window so they show how the indicator arrived. Leave it as the placeholder to skip them
+// Window: 1h before to 4h after T0 (Before / After below). Widen Before if the alert fired late
+// Browser network rows are kept only for file-drop, paste, webhook and tunnel services (a user uploading by hand)
+// IOC file rows also match downloads whose FileOriginUrl / FileOriginReferrerUrl / FileOriginIP is the indicator
+// Credential tools and recon commands use regex where has would need whole terms in order (procdump64.exe,
+// reg.exe save, net.exe group, powershell -ec all miss a has match)
+// VERIFY: ActionType "ConnectionFound" and the DeviceEvents values OpenProcessApiCall, ScheduledTaskCreated and
+// SmartScreenAppWarning are not listed on Microsoft Learn; the lsass target may be in FileName or AdditionalFields.
+//   DeviceEvents | where Timestamp > ago(1d) | summarize count() by ActionType
+// Noisy categories: "Execution from user-writable path" and "Dropped executable/script" fire on per-user
+// installers and updaters; read them last. Everything else is a reason to look, not a verdict
+// To count instead of listing, replace the final line with:
+//   | summarize Events = count(), First = min(Timestamp), Last = max(Timestamp) by Source, Category | order by Events desc
+// Ref: docs/reference/escalation-triggers.md, docs/reference/common-false-positives.md,
+// docs/scenarios/01-malware-alert/playbook.md
+
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(PASTE_TIME_UTC);
+// REPLACE: short device name (e.g. PC01); startswith matches the FQDN, case-insensitive
+let Device = "HOSTNAME";
+// OPTIONAL: IP, domain, URL fragment, file name or SHA1 from the alert
+let IOC = "PASTE_IOC_HERE";
+let Before = 1h;
+let After = 4h;
+let UserWritable = dynamic(["\\AppData\\", "\\Temp\\", "\\Users\\Public\\", "\\ProgramData\\", "\\Downloads\\"]);
+let Staging = dynamic(["\\Temp\\", "\\Users\\Public\\", "\\ProgramData\\", "\\PerfLogs\\", "\\$Recycle.Bin\\"]);
+let Browsers = dynamic(["chrome.exe", "msedge.exe", "firefox.exe", "brave.exe", "opera.exe", "iexplore.exe"]);
+let Proc = DeviceProcessEvents
+| where Timestamp between ((T0 - Before) .. (T0 + After))
+| where DeviceName startswith Device
+| extend Hit = case(
+    ProcessCommandLine has_any ("sekurlsa::", "lsadump::", "kerberos::", "privilege::debug", "mimikatz",
+        "ntdsutil", "ntds.dit", "vaultcmd", "GetUserSPNs", "Invoke-Kerberoast", "LaZagne")
+        or (ProcessCommandLine has "lsass" and ProcessCommandLine matches regex @"(?i)MiniDump|procdump|createdump|comsvcs")
+        or ProcessCommandLine matches regex @"(?i)\breg\S*\s+save\s+\S*(HKLM|HKEY_LOCAL_MACHINE)\\(SAM|SYSTEM|SECURITY)\b",
+        "Credential access",
+    FileName in~ ("rclone.exe", "megacmd.exe", "megasync.exe", "pscp.exe", "psftp.exe", "winscp.exe", "winscp.com", "azcopy.exe")
+        or ProcessCommandLine has_any ("rclone", "mega.nz", "transfer.sh", "file.io", "gofile.io", "webhook.site", "api.telegram.org")
+        or ProcessCommandLine contains "--upload-file"
+        or ProcessCommandLine contains "discord.com/api/webhooks",
+        "Exfil / transfer tool",
+    (FileName in~ ("7z.exe", "7za.exe", "rar.exe", "winrar.exe") and ProcessCommandLine matches regex @"(?i)\s-(hp|p)\S*")
+        or ProcessCommandLine has "Compress-Archive",
+        "Archive staging",
+    FileName in~ ("powershell.exe", "pwsh.exe")
+        and ProcessCommandLine matches regex @"(?i)-enc|\s[-/]ec?\s|FromBase64String|DownloadString|DownloadFile|Invoke-Expression|-w\w*\s+(hidden|h|1)\b",
+        "Encoded / download-cradle PowerShell",
+    FileName in~ ("certutil.exe", "mshta.exe", "regsvr32.exe", "rundll32.exe", "bitsadmin.exe", "msiexec.exe", "cmstp.exe")
+        and ProcessCommandLine matches regex @"(?i)https?://|urlcache|/transfer|scrobj|javascript:|-decode",
+        "LOLBin with network or decode arguments",
+    (FileName =~ "schtasks.exe" and ProcessCommandLine contains "/create")
+        or (FileName =~ "sc.exe" and ProcessCommandLine contains "create")
+        or ProcessCommandLine contains "CurrentVersion\\Run",
+        "Persistence",
+    ProcessCommandLine has_any ("Set-MpPreference", "DisableRealtimeMonitoring", "wevtutil", "Clear-EventLog", "wbadmin")
+        or (ProcessCommandLine has "vssadmin" and ProcessCommandLine has "delete")
+        or (ProcessCommandLine has "bcdedit" and ProcessCommandLine has "recoveryenabled"),
+        "Defence impairment",
+    ProcessCommandLine has_any ("nltest", "adfind", "sharphound", "bloodhound")
+        or ProcessCommandLine matches regex @"(?i)\bwhoami\S*\s+/all\b|\bnet1?(\.exe)?\S?\s+(group|localgroup)\b",
+        "Recon",
+    FolderPath has_any (UserWritable)
+        and not(FolderPath has_any ("\\Microsoft\\OneDrive\\", "\\Microsoft\\Teams\\", "\\Microsoft\\Edge\\", "\\Google\\Chrome\\", "\\Google\\Update\\")),
+        "Execution from user-writable path",
+    "")
+| where Hit != ""
+| project Timestamp, Source = "Process", Category = Hit, DeviceName, AccountName,
+    Process = FileName, Detail = ProcessCommandLine, Parent = InitiatingProcessFileName;
+let Net = DeviceNetworkEvents
+| where Timestamp between ((T0 - Before) .. (T0 + After))
+| where DeviceName startswith Device
+| where ActionType in ("ConnectionSuccess", "ConnectionFound")
+| where RemoteIPType == "Public"
+| where InitiatingProcessFileName !in~ ("teams.exe", "ms-teams.exe", "onedrive.exe", "outlook.exe", "msedgewebview2.exe", "MsMpEng.exe", "MicrosoftEdgeUpdate.exe")
+| extend Hit = case(
+    RemoteUrl has_any ("transfer.sh", "file.io", "gofile.io", "pixeldrain.com", "mega.nz", "mega.io", "temp.sh", "catbox.moe", "bashupload.com",
+        "filebin.net", "webhook.site", "api.telegram.org", "pastebin.com", "paste.ee", "ngrok.io", "ngrok-free.app", "trycloudflare.com"),
+        "Exfil / paste / webhook / tunnel service",
+    RemoteUrl has_any ("onedrive.live.com", "sharepoint.com", "drive.google.com", "dropboxapi.com", "api.dropbox.com", "s3.amazonaws.com", "blob.core.windows.net"),
+        "Cloud storage from non-browser process",
+    RemotePort in (4444, 1337, 31337, 50050, 8888, 9001),
+        "Known C2 / reverse-shell port",
+    InitiatingProcessFileName in~ ("powershell.exe", "pwsh.exe", "mshta.exe", "rundll32.exe", "regsvr32.exe", "certutil.exe", "bitsadmin.exe", "wscript.exe", "cscript.exe"),
+        "Script engine / LOLBin network connection",
+    InitiatingProcessFolderPath has_any (UserWritable),
+        "Network from user-writable path",
+    "")
+| where Hit != ""
+| where InitiatingProcessFileName !in~ (Browsers) or Hit == "Exfil / paste / webhook / tunnel service"
+| project Timestamp, Source = "Network", Category = Hit, DeviceName, AccountName = InitiatingProcessAccountName,
+    Process = InitiatingProcessFileName,
+    Detail = strcat(RemoteIP, ":", RemotePort, " ", RemoteUrl, " | ", InitiatingProcessCommandLine),
+    Parent = InitiatingProcessParentFileName;
+let Files = DeviceFileEvents
+| where Timestamp between ((T0 - Before) .. (T0 + After))
+| where DeviceName startswith Device
+| where ActionType in ("FileCreated", "FileRenamed")
+| extend Hit = case(
+    FileName in~ ("lsass.dmp", "ntds.dit")
+        or (FileName in~ ("SAM", "SYSTEM", "SECURITY") and FolderPath !has "\\System32\\config" and FolderPath !has "\\RegBack")
+        or (FileName endswith ".dmp" and FolderPath has_any (UserWritable)),
+        "Credential-dump artefact",
+    FileName in~ ("Login Data", "Cookies", "Web Data", "Local State", "logins.json", "key4.db", "cookies.sqlite")
+        and InitiatingProcessFileName !in~ (Browsers),
+        "Browser credential store copied",
+    FileName matches regex @"(?i)\.(zip|7z|rar|tar|gz|tgz|cab)$" and FolderPath has_any (Staging),
+        "Archive in staging path",
+    FileName matches regex @"(?i)\.(exe|dll|ps1|vbs|bat|hta|js|wsf|cmd|scr|lnk|iso|img)$" and FolderPath has_any (UserWritable),
+        "Dropped executable/script",
+    "")
+| where Hit != ""
+| project Timestamp, Source = "File", Category = Hit, DeviceName, AccountName = InitiatingProcessAccountName,
+    Process = FileName, Detail = strcat(FolderPath, " | SHA1 ", SHA1), Parent = InitiatingProcessFileName;
+let Reg = DeviceRegistryEvents
+| where Timestamp between ((T0 - Before) .. (T0 + After))
+| where DeviceName startswith Device
+| where ActionType in ("RegistryValueSet", "RegistryKeyCreated")
+| where RegistryKey has_any ("\\CurrentVersion\\Run", "\\CurrentVersion\\RunOnce", "\\Winlogon", "\\Image File Execution Options", "Windows Defender\\Exclusions")
+    or RegistryValueName in~ ("DisableAntiSpyware", "DisableRealtimeMonitoring", "DisableBehaviorMonitoring")
+| project Timestamp, Source = "Registry", Category = "Persistence / defence impairment (registry)", DeviceName,
+    AccountName = InitiatingProcessAccountName, Process = InitiatingProcessFileName,
+    Detail = strcat(RegistryKey, " | ", RegistryValueName, " = ", RegistryValueData),
+    Parent = InitiatingProcessParentFileName;
+let Ev = DeviceEvents
+| where Timestamp between ((T0 - Before) .. (T0 + After))
+| where DeviceName startswith Device
+| where (ActionType == "OpenProcessApiCall" and (FileName =~ "lsass.exe" or AdditionalFields has "lsass")
+        and InitiatingProcessFileName !in~ ("MsMpEng.exe", "MsSense.exe", "SenseIR.exe"))
+    or ActionType in ("ScheduledTaskCreated", "UsbDriveMounted", "AntivirusDetection", "SmartScreenAppWarning",
+        "SmartScreenUrlWarning", "ExploitGuardNetworkProtectionBlocked")
+    or ActionType startswith "Asr"
+| project Timestamp, Source = "DeviceEvents", Category = ActionType, DeviceName,
+    AccountName = InitiatingProcessAccountName, Process = InitiatingProcessFileName,
+    Detail = strcat(FileName, " ", FolderPath, " | ", AdditionalFields),
+    Parent = InitiatingProcessParentFileName;
+let Alerts = AlertEvidence
+| where Timestamp between ((T0 - Before) .. (T0 + After))
+| where DeviceName startswith Device
+| summarize by AlertId
+| join kind=inner (AlertInfo) on AlertId
+| project Timestamp, Source = "Alert", Category = strcat("Alert: ", Title), DeviceName = Device,
+    AccountName = "", Process = "", Detail = strcat(Severity, " | ", ServiceSource, " | ", DetectionSource),
+    Parent = "";
+let IocHits = union
+    (DeviceNetworkEvents
+        | where Timestamp between ((T0 - 24h) .. (T0 + 24h))
+        | where DeviceName startswith Device
+        | where RemoteIP == IOC or RemoteUrl contains IOC or InitiatingProcessSHA1 == IOC
+        | project Timestamp, Source = "IOC match", Category = "Network",
+            DeviceName, AccountName = InitiatingProcessAccountName, Process = InitiatingProcessFileName,
+            Detail = strcat(RemoteIP, ":", RemotePort, " ", RemoteUrl, " | ", InitiatingProcessCommandLine),
+            Parent = InitiatingProcessParentFileName),
+    (DeviceProcessEvents
+        | where Timestamp between ((T0 - 24h) .. (T0 + 24h))
+        | where DeviceName startswith Device
+        | where SHA1 == IOC or InitiatingProcessSHA1 == IOC or ProcessCommandLine contains IOC or FileName =~ IOC
+        | project Timestamp, Source = "IOC match", Category = "Process",
+            DeviceName, AccountName, Process = FileName, Detail = ProcessCommandLine,
+            Parent = InitiatingProcessFileName),
+    (DeviceFileEvents
+        | where Timestamp between ((T0 - 24h) .. (T0 + 24h))
+        | where DeviceName startswith Device
+        | where SHA1 == IOC or InitiatingProcessSHA1 == IOC or FileName =~ IOC
+            or FileOriginIP == IOC or FileOriginUrl contains IOC or FileOriginReferrerUrl contains IOC
+        | project Timestamp, Source = "IOC match", Category = "File",
+            DeviceName, AccountName = InitiatingProcessAccountName, Process = FileName,
+            Detail = strcat(ActionType, " | ", FolderPath, " | SHA1 ", SHA1, " | origin ", FileOriginUrl),
+            Parent = InitiatingProcessFileName);
+union Proc, Net, Files, Reg, Ev, Alerts, IocHits
+| order by Timestamp asc

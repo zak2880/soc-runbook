@@ -9,9 +9,10 @@ Replace placeholders before running:
 - `HOSTNAME` — the **short** device name (e.g. `PC01`). Queries match it with `DeviceName startswith "HOSTNAME"`, which is case-insensitive and also matches the FQDN that `DeviceName` stores. It also matches longer names that share the prefix (`PC01` matches `PC010`), so check `DeviceName` in the results.
 - `USERNAME` — the SAM account name (e.g. `jsmith`), not the UPN.
 - `PASTE_SHA1_HERE` / `PASTE_SHA256_HERE` — file hashes. SHA256 is often empty in Defender tables; paste SHA1 too.
+- `IOC` — optional, used only by [triage/post-alert-quick-triage.kql](triage/post-alert-quick-triage.kql): the IP, domain, URL fragment, file name or SHA1 from the alert. Leave it as `PASTE_IOC_HERE` to skip the indicator rows.
 - `T0` — the incident time in UTC, on the line under `// REPLACE: incident time`. Both the `.kql` files and the copies embedded in `docs/` use `datetime(PASTE_TIME_UTC)`, which fails to parse until replaced. For a routine hunt, set `T0` to `now()`.
 
-Each query's second header line says where it runs (`// Runs in:`). Defender tables use `Timestamp`; Sentinel-only tables (`SigninLogs`, `AADNonInteractiveUserSignInLogs`) use `TimeGenerated`. Advanced Hunting holds 30 days of native data.
+Each query's second header line says where it runs (`// Runs in:`). Defender tables use `Timestamp`; Sentinel-only tables (`SigninLogs`, `AADNonInteractiveUserSignInLogs`, `OfficeActivity`, `CommonSecurityLog`) use `TimeGenerated`. Advanced Hunting holds 30 days of native data.
 
 ---
 
@@ -79,6 +80,31 @@ Each query's second header line says where it runs (`// Runs in:`). Defender tab
 | [all-alerts-for-device.kql](identity/all-alerts-for-device.kql) | All Defender alerts for a specific device in the last 7 days | n/a (triage) |
 | [entra-impossible-travel.kql](identity/entra-impossible-travel.kql) | Account signing in from two different countries within 1 hour | T1078 |
 | [entra-mfa-fatigue.kql](identity/entra-mfa-fatigue.kql) | 5+ failed MFA prompts in 10 minutes against a single account | T1621 |
+| [browser-credential-theft.kql](identity/browser-credential-theft.kql) | Browser credential/cookie store copied by a non-browser process, stealer tooling, headless browser with remote debugging port | T1555.003, T1539 |
+| [credential-store-and-secret-hunting.kql](identity/credential-store-and-secret-hunting.kql) | Credential Manager, KeePass vaults, passwords searched for in files, cloud/dev tokens and private keys, saved remote-access credentials | T1555.004, T1555.005, T1552.001, T1552.002, T1552.004, T1552.006 |
+| [credential-dump-artefacts.kql](identity/credential-dump-artefacts.kql) | lsass dump tools, ntdsutil IFM, esentutl, shadow-copy copies, and the dump files and hive copies they leave | T1003.001, T1003.002, T1003.003 |
+| [entra-signin-after-endpoint-compromise.kql](identity/entra-signin-after-endpoint-compromise.kql) | Sign-ins for an account from 24h before T0 onward, flagging IPs not seen in the 30 days before that, including non-interactive (Sentinel) | T1078.004, T1550.001 |
+
+---
+
+## exfiltration/
+
+| File | What it detects | MITRE |
+|------|----------------|-------|
+| [archive-staging.kql](exfiltration/archive-staging.kql) | Password-protected or bulk archive creation and archive files in staging paths, with size | T1560.001, T1074.001 |
+| [exfil-tools-and-cli.kql](exfiltration/exfil-tools-and-cli.kql) | rclone, Mega, WinSCP/scp/sftp/ftp, curl and PowerShell uploads, cloud CLI copies, BITS uploads | T1048, T1567.002 |
+| [exfil-services-and-webhooks.kql](exfiltration/exfil-services-and-webhooks.kql) | Anonymous file drops, paste sites, webhook/messaging APIs and tunnel services (connection counts) | T1567.002, T1567.004, T1572 |
+| [firewall-large-outbound-transfer.kql](exfiltration/firewall-large-outbound-transfer.kql) | Megabytes sent from a device's IPs to public destinations, from firewall logs (Sentinel) | T1041, T1048 |
+| [usb-removable-media.kql](exfiltration/usb-removable-media.kql) | USB mounts and file writes to the mounted drive letters | T1052.001 |
+| [m365-mailbox-forwarding-rules.kql](exfiltration/m365-mailbox-forwarding-rules.kql) | Inbox rules (OWA, PowerShell and Outlook client), transport rules and mailbox settings that forward, redirect or hide mail; added mailbox permissions (Sentinel) | T1114.003, T1564.008, T1098.002 |
+
+---
+
+## triage/
+
+| File | What it detects | MITRE |
+|------|----------------|-------|
+| [post-alert-quick-triage.kql](triage/post-alert-quick-triage.kql) | One timeline of suspicious process, network, file, registry, lsass and alert activity on a device around T0, plus optional IOC rows. Run straight after a TI file or network-match alert | n/a (triage) |
 
 ---
 

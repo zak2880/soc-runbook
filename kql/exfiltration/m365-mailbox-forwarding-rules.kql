@@ -1,0 +1,39 @@
+// Exfiltration — mailbox forwarding, inbox rules and delegate permissions after account compromise
+// Runs in: Sentinel only (OfficeActivity uses TimeGenerated; needs the Microsoft 365 / Office 365 connector)
+// MITRE: T1114.003, T1564.008, T1098.002
+// Covers: inbox rules that forward, redirect or delete mail (OWA / PowerShell New-/Set-InboxRule and Outlook
+// client UpdateInboxRules), mailbox-level forwarding (Set-Mailbox ForwardingSmtpAddress), transport rules that
+// redirect, copy or delete mail, and added mailbox or recipient permissions
+// Parameters (admin cmdlets) and OperationProperties (mailbox audit actions such as UpdateInboxRules) are both
+// searched; parameter names are matched as substrings so ForwardTo also matches ForwardToRecipientsAction
+// Attackers use these to read and siphon mail after a credential or token theft, and to hide replies
+// Run after a credential-compromise finding; rules set from a new client IP are the ones to read first
+// ClientIP falls back to Client_IPAddress (both are OfficeActivity columns; mailbox audit records may fill only one)
+// Replace USERNAME with the SAM account name (e.g. jsmith); the filter matches the UPN prefix, so check the UPN
+// matches the SAM name in your tenant. Remove the user filter to hunt tenant-wide
+// UserId is the account that ran the change: an admin setting forwarding on this mailbox is filtered out,
+// so also run it tenant-wide when an admin account may be involved
+// VERIFY: Learn lists UpdateInboxRules as a mailbox audit action and OperationProperties as a column, but does not
+// document which keys hold the rule actions; check that forwarding shows in ParamText:
+//   OfficeActivity | where Operation == "UpdateInboxRules" | take 10 | project Parameters, OperationProperties
+// Ref: docs/scenarios/06-credential-compromise/investigation.md, docs/scenarios/12-phishing-email/investigation.md
+
+// REPLACE: incident time (T0, UTC) on the next line before running
+let T0 = datetime(PASTE_TIME_UTC);
+OfficeActivity
+| where TimeGenerated between ((T0 - 24h) .. (T0 + 7d))
+| where OfficeWorkload == "Exchange"
+| where UserId startswith "USERNAME@"
+| where Operation in~ ("New-InboxRule", "Set-InboxRule", "UpdateInboxRules", "Set-Mailbox", "Add-MailboxPermission", "Add-RecipientPermission",
+    "New-TransportRule", "Set-TransportRule")
+| extend ParamText = strcat(tostring(Parameters), " ", tostring(OperationProperties))
+| extend Hit = case(
+    ParamText matches regex @"(?i)ForwardTo|ForwardAsAttachmentTo|RedirectTo|RedirectMessageTo|ForwardingSmtpAddress|ForwardingAddress|BlindCopyTo|AddToRecipients|\bCopyTo\b",
+        "Forwards or redirects mail",
+    ParamText matches regex @"(?i)DeleteMessage|PermanentDelete|MoveToFolder|MarkAsRead",
+        "Hides or deletes mail",
+    Operation in~ ("Add-MailboxPermission", "Add-RecipientPermission"),
+        "Mailbox or recipient permission added",
+    "Other rule or mailbox change")
+| project TimeGenerated, UserId, Operation, Category = Hit, ClientIP = coalesce(ClientIP, Client_IPAddress), ParamText
+| order by TimeGenerated asc

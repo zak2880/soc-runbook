@@ -8,6 +8,8 @@ If malware has credentials, a single infected device becomes a full breach. This
 
 ## Credential dumping
 
+Other credential-theft queries in the library, beyond the ones below: [credential-dump-artefacts.kql](../../../kql/identity/credential-dump-artefacts.kql) (comsvcs, procdump, ntdsutil IFM, esentutl, shadow-copy copies and the files they leave), [browser-credential-theft.kql](../../../kql/identity/browser-credential-theft.kql) (browser stores and session cookies), [credential-store-and-secret-hunting.kql](../../../kql/identity/credential-store-and-secret-hunting.kql) (Credential Manager, vaults, secret files), and, once theft is confirmed, [entra-signin-after-endpoint-compromise.kql](../../../kql/identity/entra-signin-after-endpoint-compromise.kql) and [m365-mailbox-forwarding-rules.kql](../../../kql/exfiltration/m365-mailbox-forwarding-rules.kql) to see whether the stolen access was used.
+
 ### lsass.exe access
 
 `lsass.exe` is the Local Security Authority process. Without Credential Guard, Windows keeps secrets such as NTLM password hashes and Kerberos TGTs in its memory. Mimikatz and similar tools read them from there.
