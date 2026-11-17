@@ -3,8 +3,11 @@
 // MITRE: T1052.001
 // Lists USB drive mounts on a device, then file creates and renames on the drive letters those mounts used
 // A mount followed by a burst of writes to that letter is the copy-to-USB shape
-// VERIFY: the DriveLetter key inside AdditionalFields varies by sensor version; check with
-//   DeviceEvents | where ActionType == "UsbDriveMounted" | take 5
+// Mounts are read from 7 days before T0 so a drive plugged in before the write window still gives its letter
+// VERIFY: UsbDriveMounted is a documented ActionType (renamed from UsbDriveMount), but Learn does not list its
+// AdditionalFields keys; DriveLetter, ProductName and SerialNumber come from community queries. Check with
+//   DeviceEvents | where ActionType == "UsbDriveMounted" | take 5 | project AdditionalFields
+// VERIFY: the write rows assume FolderPath on the removable drive starts with its drive letter (E:\...)
 // If DriveLetter is empty, the write rows return nothing; read the mount rows and the device timeline instead
 // Replace HOSTNAME with the short device name (e.g. PC01); startswith matches the FQDN, case-insensitive
 // Remove the device filters to hunt estate-wide
@@ -13,7 +16,7 @@
 // REPLACE: incident time (T0, UTC) on the next line before running
 let T0 = datetime(PASTE_TIME_UTC);
 let Mounts = DeviceEvents
-| where Timestamp between ((T0 - 24h) .. (T0 + 24h))
+| where Timestamp between ((T0 - 7d) .. (T0 + 24h))
 | where DeviceName startswith "HOSTNAME"
 | where ActionType == "UsbDriveMounted"
 | extend Info = parse_json(AdditionalFields)
